@@ -1,0 +1,347 @@
+import Foundation
+import PrivySDK
+import FirebaseAuth
+import FirebaseFirestore
+import AuthenticationServices
+import OSLog
+
+private let logger = Logger(subsystem: "com.syndicatemike.Wickett", category: "HybridPrivyService")
+
+/// Service that bridges Privy authentication with Firebase
+/// Implements the pattern: Privy Auth → Firebase Custom Token → Firebase Session
+@MainActor
+class HybridPrivyService: ObservableObject {
+    static let shared = HybridPrivyService()
+
+    private var privyClient: (any Privy)?
+    private let firebaseCallable = FirebaseCallableClient.shared
+
+    @Published var isAuthenticated = false
+    @Published var currentUser: User?
+    @Published var walletAddress: String?
+
+    private var authenticatedEmail: String?
+
+    private init() {
+        initializePrivySDK()
+    }
+
+    // MARK: - Initialization
+
+    private func initializePrivySDK() {
+        let loggingConfig = PrivyLoggingConfig(
+            logLevel: .verbose,
+            logMessage: { level, message in
+                print("🔵 PRIVY [\(level)]: \(message)")
+                // Also log HTTP requests/responses
+                if message.contains("http") || message.contains("HTTP") || message.contains("401") || message.contains("request") || message.contains("response") {
+                    print("🚨 HTTP LOG: \(message)")
+                }
+            }
+        )
+
+        let config = PrivyConfig(
+            appId: "cmh5i82000072jl0cixsq20k7",
+            appClientId: "client-WY6SJ3DpaUXxFWCWdTG6FANZ2zzDxkaF9kUWjZTqDM5RG",
+            loggingConfig: loggingConfig
+        )
+
+        privyClient = PrivySdk.initialize(config: config)
+        logger.info("✅ Privy SDK initialized with verbose logging")
+        logger.info("📋 Configuration:")
+        logger.info("   - App ID: cmh5i82000072jl0cixsq20k7")
+        logger.info("   - Client ID: client-WY6SJ3DpaUXxFWCWdTG6FANZ2zzDxkaF9kUWjZTqDM5RG")
+        logger.info("   - Bundle ID: com.syndicatemike.Wickett")
+    }
+
+    // MARK: - Authentication
+
+    /// Authenticate with Privy OAuth (Apple), then bridge to Firebase
+    func authenticateWithPrivyOAuth() async throws {
+        try await authenticateWithProvider(PrivySDK.OAuthProvider.apple)
+    }
+
+    /// Authenticate with Privy OAuth (Google), then bridge to Firebase
+    func authenticateWithPrivyGoogle() async throws {
+        try await authenticateWithProvider(PrivySDK.OAuthProvider.google)
+    }
+
+    /// Generic OAuth authentication with any provider
+    private func authenticateWithProvider(_ provider: PrivySDK.OAuthProvider) async throws {
+        let providerName = provider == PrivySDK.OAuthProvider.apple ? "Apple" : "Google"
+        let emoji = provider == PrivySDK.OAuthProvider.apple ? "🍎" : "🔵"
+
+        logger.info("\(emoji) Starting Privy \(providerName) Sign-In...")
+        logger.info("📱 App ID: cmh5i82000072jl0cixsq20k7")
+        logger.info("🔑 Client ID: client-WY6SJ3DpaUXxFWCWdTG6FANZ2zzDxkaF9kUWjZTqDM5RG")
+
+        guard let privy = privyClient else {
+            throw HybridPrivyError.authenticationFailed("Privy client not initialized")
+        }
+
+        do {
+            logger.info("🔐 Calling Privy OAuth login with \(providerName) provider...")
+            logger.info("📱 Using app URL scheme: wickett")
+            let privyUser = try await privy.oAuth.login(with: provider, appUrlScheme: "wickett")
+            logger.info("✅ Privy authentication successful: \(privyUser.id)")
+
+            // Continue with the rest of authentication
+            try await handleSuccessfulAuth(privyUser: privyUser)
+        } catch {
+            logger.error("❌ Privy OAuth login failed")
+            logger.error("📛 Error type: \(type(of: error))")
+            logger.error("📛 Error description: \(error.localizedDescription)")
+            logger.error("📛 Full error: \(String(describing: error))")
+
+            throw error
+        }
+    }
+
+    private func handleSuccessfulAuth(privyUser: PrivyUser) async throws {
+        logger.info("✅ Privy authentication successful: \(privyUser.id)")
+
+        // Extract email from linked accounts
+        for account in privyUser.linkedAccounts {
+            if case .email(let emailAccount) = account {
+                self.authenticatedEmail = emailAccount.email
+                break
+            }
+            if case .apple(let appleAccount) = account {
+                self.authenticatedEmail = appleAccount.email
+                break
+            }
+        }
+
+        // Bridge to Firebase and get the Firebase UID
+        let firebaseUid = try await bridgeToFirebase(privyUser: privyUser)
+
+        // Fetch user data and wallet, passing the Firebase UID for Firestore queries
+        await fetchUserData(privyUser: privyUser, firebaseUid: firebaseUid)
+    }
+
+    // MARK: - Firebase Bridge
+
+    /// Bridge Privy authentication to Firebase by creating a custom token
+    @discardableResult
+    private func bridgeToFirebase(privyUser: PrivyUser) async throws -> String {
+        logger.info("🔗 Bridging to Firebase...")
+        logger.info("🔗 Using Privy user ID: \(privyUser.id)")
+
+        do {
+            // Prepare user data for Firebase bridge
+            var privyUserData: [String: Any] = [:]
+
+            // Determine authentication method
+            var authMethod = "privy_apple"
+
+            // Include email if available (Apple Sign-In)
+            if let email = self.authenticatedEmail {
+                privyUserData["email"] = email
+                logger.info("📧 Including email in Firebase bridge: \(email)")
+            }
+
+            // Extract displayName and wallet from linked accounts if available
+            var displayName: String? = nil
+            var address: String? = nil
+
+            for account in privyUser.linkedAccounts {
+                switch account {
+                case .email(let emailAcc):
+                    displayName = displayName ?? emailAcc.email
+                case .embeddedSolanaWallet(let sol):
+                    address = sol.address
+                default:
+                    break
+                }
+            }
+
+            if let displayName { privyUserData["displayName"] = displayName }
+            if let address {
+                privyUserData["wallet"] = ["address": address]
+                logger.info("💼 Including wallet in Firebase bridge: \(address)")
+            }
+
+            // Create Firebase custom token using the Privy user
+            let result = try await firebaseCallable.call(
+                "createFirebaseCustomToken",
+                data: [
+                    "authMethod": authMethod,
+                    "privyUserId": privyUser.id,
+                    "privyUserData": privyUserData,
+                    "timestamp": Date().timeIntervalSince1970
+                ]
+            )
+
+            guard let data = result.data as? [String: Any],
+                  let customToken = data["customToken"] as? String else {
+                throw HybridPrivyError.authenticationFailed("Failed to create Firebase token")
+            }
+
+            // Sign in to Firebase with custom token
+            let authResult = try await Auth.auth().signIn(withCustomToken: customToken)
+
+            logger.info("✅ Firebase authentication successful")
+            logger.info("👤 Firebase UID: \(authResult.user.uid)")
+            logger.info("🔗 Auth method: \(authMethod)")
+
+            // Return the Firebase UID for use in Firestore queries
+            return authResult.user.uid
+
+        } catch {
+            logger.error("❌ Firebase bridge failed: \(error)")
+            throw HybridPrivyError.authenticationFailed("Firebase bridge failed: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - User Data
+
+    private func fetchUserData(privyUser: PrivyUser, firebaseUid: String? = nil) async {
+        // Get or create Solana wallet
+        var wallet: String? = nil
+
+        // First check if user already has a Solana wallet
+        for account in privyUser.linkedAccounts {
+            if case .embeddedSolanaWallet(let sol) = account {
+                wallet = sol.address
+                logger.info("💼 Found existing Solana wallet: \(sol.address)")
+                break
+            }
+        }
+
+        // If no wallet exists, create one
+        if wallet == nil {
+            do {
+                logger.info("💼 Creating new Solana wallet...")
+                let solanaWallet = try await privyUser.createSolanaWallet()
+                wallet = solanaWallet.address
+                logger.info("✅ Created Solana wallet: \(solanaWallet.address)")
+            } catch {
+                logger.error("❌ Failed to create Solana wallet: \(error)")
+            }
+        }
+
+        // Use Firebase UID for Firestore queries, fall back to Privy ID if not available
+        let userId = firebaseUid ?? {
+            // If we don't have Firebase UID, construct it the same way the Cloud Function does
+            let privyId = privyUser.id
+            return privyId.starts(with: "privy_") ? privyId : "privy_\(privyId)"
+        }()
+
+        await MainActor.run {
+            self.isAuthenticated = true
+            self.currentUser = User(
+                id: userId,  // Use Firebase UID instead of Privy ID
+                email: self.authenticatedEmail,
+                name: nil,
+                walletAddress: wallet
+            )
+            self.walletAddress = wallet
+        }
+
+        logger.info("✅ User data fetched successfully")
+        if let wallet = wallet {
+            logger.info("💼 Wallet address: \(wallet)")
+        }
+    }
+
+    // MARK: - Sign Out
+
+    func signOut() async throws {
+        logger.info("🚪 Signing out...")
+
+        // Get current user and sign out from Privy
+        if let user = await privyClient?.getUser() {
+            await user.logout()
+        }
+
+        // Sign out from Firebase
+        try Auth.auth().signOut()
+
+        await MainActor.run {
+            self.isAuthenticated = false
+            self.currentUser = nil
+            self.walletAddress = nil
+            self.authenticatedEmail = nil
+        }
+
+        logger.info("✅ Signed out successfully")
+    }
+
+    // MARK: - Helpers
+
+    func isUserAuthenticated() async -> Bool {
+        // Check both Privy and Firebase authentication status
+        let authState = await privyClient?.getAuthState()
+        if case .authenticated = authState {
+            // Restore user data from Privy if session exists
+            if let privyUser = await privyClient?.getUser() {
+                // Check Firebase authentication status
+                if let currentUser = Auth.auth().currentUser {
+                    logger.info("🔄 Firebase session exists - validating...")
+                    do {
+                        // First try to get token WITHOUT forcing refresh
+                        // Firebase SDK will auto-refresh if needed (much faster)
+                        _ = try await currentUser.getIDTokenResult(forcingRefresh: false)
+                        logger.info("✅ Firebase session is valid")
+
+                        // Get Firebase UID for Firestore queries
+                        let firebaseUid = currentUser.uid
+                        await fetchUserData(privyUser: privyUser, firebaseUid: firebaseUid)
+                    } catch {
+                        // Token refresh failed, try forcing a refresh
+                        logger.info("⚠️ Auto-refresh failed, attempting manual refresh...")
+                        do {
+                            _ = try await currentUser.getIDTokenResult(forcingRefresh: true)
+                            logger.info("✅ Firebase token manually refreshed")
+
+                            // Get Firebase UID for Firestore queries
+                            let firebaseUid = currentUser.uid
+                            await fetchUserData(privyUser: privyUser, firebaseUid: firebaseUid)
+                        } catch {
+                            // Both auto and manual refresh failed, re-authenticate
+                            logger.info("🔄 Token refresh failed - re-authenticating via Privy...")
+                            do {
+                                let firebaseUid = try await bridgeToFirebase(privyUser: privyUser)
+                                await fetchUserData(privyUser: privyUser, firebaseUid: firebaseUid)
+                            } catch {
+                                logger.error("❌ Failed to re-authenticate with Firebase: \(error)")
+                                return false
+                            }
+                        }
+                    }
+                } else {
+                    // No Firebase session, need to authenticate
+                    logger.info("🔄 No Firebase session - authenticating...")
+                    do {
+                        let firebaseUid = try await bridgeToFirebase(privyUser: privyUser)
+                        await fetchUserData(privyUser: privyUser, firebaseUid: firebaseUid)
+                    } catch {
+                        logger.error("❌ Failed to authenticate with Firebase: \(error)")
+                        return false
+                    }
+                }
+            }
+            return Auth.auth().currentUser != nil
+        }
+        return false
+    }
+}
+
+// MARK: - Errors
+
+enum HybridPrivyError: LocalizedError {
+    case invalidCredential
+    case missingToken
+    case authenticationFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidCredential:
+            return "Invalid Apple ID credential"
+        case .missingToken:
+            return "Missing identity token"
+        case .authenticationFailed(let message):
+            return "Authentication failed: \(message)"
+        }
+    }
+}

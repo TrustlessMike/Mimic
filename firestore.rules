@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection - users can only read/write their own data
+    match /users/{userId} {
+      // Allow authenticated users to read/write their own document
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Allow Cloud Functions service account to create/update user documents
+      // This is needed for the Firebase custom token creation flow
+      allow create, update: if request.auth != null;
+    }
+
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
