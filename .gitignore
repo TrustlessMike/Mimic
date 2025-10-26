@@ -98,4 +98,4 @@ iOSInjectionProject/
 
 # IDE
 .idea/
-.vscode/
+.vscode/.tmp_privy/
