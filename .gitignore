@@ -98,4 +98,26 @@ iOSInjectionProject/
 
 # IDE
 .idea/
-.vscode/.tmp_privy/
+.vscode/
+
+# Testing artifacts
+test-*.js
+test-*.sh
+simple-test.js
+mainnet-test.js
+generate-fee-payer.js
+
+# Archives
+archive/
+
+# Temporary directories
+.tmp_privy/
+
+# Logs
+*.log
+firebase-debug.log
+xcodebuild-assets.log
+
+# Secrets (verify these are covered)
+*.key
+*-key.json

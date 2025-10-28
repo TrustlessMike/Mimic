@@ -11,3 +11,9 @@ export { sponsorSolTransfer } from "./transactions/sponsor-sol-transfer";
 export { sponsorSplTransfer } from "./transactions/sponsor-spl-transfer";
 export { sponsorJupiterSwap } from "./transactions/sponsor-jupiter-swap";
 export { sponsorCustomInstruction } from "./transactions/sponsor-custom-instruction";
+
+// Export monitoring functions
+export {
+  monitorFeePayerBalance,
+  checkFeePayerBalance
+} from "./monitoring/fee-payer-monitor";
