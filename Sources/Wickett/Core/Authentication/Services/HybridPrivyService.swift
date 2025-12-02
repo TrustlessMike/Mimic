@@ -34,16 +34,16 @@ class HybridPrivyService: ObservableObject {
     // MARK: - Initialization
 
     private func initializePrivySDK() {
+        #if DEBUG
         let loggingConfig = PrivyLoggingConfig(
             logLevel: .verbose,
             logMessage: { level, message in
                 print("🔵 PRIVY [\(level)]: \(message)")
-                // Also log HTTP requests/responses
-                if message.contains("http") || message.contains("HTTP") || message.contains("401") || message.contains("request") || message.contains("response") {
-                    print("🚨 HTTP LOG: \(message)")
-                }
             }
         )
+        #else
+        let loggingConfig = PrivyLoggingConfig(logLevel: .error)
+        #endif
 
         let config = PrivyConfig(
             appId: "cmh5i82000072jl0cixsq20k7",
@@ -52,12 +52,7 @@ class HybridPrivyService: ObservableObject {
         )
 
         privyClient = PrivySdk.initialize(config: config)
-        logger.info("✅ Privy SDK initialized with verbose logging")
-        logger.info("📋 Configuration:")
-        logger.info("   - App ID: cmh5i82000072jl0cixsq20k7")
-        logger.info("   - Client ID: client-WY6SJ3DpaUXxFWCWdTG6FANZ2zzDxkaF9kUWjZTqDM5RG")
-        let runtimeBundleId = Bundle.main.bundleIdentifier ?? "nil"
-        logger.info("   - Bundle ID (runtime): \(runtimeBundleId)")
+        logger.info("✅ Privy SDK initialized")
     }
 
     // MARK: - Authentication
@@ -78,16 +73,12 @@ class HybridPrivyService: ObservableObject {
         let emoji = provider == PrivySDK.OAuthProvider.apple ? "🍎" : "🔵"
 
         logger.info("\(emoji) Starting Privy \(providerName) Sign-In...")
-        logger.info("📱 App ID: cmh5i82000072jl0cixsq20k7")
-        logger.info("🔑 Client ID: client-WY6SJ3DpaUXxFWCWdTG6FANZ2zzDxkaF9kUWjZTqDM5RG")
 
         guard let privy = privyClient else {
             throw HybridPrivyError.authenticationFailed("Privy client not initialized")
         }
 
         do {
-            logger.info("🔐 Calling Privy OAuth login with \(providerName) provider...")
-            logger.info("📱 Using app URL scheme: wickett")
             let privyUser = try await privy.oAuth.login(with: provider, appUrlScheme: "wickett")
             logger.info("✅ Privy authentication successful: \(privyUser.id)")
 

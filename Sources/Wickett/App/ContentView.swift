@@ -94,13 +94,9 @@ struct ContentView: View {
 
             // Check onboarding status after successful sign-in
             if let userId = authCoordinator.currentUser?.id {
-                print("🎯 ContentView: Checking onboarding status for user: \(userId)")
                 await onboardingManager.checkOnboardingStatus(userId: userId)
-                print("🎯 ContentView: Onboarding check complete. hasCompletedOnboarding = \(onboardingManager.hasCompletedOnboarding)")
                 // Switch portfolio history to this user's data
                 PortfolioHistoryManager.shared.switchUser(userId: userId)
-            } else {
-                print("⚠️ ContentView: No userId found after sign-in")
             }
         } catch {
             await MainActor.run {

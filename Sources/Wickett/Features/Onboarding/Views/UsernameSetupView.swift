@@ -168,11 +168,7 @@ struct UsernameSetupView: View {
 
 #Preview {
     UsernameSetupView(
-        onContinue: { username in
-            print("Continue with username: \(username ?? "none")")
-        },
-        onSkip: {
-            print("Skipped username setup")
-        }
+        onContinue: { _ in },
+        onSkip: { }
     )
 }

@@ -27,7 +27,9 @@ struct WickettApp: App {
 
     private func handleDeepLink(_ url: URL) {
         // Handle Privy deep links for authentication callbacks
+        #if DEBUG
         print("Received deep link: \(url)")
+        #endif
         // Privy SDK will handle privy:// scheme URLs automatically
     }
 }

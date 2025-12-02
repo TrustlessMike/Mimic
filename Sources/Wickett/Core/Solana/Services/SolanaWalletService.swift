@@ -303,14 +303,12 @@ class PortfolioHistoryManager: ObservableObject {
         guard userId != currentUserId else { return }
         currentUserId = userId
         loadHistory()
-        print("📊 Switched portfolio history to user: \(userId)")
     }
 
     /// Clear history (call on sign-out)
     func clearHistory() {
         history = []
         currentUserId = nil
-        print("📊 Cleared portfolio history")
     }
 
     // MARK: - Public API
@@ -353,7 +351,6 @@ class PortfolioHistoryManager: ObservableObject {
         guard !balances.isEmpty else { return }
         
         isBackfilling = true
-        print("🔄 Starting portfolio backfill...")
         
         // 1. Fetch history for each token
         var tokenHistories: [String: [(Date, Decimal)]] = [:]
@@ -365,7 +362,7 @@ class PortfolioHistoryManager: ObservableObject {
                     let prices = try await PriceFeedService.shared.fetchHistoricalPrices(for: balance.token.symbol)
                     tokenHistories[balance.token.symbol] = prices
                 } catch {
-                    print("Failed to fetch history for \(balance.token.symbol): \(error)")
+                    // Skip tokens where historical data fetch fails
                 }
             }
         }
@@ -415,7 +412,6 @@ class PortfolioHistoryManager: ObservableObject {
             self.history = newHistory.sorted(by: { $0.timestamp < $1.timestamp })
             self.isBackfilling = false
             self.saveHistory()
-            print("✅ Backfill complete with \(self.history.count) points")
         }
     }
     
@@ -426,7 +422,7 @@ class PortfolioHistoryManager: ObservableObject {
             let data = try JSONEncoder().encode(history)
             UserDefaults.standard.set(data, forKey: storageKey)
         } catch {
-            print("Failed to save portfolio history: \(error)")
+            // Silently fail - portfolio history is non-critical
         }
     }
     
@@ -456,7 +452,7 @@ class PortfolioHistoryManager: ObservableObject {
                 saveHistory()
             }
         } catch {
-            print("Failed to load portfolio history: \(error)")
+            // Silently fail - portfolio history is non-critical
         }
     }
     

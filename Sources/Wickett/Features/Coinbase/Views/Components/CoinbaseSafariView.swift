@@ -53,11 +53,15 @@ struct CoinbaseSafariView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            #if DEBUG
             print("WebView navigation failed: \(error.localizedDescription)")
+            #endif
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            #if DEBUG
             print("WebView provisional navigation failed: \(error.localizedDescription)")
+            #endif
         }
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {

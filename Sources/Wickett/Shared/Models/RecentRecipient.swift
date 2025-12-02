@@ -42,7 +42,6 @@ class RecentRecipientsService: ObservableObject {
 
     /// Fetch recent recipients from Firebase
     func fetchRecentRecipients(userId: String) async {
-        print("🔍 Fetching recent recipients for user: \(userId)")
         isLoading = true
         defer { isLoading = false }
 
@@ -52,18 +51,12 @@ class RecentRecipientsService: ObservableObject {
                 data: ["limit": 10]
             )
 
-            print("📦 Got response from getRecentRecipients")
-
             guard let response = result.data as? [String: Any] else {
-                print("⚠️ Invalid response format: \(result.data)")
                 recentRecipients = []
                 return
             }
 
-            print("📋 Response data: \(response)")
-
             guard let recipientsData = response["recipients"] as? [[String: Any]] else {
-                print("⚠️ No recipients data in response")
                 recentRecipients = []
                 return
             }
@@ -73,7 +66,6 @@ class RecentRecipientsService: ObservableObject {
                       let address = dict["address"] as? String,
                       let lastSentAtString = dict["lastSentAt"] as? String,
                       let frequency = dict["frequency"] as? Int else {
-                    print("⚠️ Missing required fields in recipient: \(dict)")
                     return nil
                 }
 
@@ -85,11 +77,9 @@ class RecentRecipientsService: ObservableObject {
                 dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
                 guard let lastSentAt = dateFormatter.date(from: lastSentAtString) else {
-                    print("⚠️ Failed to parse date: \(lastSentAtString)")
                     // Fallback: try without fractional seconds
                     dateFormatter.formatOptions = [.withInternetDateTime]
                     if let fallbackDate = dateFormatter.date(from: lastSentAtString) {
-                        print("✅ Parsed date with fallback format")
                         return RecentRecipient(
                             id: id,
                             address: address,
@@ -99,7 +89,6 @@ class RecentRecipientsService: ObservableObject {
                             tokenType: tokenType
                         )
                     }
-                    print("❌ Failed to parse date even with fallback")
                     return nil
                 }
 
@@ -113,10 +102,7 @@ class RecentRecipientsService: ObservableObject {
                 )
             }
 
-            print("✅ Fetched \(recentRecipients.count) recent recipients")
-
         } catch {
-            print("❌ Failed to fetch recent recipients: \(error.localizedDescription)")
             recentRecipients = []
         }
     }
