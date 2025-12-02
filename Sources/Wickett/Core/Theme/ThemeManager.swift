@@ -64,15 +64,15 @@ class ThemeManager: ObservableObject {
 
     // MARK: - Theme Colors
 
-    /// Get primary color for current theme
+    /// Get primary color for current theme (Wickett brand blue/cyan)
     var primaryColor: Color {
         switch currentTheme {
         case .light:
-            return Color.blue
+            return BrandColors.blue
         case .dark:
-            return Color.cyan
+            return BrandColors.cyan
         case .system:
-            return Color.accentColor
+            return BrandColors.adaptivePrimary
         }
     }
 
@@ -98,5 +98,69 @@ class ThemeManager: ObservableObject {
         case .system:
             return Color(UIColor.secondarySystemBackground)
         }
+    }
+}
+
+// MARK: - Haptic Manager (Shared)
+
+/// Centralized manager for haptic feedback
+class HapticManager {
+    static let shared = HapticManager()
+    
+    private init() {}
+    
+    // MARK: - Feedback Generators
+    
+    /// Light tap feedback (for toggles, buttons)
+    func impact(style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
+    }
+    
+    /// Notification feedback (success, error, warning)
+    func notification(type: UINotificationFeedbackGenerator.FeedbackType) {
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(type)
+    }
+    
+    /// Selection feedback (picker wheels, sliders)
+    func selection() {
+        let generator = UISelectionFeedbackGenerator()
+        generator.prepare()
+        generator.selectionChanged()
+    }
+    
+    // MARK: - Convenience Methods
+    
+    /// Success vibration (e.g. completed transaction)
+    func success() {
+        notification(type: .success)
+    }
+    
+    /// Error vibration (e.g. form validation failed)
+    func error() {
+        notification(type: .error)
+    }
+    
+    /// Warning vibration
+    func warning() {
+        notification(type: .warning)
+    }
+    
+    /// Light tap (e.g. tab change)
+    func lightTap() {
+        impact(style: .light)
+    }
+    
+    /// Medium tap (e.g. button press)
+    func mediumTap() {
+        impact(style: .medium)
+    }
+    
+    /// Heavy tap (e.g. major action)
+    func heavyTap() {
+        impact(style: .heavy)
     }
 }

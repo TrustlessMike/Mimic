@@ -1,3 +1,22 @@
+# Node
+node_modules/
+
+# Firebase Functions (backend - not needed for iOS build)
+functions/
+
+# Firebase config files
+firebase/
+firebase.json
+.firebaserc
+.firebaserc-config
+
+# Build logs and outputs
+build-logs/
+builds/
+
+# Documentation (not needed for build)
+docs/
+
 # Xcode
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
@@ -118,6 +137,66 @@ archive/
 firebase-debug.log
 xcodebuild-assets.log
 
-# Secrets (verify these are covered)
+# Secrets and keys
 *.key
 *-key.json
+*.pem
+
+# User data exports
+users.json
+
+# Firebase config
+.firebaserc-config
+
+# Build outputs
+builds/
+
+# Development/admin scripts (root level utilities)
+add-*.js
+backfill-*.js
+check-*.js
+check-*.sh
+cleanup-*.js
+create-*.js
+enable-*.js
+enable-*.sh
+find-*.js
+get-*.js
+inspect-*.js
+investigate-*.js
+launch-*.sh
+list-*.js
+send-*.js
+set-*.js
+setup-*.js
+setup-*.sh
+swap-*.js
+transfer-*.js
+update-*.js
+update-*.sh
+verify-*.js
+deploy-*.sh
+firebase-*.sh
+
+# Functions utility scripts
+functions/*.js
+
+# Python scripts (dev utilities)
+*.py
+
+# Additional dev scripts
+add-my-wallet-to-webhook.sh
+deploy.sh
+test-functions.swift
+scripts/
+
+# All root-level JS/SH dev scripts
+*.js
+*.sh
+
+# Private keys and certs
+*.pem
+
+# Misc config files not needed for iOS
+AppHost.yml
+project.yml

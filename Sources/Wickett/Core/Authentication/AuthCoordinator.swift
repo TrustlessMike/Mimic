@@ -87,6 +87,9 @@ class AuthCoordinator: ObservableObject {
             // Sign out from both Privy and Firebase
             try await hybridPrivyService.signOut()
 
+            // Clear portfolio history for this session
+            PortfolioHistoryManager.shared.clearHistory()
+
             currentUser = nil
             isAuthenticated = false
             isLoading = false
@@ -100,7 +103,9 @@ class AuthCoordinator: ObservableObject {
     // MARK: - Check Authentication Status
 
     func checkAuthenticationStatus() async {
+        logger.info("🔎 Checking authentication status...")
         let authenticated = await hybridPrivyService.isUserAuthenticated()
+        logger.info("🔎 Authenticated: \(authenticated)")
 
         await MainActor.run {
             self.isAuthenticated = authenticated
@@ -108,12 +113,16 @@ class AuthCoordinator: ObservableObject {
             // If authenticated, restore user from HybridPrivyService
             if authenticated {
                 self.currentUser = hybridPrivyService.currentUser
+                logger.info("🔎 Restored currentUser: \(String(describing: self.currentUser?.id))")
             }
         }
 
         // Fetch displayName from Firestore if authenticated
         if authenticated, let userId = currentUser?.id {
+            logger.info("🔎 About to fetch displayName for userId: \(userId)")
             await fetchDisplayName(userId: userId)
+        } else {
+            logger.warning("⚠️ Not fetching displayName - authenticated: \(authenticated), currentUser.id: \(String(describing: self.currentUser?.id))")
         }
     }
 
@@ -140,7 +149,8 @@ class AuthCoordinator: ObservableObject {
                                 id: user.id,
                                 email: user.email,
                                 name: displayName,
-                                walletAddress: user.walletAddress
+                                walletAddress: user.walletAddress,
+                                username: user.username
                             )
                             logger.info("✅ Updated currentUser.name to: \(displayName)")
                         } else {

@@ -29,6 +29,13 @@ struct OnboardingCoordinatorView: View {
                         onBack: onboardingManager.previousStep
                     )
 
+                case .username:
+                    // TODO: Implement UsernameSetupView
+                    Text("Username Setup - Coming Soon")
+                        .onAppear {
+                            handleUsernameSkip()
+                        }
+
                 case .preferences:
                     PreferencesSetupView(
                         preferences: $onboardingManager.onboardingState.preferences,
@@ -88,6 +95,23 @@ struct OnboardingCoordinatorView: View {
             return
         }
         onboardingManager.updateDisplayName(onboardingManager.onboardingState.displayName)
+        onboardingManager.nextStep()
+    }
+
+    private func handleUsernameContinue(username: String?) {
+        if let username = username {
+            // TODO: Implement username service
+            onboardingManager.updateUsername(username)
+            onboardingManager.nextStep()
+        } else {
+            // No username provided, skip
+            onboardingManager.updateUsername(nil)
+            onboardingManager.nextStep()
+        }
+    }
+
+    private func handleUsernameSkip() {
+        onboardingManager.updateUsername(nil)
         onboardingManager.nextStep()
     }
 

@@ -5,64 +5,60 @@ struct MainTabView: View {
     let onSignOut: () async -> Void
 
     @State private var selectedTab: Tab = .home
-
+    @State private var showSendView = false
+    @State private var showRequestView = false
+    
+    // Hiding the native tab bar requires a bit of a hack in pure SwiftUI, 
+    // or we can just use a ZStack with views. ZStack is cleaner for this custom look.
+    
     var body: some View {
-        TabView(selection: $selectedTab) {
-            // Home Tab
-            EnhancedHomeView(
-                user: user,
-                onSettings: {
-                    selectedTab = .settings
-                },
-                onSignOut: onSignOut
-            )
-            .toolbarBackground(.visible, for: .tabBar)
-            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
-            .tabItem {
-                Label("Home", systemImage: "house.fill")
-            }
-            .tag(Tab.home)
-
-            // Activity Tab
-            ActivityView(user: user)
-                .toolbarBackground(.visible, for: .tabBar)
-                .toolbarBackground(.ultraThinMaterial, for: .tabBar)
-                .tabItem {
-                    Label("Activity", systemImage: "list.bullet.rectangle")
+        ZStack(alignment: .bottom) {
+            // MARK: - Content
+            Group {
+                switch selectedTab {
+                case .home:
+                    EnhancedHomeView(
+                        user: user,
+                        onSettings: { selectedTab = .settings },
+                        onSignOut: onSignOut,
+                        onPayTap: { showSendView = true },
+                        onRequestTap: { showRequestView = true }
+                    )
+                case .activity:
+                    ActivityView(user: user)
+                case .wallet:
+                    WalletView(user: user)
+                case .settings:
+                    SettingsView(
+                        user: user,
+                        onDismiss: {},
+                        onSignOut: onSignOut
+                    )
                 }
-                .tag(Tab.activity)
-
-            // Wallet Tab
-            WalletView(user: user)
-                .toolbarBackground(.visible, for: .tabBar)
-                .toolbarBackground(.ultraThinMaterial, for: .tabBar)
-                .tabItem {
-                    Label("Wallet", systemImage: "wallet.pass.fill")
-                }
-                .tag(Tab.wallet)
-
-            // Settings Tab
-            SettingsView(
-                user: user,
-                onDismiss: {
-                    // No-op since we're in a tab, not a sheet
-                },
-                onSignOut: onSignOut
-            )
-            .toolbarBackground(.visible, for: .tabBar)
-            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
-            .tabItem {
-                Label("Settings", systemImage: "gearshape.fill")
             }
-            .tag(Tab.settings)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            
+            // MARK: - Custom Tab Bar
+            CustomTabBar(
+                selectedTab: $selectedTab,
+                onSendTap: {
+                    showSendView = true
+                }
+            )
         }
-        .tint(.blue)
+        .ignoresSafeArea(.keyboard) // Prevent tab bar from moving up with keyboard
+        .sheet(isPresented: $showSendView) {
+            SendView(user: user)
+        }
+        .sheet(isPresented: $showRequestView) {
+            CreateRequestView(user: user)
+        }
     }
 }
 
 // MARK: - Tab Enum
 
-enum Tab {
+enum Tab: String, CaseIterable {
     case home
     case activity
     case wallet
@@ -75,7 +71,7 @@ enum Tab {
             id: "test",
             email: "test@example.com",
             name: "Test User",
-            walletAddress: "ABC123XYZ789ABC123XYZ789"
+            walletAddress: "ABC123XYZ789ABC123XYZ789", username: nil
         ),
         onSignOut: {}
     )

@@ -1,18 +1,18 @@
 # Wickett - Venmo for Crypto
 
-Global payment app using Solana blockchain + Sphere Pay for instant, low-cost money transfers.
+Global payment app using Solana blockchain for instant, low-cost money transfers.
 
 ## Project Status
 
-✅ **Backend Complete** - All Solana functions tested on mainnet
-🚧 **Frontend In Progress** - iOS app under development
-📋 **Next Up** - User handle system (@username) + Sphere Pay integration
+✅ **Core Features Complete** - Wallet, Send, Authentication, Backend (all tested on mainnet)
+🚧 **Pre-Launch** - Ready for TestFlight beta testing
+📋 **Next Up** - User testing, transaction history
 
 ## Tech Stack
 
 - **Backend**: Firebase Cloud Functions (TypeScript)
 - **Blockchain**: Solana (SOL, USDC, SPL tokens)
-- **Fiat Rails**: Sphere Pay (0.2-0.3% fees)
+- **Fiat Rails**: Coinbase Onramp/Offramp
 - **Frontend**: SwiftUI iOS app (iOS 16+)
 - **Auth**: Privy embedded wallets
 
@@ -21,10 +21,11 @@ Global payment app using Solana blockchain + Sphere Pay for instant, low-cost mo
 | Function | Purpose | Status |
 |----------|---------|--------|
 | `createFirebaseCustomToken` | Privy → Firebase auth bridge | ✅ Deployed |
-| `sponsorSolTransfer` | Gas-sponsored SOL transfers | ✅ Tested mainnet |
-| `sponsorSplTransfer` | Gas-sponsored SPL token transfers | ✅ Tested mainnet |
-| `sponsorJupiterSwap` | Token swaps via Jupiter aggregator | ✅ Tested mainnet |
-| `sponsorCustomInstruction` | Custom Solana program interactions | ✅ Tested mainnet |
+| `sponsorSolTransferV2` | Build partial SOL transfer with fee payer signature | ✅ Tested mainnet |
+| `sponsorSplTransferV2` | Build partial SPL transfer with ATA creation | ✅ Tested mainnet |
+| `broadcastSignedTransaction` | Verify and broadcast user-signed transactions | ✅ Tested mainnet |
+| `getRecentRecipients` | Fetch user's recent transaction recipients | ✅ Deployed |
+| `getFeePayerAddress` | Get sponsorship wallet address | ✅ Deployed |
 | `monitorFeePayerBalance` | Hourly wallet balance monitoring | ✅ Deployed |
 | `checkFeePayerBalance` | Manual balance check (callable) | ✅ Deployed |
 
@@ -32,35 +33,61 @@ Global payment app using Solana blockchain + Sphere Pay for instant, low-cost mo
 - 8 confirmed transactions
 - 100% success rate
 - Total cost: ~0.011 SOL (~$2.20)
-📄 See: [docs/backend-testing.md](docs/backend-testing.md)
 
 ## Features
 
-### ✅ Implemented
-- [x] Gas-sponsored Solana transactions
-- [x] Jupiter token swaps with ALT resolution
-- [x] Fee payer wallet monitoring (hourly checks)
-- [x] Privy OAuth authentication (Apple/Google)
-- [x] Firebase integration (Auth, Firestore, Functions)
+### ✅ Implemented (Production Ready)
+- [x] **Authentication** - Privy OAuth (Apple/Google Sign-In) with embedded wallets
+- [x] **Wallet Display** - Real-time balances for SOL and 8 SPL tokens with USD pricing
+- [x] **Send Feature** - Complete SOL/SPL token transfers with user signing
+- [x] **Gas Sponsorship** - Zero fees for users, backend pays all transaction costs
+- [x] **V2 Transaction Architecture** - User signing with backend fee payer sponsorship
+- [x] **Onboarding Flow** - Welcome, terms acceptance, display name setup, preferences
+- [x] **Theme System** - Light/Dark mode with brand colors and gradients
+- [x] **Balance Monitoring** - Hourly automated fee payer wallet checks
 
 ### 🚧 In Progress
+- [ ] Transaction history display
+- [ ] Receive feature (QR codes)
 - [ ] User handles (@username system)
-- [ ] Multi-currency portfolio display
-- [ ] Sphere Pay virtual accounts (fiat on-ramp)
-- [ ] Send/receive payment flows
+- [ ] Gold verification badges (early adopters)
 
 ### 📋 Planned
-- [ ] USDC-based cross-border payments
-- [ ] Gold verification badges (early adopters)
-- [ ] Transaction history with real data
-- [ ] Swap fee monetization (0.8% all-in)
+- [ ] Jupiter swap UI
 - [ ] SNS .sol domain support
+- [ ] Address book / contacts
+- [ ] Portfolio charts and analytics
 
 ## Documentation
 
-- **[Backend Testing Results](docs/backend-testing.md)** - All mainnet transactions verified
-- **[Business Model & Monetization](docs/monetization/business-model.md)** - Revenue strategy (0.8% swap fees)
-- **[Wallet Integration Guide](docs/wallet-integration.md)** - Privy embedded wallet setup
+Documentation is organized into the following categories:
+
+### Setup & Configuration
+- [Firebase Remote Config Setup](docs/setup/firebase-remote-config.md) - Configure Helius RPC and feature flags
+- [Dev Contact Setup](docs/setup/dev-contact-setup.md) - Add test contacts for development
+- [Auth Session Management](docs/AUTH-SESSION-MANAGEMENT.md) - Firebase and GCloud authentication persistence
+
+### Feature Implementation
+- [Wallet Integration](docs/features/wallet-integration.md) - Real-time balance display with Helius RPC
+- [Send Feature](docs/features/send-feature.md) - Complete implementation of SOL/SPL transfers
+- [Privy Signing Integration](docs/features/privy-signing.md) - End-to-end transaction signing with Privy
+- [Launch Screen](docs/features/launch-screen.md) - App launch screen implementation
+- [Auto-Convert System](docs/features/auto-convert.md) - Automatic portfolio rebalancing with delegation
+- [Fiat Payment Requests](docs/features/fiat-payment-system.md) - Payment request creation and management
+
+### Backend & Testing
+- [Jupiter Swap Integration](docs/backend/jupiter-swap.md) - Token swap implementation
+
+### Third-Party Integrations
+- [Helius Webhook Setup](docs/integrations/helius-webhook.md) - Auto-convert webhook configuration and testing
+
+### Deployment
+- [Go-Live Checklist](docs/deployment/go-live-checklist.md) - Production readiness checklist
+- [Payment Request Deployment](docs/deployment/payment-requests.md) - Payment request system deployment
+
+### Revenue & Monetization
+- [Business Model](docs/monetization/business-model.md) - Revenue projections and fee structure
+- [Platform Fees](docs/monetization/platform-fees.md) - Auto-convert platform fee setup (0.5%)
 
 ## Development
 
@@ -122,10 +149,9 @@ checkFeePayerBalance()
 └─────────────────────────────────────┘
                 ↑↓
 ┌─────────────────────────────────────┐
-│         SPHERE PAY API              │
-│  - Virtual accounts (fiat on-ramp)  │
-│  - Multi-currency (160+ markets)    │
-│  - 0.2-0.3% fees                    │
+│       COINBASE ONRAMP API           │
+│  - Fiat on/off-ramp                 │
+│  - Apple Pay integration            │
 └─────────────────────────────────────┘
 ```
 
@@ -177,28 +203,31 @@ firebase functions:secrets:set JUPITER_REFERRAL_WALLET
 
 ## Roadmap
 
-### Phase 1: User System (Weeks 1-2)
-- User handle registration (@username)
-- Display name vs handle separation
-- 30-day handle change cooldown
-- Gold verification badges
+### ✅ Phase 1: Core Features (COMPLETE)
+- ✅ Privy authentication with embedded wallets
+- ✅ Wallet balance display with real-time pricing
+- ✅ Send SOL/SPL tokens with user signing
+- ✅ Gas sponsorship (zero fees for users)
+- ✅ Backend V2 architecture with mainnet testing
 
-### Phase 2: Sphere Integration (Weeks 3-4)
-- Virtual account creation on signup
-- Fiat on-ramp (bank → USDC)
-- Balance display in multiple currencies
+### 🚧 Phase 2: User Testing (In Progress)
+- [ ] TestFlight beta deployment
+- [ ] User acceptance testing
+- [ ] Bug fixes and UX improvements
+- [ ] Firebase Remote Config setup for production
 
-### Phase 3: Payment Flows (Weeks 5-6)
-- Send payment UI (USDC/SOL)
-- Receive payment UI (QR codes, payment links)
-- Transaction history with real data
-- Wickett-to-Wickett auto-conversion
+### 📋 Phase 3: Transaction History (Next)
+- [ ] Transaction history display
+- [ ] Recent recipients tracking
+- [ ] Receive feature (QR codes, payment links)
+- [ ] Address book / contacts
 
-### Phase 4: Polish & Launch (Weeks 7-8)
-- Error handling & loading states
-- TestFlight beta
-- Fee monetization implementation
-- Launch!
+### 📋 Phase 4: Advanced Features
+- [ ] User handle system (@username)
+- [ ] Jupiter swap UI
+- [ ] SNS .sol domain support
+- [ ] Gold verification badges
+- [ ] Portfolio charts and analytics
 
 ## Contributing
 
@@ -217,4 +246,4 @@ Proprietary - All rights reserved
 
 ---
 
-Built with ⚡ on Solana | Powered by Firebase, Privy, Jupiter & Sphere Pay
+Built with ⚡ on Solana | Powered by Firebase, Privy, Jupiter & Coinbase

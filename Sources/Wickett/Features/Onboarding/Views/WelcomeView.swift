@@ -10,7 +10,7 @@ struct WelcomeView: View {
             // App Icon
             Image(systemName: "app.fill")
                 .font(.system(size: 80))
-                .foregroundColor(.blue)
+                .foregroundColor(BrandColors.primary)
 
             // Welcome Title
             Text("Welcome to Wickett")
@@ -51,7 +51,7 @@ struct WelcomeView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.blue)
+                .background(BrandColors.primary)
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }
@@ -73,7 +73,7 @@ struct FeatureRow: View {
         HStack(alignment: .top, spacing: 16) {
             Image(systemName: icon)
                 .font(.system(size: 32))
-                .foregroundColor(.blue)
+                .foregroundColor(BrandColors.primary)
                 .frame(width: 40)
 
             VStack(alignment: .leading, spacing: 4) {

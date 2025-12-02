@@ -18,7 +18,7 @@ enum AppConfiguration {
 
     // MARK: - App Configuration
     enum App {
-        static let bundleId = "com.syndicatemike.Wickett"
+        static var bundleId: String { Bundle.main.bundleIdentifier ?? "com.syndicatemike.Wickett" }
         static let appName = "Wickett"
     }
 

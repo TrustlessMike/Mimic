@@ -24,7 +24,7 @@ struct DisplayNameSetupView: View {
             // Icon
             Image(systemName: "person.circle.fill")
                 .font(.system(size: 80))
-                .foregroundColor(.blue)
+                .foregroundColor(BrandColors.primary)
 
             // Title
             Text("What should we call you?")
@@ -71,7 +71,7 @@ struct DisplayNameSetupView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(displayName.isEmpty ? Color.gray : Color.blue)
+                .background(displayName.isEmpty ? Color.gray : BrandColors.primary)
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }

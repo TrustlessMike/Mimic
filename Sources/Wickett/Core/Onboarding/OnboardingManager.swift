@@ -64,6 +64,19 @@ class OnboardingManager: ObservableObject {
 
     /// Mark onboarding as complete and save to Firestore
     func completeOnboarding(userId: String) async throws {
+        // Guard: Don't re-complete if already done
+        guard !hasCompletedOnboarding else {
+            logger.info("⏭️ Onboarding already completed, skipping")
+            return
+        }
+
+        // Log the complete state before validation
+        logger.info("🔍 Pre-validation state check:")
+        logger.info("   - displayName: '\(self.onboardingState.displayName)'")
+        logger.info("   - displayName.isEmpty: \(self.onboardingState.displayName.isEmpty)")
+        logger.info("   - hasAcceptedTerms: \(self.onboardingState.hasAcceptedTerms)")
+        logger.info("   - isComplete: \(self.onboardingState.isComplete)")
+
         guard self.onboardingState.isComplete else {
             logger.error("❌ Onboarding incomplete: displayName='\(self.onboardingState.displayName)', termsAccepted=\(self.onboardingState.hasAcceptedTerms)")
             throw OnboardingError.incompleteData
@@ -71,14 +84,20 @@ class OnboardingManager: ObservableObject {
 
         logger.info("💾 Saving onboarding data to Firestore...")
         logger.info("📝 DisplayName to save: '\(self.onboardingState.displayName)'")
+        logger.info("📝 Username to save: '\(self.onboardingState.username ?? "nil")'")
         logger.info("📝 UserID: \(userId)")
 
-        let userData: [String: Any] = [
+        var userData: [String: Any] = [
             "displayName": self.onboardingState.displayName,
             "preferences": self.onboardingState.preferences.toDictionary(),
             "onboardingCompleted": true,
             "onboardingCompletedAt": Date()
         ]
+
+        // Add username if provided
+        if let username = self.onboardingState.username {
+            userData["username"] = username
+        }
 
         logger.info("📦 Data to save: \(userData)")
 
@@ -113,7 +132,18 @@ class OnboardingManager: ObservableObject {
     /// Update display name
     func updateDisplayName(_ name: String) {
         onboardingState.displayName = name
-        logger.info("👤 Display name updated")
+        logger.info("👤 Display name updated to: '\(name)'")
+        logger.info("📊 Current onboardingState.displayName: '\(self.onboardingState.displayName)'")
+    }
+
+    /// Update username
+    func updateUsername(_ username: String?) {
+        onboardingState.username = username
+        if let username = username {
+            logger.info("@ Username updated to: '\(username)'")
+        } else {
+            logger.info("@ Username cleared (skipped)")
+        }
     }
 
     /// Update preferences

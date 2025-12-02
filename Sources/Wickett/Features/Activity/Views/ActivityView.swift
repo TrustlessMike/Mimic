@@ -3,35 +3,18 @@ import SwiftUI
 struct ActivityView: View {
     let user: User
 
+    @StateObject private var activityService = ActivityService.shared
     @State private var searchText = ""
     @State private var selectedFilter: TransactionFilter = .all
-    @State private var transactions: [Transaction] = []
 
-    var filteredTransactions: [Transaction] {
-        var result = transactions
-
-        // Apply type filter
-        if selectedFilter != .all {
-            result = result.filter { transaction in
-                switch selectedFilter {
-                case .deposits:
-                    return transaction.type == .deposit
-                case .payments:
-                    return transaction.type == .payment
-                case .withdrawals:
-                    return transaction.type == .withdrawal
-                case .conversions:
-                    return transaction.type == .conversion
-                case .all:
-                    return true
-                }
-            }
-        }
+    var filteredActivities: [ActivityItem] {
+        var result = activityService.filteredActivities(filter: selectedFilter)
 
         // Apply search filter
         if !searchText.isEmpty {
-            result = result.filter { transaction in
-                transaction.description.localizedCaseInsensitiveContains(searchText)
+            result = result.filter { activity in
+                activity.title.localizedCaseInsensitiveContains(searchText) ||
+                activity.subtitle.localizedCaseInsensitiveContains(searchText)
             }
         }
 
@@ -61,15 +44,20 @@ struct ActivityView: View {
 
                 Divider()
 
-                // Transaction List
-                if filteredTransactions.isEmpty {
+                // Activity List
+                if activityService.isLoading && activityService.activities.isEmpty {
+                    ScrollView {
+                        SkeletonTransactionList(count: 8)
+                            .padding()
+                    }
+                } else if filteredActivities.isEmpty {
                     EmptyActivityView(searchText: searchText, filter: selectedFilter)
                 } else {
                     List {
-                        ForEach(groupedTransactions.keys.sorted(by: >), id: \.self) { date in
+                        ForEach(groupedActivities.keys.sorted(by: >), id: \.self) { date in
                             Section {
-                                ForEach(groupedTransactions[date] ?? []) { transaction in
-                                    TransactionRow(transaction: transaction)
+                                ForEach(groupedActivities[date] ?? []) { activity in
+                                    ActivityRow(activity: activity)
                                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                                 }
                             } header: {
@@ -79,24 +67,60 @@ struct ActivityView: View {
                                     .foregroundColor(.secondary)
                             }
                         }
+
+                        // Load More Button
+                        if activityService.hasMore {
+                            Section {
+                                Button(action: {
+                                    Task {
+                                        await activityService.loadMore()
+                                    }
+                                }) {
+                                    HStack {
+                                        Spacer()
+                                        if activityService.isLoadingMore {
+                                            ProgressView()
+                                                .padding(.trailing, 8)
+                                            Text("Loading...")
+                                        } else {
+                                            Text("View More")
+                                        }
+                                        Spacer()
+                                    }
+                                    .foregroundColor(BrandColors.primary)
+                                    .padding(.vertical, 12)
+                                }
+                                .disabled(activityService.isLoadingMore)
+                                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                            }
+                        }
+
+                        // Spacer for custom tab bar
+                        Color.clear
+                            .frame(height: 80)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                     }
                     .listStyle(.plain)
-                    .searchable(text: $searchText, prompt: "Search transactions")
+                    .searchable(text: $searchText, prompt: "Search activity")
+                    .refreshable {
+                        await activityService.refresh()
+                    }
                 }
             }
             .navigationTitle("Activity")
             .navigationBarTitleDisplayMode(.large)
-            .onAppear {
-                loadTransactions()
+            .task {
+                await activityService.fetchActivity()
             }
         }
     }
 
     // MARK: - Helpers
 
-    private var groupedTransactions: [String: [Transaction]] {
-        Dictionary(grouping: filteredTransactions) { transaction in
-            Calendar.current.startOfDay(for: transaction.timestamp).ISO8601Format()
+    private var groupedActivities: [String: [ActivityItem]] {
+        Dictionary(grouping: filteredActivities) { activity in
+            Calendar.current.startOfDay(for: activity.timestamp).ISO8601Format()
         }
     }
 
@@ -116,67 +140,102 @@ struct ActivityView: View {
             return formatter.string(from: date)
         }
     }
+}
 
-    private func loadTransactions() {
-        // Mock data - will be replaced with real data from backend
-        transactions = [
-            Transaction(
-                type: .deposit,
-                amount: 500.00,
-                currency: "USD",
-                description: "Paycheck deposit",
-                timestamp: Date().addingTimeInterval(-86400)
-            ),
-            Transaction(
-                type: .payment,
-                amount: 45.99,
-                currency: "USD",
-                description: "Coffee shop",
-                timestamp: Date().addingTimeInterval(-172800)
-            ),
-            Transaction(
-                type: .conversion,
-                amount: 100.00,
-                currency: "USD",
-                description: "Converted to SOL",
-                timestamp: Date().addingTimeInterval(-259200)
-            ),
-            Transaction(
-                type: .payment,
-                amount: 25.50,
-                currency: "USD",
-                description: "Lunch",
-                timestamp: Date().addingTimeInterval(-345600)
-            ),
-            Transaction(
-                type: .deposit,
-                amount: 1000.00,
-                currency: "USD",
-                description: "Direct deposit",
-                timestamp: Date().addingTimeInterval(-432000)
-            ),
-            Transaction(
-                type: .withdrawal,
-                amount: 200.00,
-                currency: "USD",
-                description: "ATM withdrawal",
-                timestamp: Date().addingTimeInterval(-518400)
-            ),
-            Transaction(
-                type: .payment,
-                amount: 89.99,
-                currency: "USD",
-                description: "Grocery store",
-                timestamp: Date().addingTimeInterval(-604800)
-            ),
-            Transaction(
-                type: .conversion,
-                amount: 50.00,
-                currency: "USD",
-                description: "Converted to SOL",
-                timestamp: Date().addingTimeInterval(-691200)
-            )
-        ]
+// MARK: - Activity Row
+
+struct ActivityRow: View {
+    let activity: ActivityItem
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Icon
+            ZStack {
+                Circle()
+                    .fill(statusColor.opacity(0.15))
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: activity.icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(statusColor)
+            }
+
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                Text(activity.title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+
+                Text(activity.subtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer()
+
+            // Amount and Status
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(formattedAmount)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(amountColor)
+
+                Text(formattedTime)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var statusColor: Color {
+        switch activity.status {
+        case .completed:
+            return .green
+        case .pending:
+            return .orange
+        case .failed:
+            return .red
+        }
+    }
+
+    private var amountColor: Color {
+        switch activity.type {
+        case .paymentReceived, .autoConvert:
+            return .green
+        case .paymentSent, .requestSent:
+            return .primary
+        case .requestReceived:
+            return activity.status == .pending ? .orange : .primary
+        }
+    }
+
+    private var formattedAmount: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        formatter.maximumFractionDigits = 2
+
+        let prefix: String
+        switch activity.type {
+        case .paymentReceived:
+            prefix = "+"
+        case .paymentSent:
+            prefix = "-"
+        default:
+            prefix = ""
+        }
+
+        let amountString = formatter.string(from: NSNumber(value: activity.amount)) ?? "$0.00"
+        return "\(prefix)\(amountString)"
+    }
+
+    private var formattedTime: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: activity.timestamp, relativeTo: Date())
     }
 }
 
@@ -194,7 +253,7 @@ struct FilterChip: View {
                 .fontWeight(isSelected ? .semibold : .regular)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(isSelected ? Color.blue : Color(UIColor.secondarySystemBackground))
+                .background(isSelected ? BrandColors.primary : Color(UIColor.secondarySystemBackground))
                 .foregroundColor(isSelected ? .white : .primary)
                 .cornerRadius(20)
         }
@@ -272,7 +331,7 @@ enum TransactionFilter: CaseIterable {
             id: "test",
             email: "test@example.com",
             name: "Test User",
-            walletAddress: "ABC123XYZ789"
+            walletAddress: "ABC123XYZ789", username: nil
         )
     )
 }

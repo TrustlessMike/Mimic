@@ -22,7 +22,7 @@ struct TermsAcceptanceView: View {
             // Icon
             Image(systemName: "doc.text.fill")
                 .font(.system(size: 80))
-                .foregroundColor(.blue)
+                .foregroundColor(BrandColors.primary)
 
             // Title
             Text("Terms & Privacy")
@@ -40,7 +40,7 @@ struct TermsAcceptanceView: View {
                 Link(destination: URL(string: AppConfiguration.Legal.termsOfServiceURL)!) {
                     HStack {
                         Image(systemName: "doc.text")
-                            .foregroundColor(.blue)
+                            .foregroundColor(BrandColors.primary)
                             .frame(width: 24)
                         Text("Terms of Service")
                             .foregroundColor(.primary)
@@ -56,7 +56,7 @@ struct TermsAcceptanceView: View {
                 Link(destination: URL(string: AppConfiguration.Legal.privacyPolicyURL)!) {
                     HStack {
                         Image(systemName: "lock.shield")
-                            .foregroundColor(.blue)
+                            .foregroundColor(BrandColors.primary)
                             .frame(width: 24)
                         Text("Privacy Policy")
                             .foregroundColor(.primary)
@@ -104,7 +104,7 @@ struct TermsAcceptanceView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(hasAccepted ? Color.blue : Color.gray)
+                .background(hasAccepted ? BrandColors.primary : Color.gray)
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }

@@ -19,6 +19,15 @@
       }
     },
     {
+      "identity" : "beet-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/metaplex-foundation/beet-swift.git",
+      "state" : {
+        "revision" : "e4708bf28b55ce42727006c1cb7882f069d07bd8",
+        "version" : "1.0.7"
+      }
+    },
+    {
       "identity" : "firebase-ios-sdk",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/firebase/firebase-ios-sdk.git",
@@ -100,15 +109,6 @@
       }
     },
     {
-      "identity" : "privy-ios",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/privy-io/privy-ios.git",
-      "state" : {
-        "revision" : "7c3fa33d7a94c41bb1ad22830f1a696007ce167c",
-        "version" : "1.9.1"
-      }
-    },
-    {
       "identity" : "promises",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/promises.git",
@@ -118,12 +118,48 @@
       }
     },
     {
+      "identity" : "secp256k1.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Boilertalk/secp256k1.swift.git",
+      "state" : {
+        "revision" : "cd187c632fb812fd93711a9f7e644adb7e5f97f0",
+        "version" : "0.1.7"
+      }
+    },
+    {
+      "identity" : "solana.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/metaplex-foundation/Solana.Swift.git",
+      "state" : {
+        "revision" : "f7bd54eee1ccf31f717b1a98b64b9ae12413e66d",
+        "version" : "2.0.2"
+      }
+    },
+    {
+      "identity" : "starscream",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/daltoniam/Starscream.git",
+      "state" : {
+        "revision" : "c6bfd1af48efcc9a9ad203665db12375ba6b145a",
+        "version" : "4.0.8"
+      }
+    },
+    {
       "identity" : "swift-protobuf",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-protobuf.git",
       "state" : {
         "revision" : "c6fe6442e6a64250495669325044052e113e990c",
         "version" : "1.32.0"
+      }
+    },
+    {
+      "identity" : "tweetnacl-swiftwrap",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/bitmark-inc/tweetnacl-swiftwrap.git",
+      "state" : {
+        "revision" : "f8fd111642bf2336b11ef9ea828510693106e954",
+        "version" : "1.1.0"
       }
     }
   ],

@@ -11,7 +11,7 @@ struct WalkthroughView: View {
             icon: "dollarsign.circle.fill",
             title: "Pay Your Way",
             description: "Use any currency to pay. Cash, crypto, or credit - we accept it all.",
-            accentColor: .blue
+            accentColor: BrandColors.primary
         ),
         WalkthroughSlideData(
             icon: "arrow.triangle.2.circlepath.circle.fill",
@@ -39,7 +39,7 @@ struct WalkthroughView: View {
                 Button("Skip") {
                     onContinue()
                 }
-                .foregroundColor(.blue)
+                .foregroundColor(BrandColors.primary)
             }
             .padding(.horizontal)
 
@@ -67,7 +67,7 @@ struct WalkthroughView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.blue)
+                .background(BrandColors.primary)
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }

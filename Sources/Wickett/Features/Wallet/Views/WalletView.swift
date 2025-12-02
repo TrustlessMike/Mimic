@@ -3,447 +3,360 @@ import SwiftUI
 struct WalletView: View {
     let user: User
 
-    @State private var paymentMethods: [PaymentMethod] = []
-    @State private var cards: [PaymentCard] = []
-    @State private var showAddPaymentMethod = false
-    @State private var showAddCard = false
+    @EnvironmentObject var walletService: SolanaWalletService
+    @StateObject private var delegationManager = DelegationManager.shared
+    @StateObject private var remoteConfig = RemoteConfigManager.shared
+    @State private var showError = false
+    @State private var showAutoConvertSettings = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Payment Methods Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text("Payment Methods")
-                                .font(.headline)
-                            Spacer()
-                            Button(action: {
-                                showAddPaymentMethod = true
-                            }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title3)
-                                    .foregroundColor(.blue)
-                            }
-                        }
+                    // Total Balance Card
+                    if walletService.isLoading && walletService.balances.isEmpty {
+                        SkeletonBalanceCard()
+                            .padding(.horizontal)
+                    } else {
+                        TotalBalanceCard(
+                            totalUSD: walletService.totalUSDValue,
+                            change24h: walletService.total24hChange,
+                            lastUpdated: walletService.lastUpdated
+                        )
                         .padding(.horizontal)
-
-                        if paymentMethods.isEmpty {
-                            EmptyStateCard(
-                                icon: "creditcard.fill",
-                                title: "No Payment Methods",
-                                message: "Add a payment method to get started",
-                                action: {
-                                    showAddPaymentMethod = true
-                                }
-                            )
-                            .padding(.horizontal)
-                        } else {
-                            VStack(spacing: 12) {
-                                ForEach(paymentMethods) { method in
-                                    PaymentMethodRow(method: method)
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
                     }
 
-                    // Cards Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text("Cards")
-                                .font(.headline)
-                            Spacer()
-                            Button(action: {
-                                showAddCard = true
-                            }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title3)
-                                    .foregroundColor(.blue)
-                            }
-                        }
+                    // Quick Actions
+                    QuickActionsRow(user: user)
                         .padding(.horizontal)
+                        
+                    // Auto-Convert Card (New Entry Point)
+                    Button(action: {
+                        showAutoConvertSettings = true
+                    }) {
+                        AutoConvertCard(hasActiveDelegation: delegationManager.delegationStatus?.hasActiveDelegation ?? false)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.horizontal)
 
-                        if cards.isEmpty {
-                            EmptyStateCard(
-                                icon: "creditcard.and.123",
-                                title: "No Cards",
-                                message: "Add a debit or credit card",
-                                action: {
-                                    showAddCard = true
-                                }
-                            )
+                    // Token Holdings
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Holdings")
+                            .font(.headline)
                             .padding(.horizontal)
-                        } else {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 16) {
-                                    ForEach(cards) { card in
-                                        CardView(card: card)
-                                    }
-                                }
+
+                        if walletService.isLoading && walletService.balances.isEmpty {
+                            SkeletonTokenList(count: 5)
                                 .padding(.horizontal)
+                        } else if walletService.balances.filter({ $0.hasBalance }).isEmpty {
+                            EmptyBalancesView()
+                                .padding(.horizontal)
+                        } else {
+                            VStack(spacing: 8) {
+                                ForEach(walletService.balances.filter { $0.hasBalance }) { balance in
+                                    TokenBalanceRow(balance: balance)
+                                }
                             }
                         }
                     }
 
-                    Spacer(minLength: 40)
+                    Spacer(minLength: 100)
                 }
                 .padding(.top, 20)
             }
             .navigationTitle("Wallet")
             .navigationBarTitleDisplayMode(.large)
+            .refreshable {
+                guard let walletAddress = user.walletAddress else { return }
+                await walletService.refreshBalances(walletAddress: walletAddress, force: true)
+                await delegationManager.fetchDelegationStatus()
+            }
+            .sheet(isPresented: $showAutoConvertSettings) {
+                NavigationStack {
+                    AutoConvertSettingsView()
+                        // We need to pass environment objects if they aren't inherited automatically (sheets sometimes break this)
+                        .environmentObject(HybridPrivyService.shared) 
+                }
+            }
+            .alert("Error", isPresented: $showError, presenting: walletService.error) { error in
+                Button("OK") {
+                    showError = false
+                }
+            } message: { error in
+                Text(error.localizedDescription)
+            }
+            .onChange(of: walletService.error) { newError in
+                showError = newError != nil
+            }
             .onAppear {
-                loadPaymentMethods()
-                loadCards()
-            }
-            .sheet(isPresented: $showAddPaymentMethod) {
-                AddPaymentMethodSheet(onDismiss: {
-                    showAddPaymentMethod = false
-                    loadPaymentMethods()
-                })
-            }
-            .sheet(isPresented: $showAddCard) {
-                AddCardSheet(onDismiss: {
-                    showAddCard = false
-                    loadCards()
-                })
+                // Refresh delegation status to keep card updated
+                Task {
+                    await delegationManager.fetchDelegationStatus()
+                }
             }
         }
     }
 
-    // MARK: - Helpers
-
-    private func loadPaymentMethods() {
-        // TODO: Fetch from backend
-        // For now, show empty state
-        paymentMethods = []
-    }
-
-    private func loadCards() {
-        // TODO: Fetch from backend
-        // For now, show empty state
-        cards = []
-    }
 }
 
-// MARK: - Payment Method Row
+// MARK: - AutoConvert Card
 
-struct PaymentMethodRow: View {
-    let method: PaymentMethod
-
+struct AutoConvertCard: View {
+    let hasActiveDelegation: Bool
+    
     var body: some View {
         HStack(spacing: 16) {
-            // Icon
             ZStack {
                 Circle()
-                    .fill(method.type.color.opacity(0.1))
-                    .frame(width: 50, height: 50)
-
-                Image(systemName: method.type.icon)
+                    .fill(hasActiveDelegation ? Color.green.opacity(0.1) : BrandColors.primary.opacity(0.1))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: hasActiveDelegation ? "checkmark.circle.fill" : "arrow.triangle.2.circlepath.circle.fill")
                     .font(.title3)
-                    .foregroundColor(method.type.color)
+                    .foregroundColor(hasActiveDelegation ? .green : BrandColors.primary)
             }
-
-            // Details
+            
             VStack(alignment: .leading, spacing: 4) {
-                Text(method.name)
+                Text("Auto-Convert")
                     .font(.body)
-                    .fontWeight(.medium)
-
-                Text(method.subtitle)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                
+                Text(hasActiveDelegation ? "Active • Portfolio Balancing On" : "Automate your savings instantly")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-
+            
             Spacer()
-
-            // Status Badge
-            if method.isDefault {
-                Text("Default")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.blue)
-                    .cornerRadius(12)
-            }
+            
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
         .padding()
         .background(Color(UIColor.secondarySystemBackground))
-        .cornerRadius(12)
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(hasActiveDelegation ? Color.green.opacity(0.3) : Color.clear, lineWidth: 1)
+        )
     }
 }
 
-// MARK: - Card View
+// MARK: - Total Balance Card
 
-struct CardView: View {
-    let card: PaymentCard
+struct TotalBalanceCard: View {
+    let totalUSD: Decimal
+    let change24h: Decimal?
+    let lastUpdated: Date?
+
+    private var formattedTotal: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        formatter.maximumFractionDigits = 2
+        return formatter.string(from: totalUSD as NSDecimalNumber) ?? "$0.00"
+    }
+
+    private var formattedChange: String? {
+        guard let change = change24h else { return nil }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .percent
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        formatter.positivePrefix = "+"
+        return formatter.string(from: (change / 100) as NSDecimalNumber)
+    }
+
+    private var changeColor: Color {
+        guard let change = change24h else { return .secondary }
+        return change >= 0 ? .green : .red
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Card Header
             HStack {
-                Image(systemName: card.brand.icon)
-                    .font(.title2)
-                    .foregroundColor(.white)
+                Text("Total Balance")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.8))
 
                 Spacer()
 
-                if card.isDefault {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.title3)
-                        .foregroundColor(.white)
+                if let lastUpdated = lastUpdated {
+                    Text("Updated \(timeAgo(lastUpdated))")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.6))
                 }
+            }
+
+            Text(formattedTotal)
+                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+
+            if let formattedChange = formattedChange {
+                HStack(spacing: 6) {
+                    Image(systemName: (change24h ?? 0) >= 0 ? "arrow.up.right" : "arrow.down.right")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+
+                    Text(formattedChange)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+
+                    Text("Today")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                .foregroundColor(changeColor)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.black.opacity(0.2))
+                .cornerRadius(8)
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(BrandColors.primaryGradient)
+        .cornerRadius(20)
+        .shadow(color: BrandColors.primary.opacity(0.4), radius: 15, x: 0, y: 8)
+    }
+
+    private func timeAgo(_ date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+        if seconds < 60 { return "just now" }
+        else if seconds < 3600 { return "\(seconds / 60)m ago" }
+        else { return "\(seconds / 3600)h ago" }
+    }
+}
+
+// MARK: - Quick Actions Row
+// (Same as before)
+struct QuickActionsRow: View {
+    let user: User
+    @State private var showSendSheet = false
+    @State private var showRequestSheet = false
+    @State private var showConvertSheet = false
+    @State private var showBuySheet = false
+    @State private var showSellSheet = false
+    @StateObject private var remoteConfig = RemoteConfigManager.shared
+
+    var body: some View {
+        HStack(spacing: 12) {
+            QuickActionButton(icon: "arrow.up.circle.fill", title: "Pay", color: .blue) { showSendSheet = true }
+            QuickActionButton(icon: "arrow.down.circle.fill", title: "Get Paid", color: .green) { showRequestSheet = true }
+
+            if remoteConfig.enableOnramp {
+                QuickActionButton(icon: "plus.circle.fill", title: "Top Up", color: .orange) { showBuySheet = true }
+            }
+
+            if remoteConfig.enableOfframp {
+                QuickActionButton(icon: "minus.circle.fill", title: "Cash Out", color: .red) { showSellSheet = true }
+            }
+
+            QuickActionButton(icon: "arrow.triangle.swap", title: "Convert", color: .purple) { showConvertSheet = true }
+        }
+        .sheet(isPresented: $showSendSheet) { SendView(user: user) }
+        .sheet(isPresented: $showRequestSheet) { CreateRequestView(user: user) }
+        .sheet(isPresented: $showConvertSheet) { SwapView() }
+        .sheet(isPresented: $showBuySheet) { CoinbaseOnrampView() }
+        .sheet(isPresented: $showSellSheet) { CoinbaseOfframpView() }
+    }
+}
+
+struct QuickActionButton: View {
+    let icon: String
+    let title: String
+    let color: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(color)
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Color(UIColor.secondarySystemBackground))
+            .cornerRadius(16)
+        }
+    }
+}
+
+// MARK: - Token Balance Row
+
+struct TokenBalanceRow: View {
+    let balance: TokenBalance
+
+    var body: some View {
+        HStack(spacing: 12) {
+            TokenImageView(token: balance.token, size: 44)
+                .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(balance.token.name)
+                    .font(.body)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
             }
 
             Spacer()
 
-            // Card Number
-            Text("•••• •••• •••• \(card.lastFour)")
-                .font(.system(.body, design: .monospaced))
-                .foregroundColor(.white)
-
-            // Card Info
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Card Holder")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                    Text(card.holderName)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("Expires")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                    Text(card.expiryDate)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                }
-            }
-        }
-        .padding(20)
-        .frame(width: 300, height: 180)
-        .background(
-            LinearGradient(
-                colors: card.brand.gradientColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
-    }
-}
-
-// MARK: - Empty State Card
-
-struct EmptyStateCard: View {
-    let icon: String
-    let title: String
-    let message: String
-    let action: () -> Void
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.system(size: 50))
-                .foregroundColor(.secondary)
-
-            VStack(spacing: 8) {
-                Text(title)
-                    .font(.headline)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(balance.displayUSD)
+                    .font(.body)
+                    .fontWeight(.bold)
                     .foregroundColor(.primary)
 
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-
-            Button(action: action) {
-                HStack {
-                    Image(systemName: "plus.circle.fill")
-                    Text("Add Now")
+                if let change = balance.change24h {
+                    HStack(spacing: 2) {
+                        Image(systemName: change >= 0 ? "arrow.up.right" : "arrow.down.right")
+                            .font(.caption2)
+                        Text(formatPercentage(change))
+                            .font(.caption)
+                    }
+                    .foregroundColor(change >= 0 ? .green : .red)
                 }
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundColor(.white)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-                .background(Color.blue)
-                .cornerRadius(10)
             }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        // Removed background for cleaner list look (matches Home view)
+        // .background(Color(UIColor.secondarySystemBackground))
+        // .cornerRadius(12)
+    }
+
+    private func formatPercentage(_ value: Decimal) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .percent
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        formatter.positivePrefix = "+"
+        return formatter.string(from: (value / 100) as NSDecimalNumber) ?? "0%"
+    }
+}
+
+// MARK: - Empty Balances View
+struct EmptyBalancesView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "bitcoinsign.circle")
+                .font(.system(size: 40))
+                .foregroundColor(.secondary.opacity(0.5))
+            Text("No tokens yet")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(40)
-        .background(Color(UIColor.secondarySystemBackground))
-        .cornerRadius(12)
+        .padding(30)
     }
 }
 
-// MARK: - Add Payment Method Sheet
-
-struct AddPaymentMethodSheet: View {
-    let onDismiss: () -> Void
-
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                Spacer()
-
-                VStack(spacing: 20) {
-                    Image(systemName: "creditcard.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.blue)
-
-                    VStack(spacing: 12) {
-                        Text("Add Payment Method")
-                            .font(.title2)
-                            .fontWeight(.bold)
-
-                        Text("This feature is coming soon.\nYou'll be able to add bank accounts, digital wallets, and more.")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                    }
-                }
-
-                Spacer()
-            }
-            .navigationTitle("Add Payment Method")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        onDismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Add Card Sheet
-
-struct AddCardSheet: View {
-    let onDismiss: () -> Void
-
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                Spacer()
-
-                VStack(spacing: 20) {
-                    Image(systemName: "creditcard.and.123")
-                        .font(.system(size: 60))
-                        .foregroundColor(.blue)
-
-                    VStack(spacing: 12) {
-                        Text("Add Card")
-                            .font(.title2)
-                            .fontWeight(.bold)
-
-                        Text("This feature is coming soon.\nYou'll be able to add debit and credit cards securely.")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                    }
-                }
-
-                Spacer()
-            }
-            .navigationTitle("Add Card")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        onDismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Payment Method Model
-
-struct PaymentMethod: Identifiable {
-    let id = UUID()
-    let type: PaymentMethodType
-    let name: String
-    let subtitle: String
-    let isDefault: Bool
-}
-
-enum PaymentMethodType {
-    case bankAccount
-    case paypal
-    case applePay
-    case googlePay
-
-    var icon: String {
-        switch self {
-        case .bankAccount: return "building.columns.fill"
-        case .paypal: return "p.circle.fill"
-        case .applePay: return "applelogo"
-        case .googlePay: return "g.circle.fill"
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .bankAccount: return .blue
-        case .paypal: return .indigo
-        case .applePay: return .black
-        case .googlePay: return .green
-        }
-    }
-}
-
-// MARK: - Payment Card Model
-
-struct PaymentCard: Identifiable {
-    let id = UUID()
-    let brand: CardBrand
-    let lastFour: String
-    let holderName: String
-    let expiryDate: String
-    let isDefault: Bool
-}
-
-enum CardBrand {
-    case visa
-    case mastercard
-    case amex
-    case discover
-
-    var icon: String {
-        switch self {
-        case .visa: return "creditcard.fill"
-        case .mastercard: return "creditcard.fill"
-        case .amex: return "creditcard.fill"
-        case .discover: return "creditcard.fill"
-        }
-    }
-
-    var gradientColors: [Color] {
-        switch self {
-        case .visa: return [Color.blue, Color.indigo]
-        case .mastercard: return [Color.orange, Color.red]
-        case .amex: return [Color.green, Color.teal]
-        case .discover: return [Color.orange, Color.yellow]
-        }
-    }
-}
 
 #Preview {
     WalletView(
@@ -451,7 +364,7 @@ enum CardBrand {
             id: "test",
             email: "test@example.com",
             name: "Test User",
-            walletAddress: "ABC123XYZ789ABC123XYZ789ABC123XYZ789ABC123XYZ789"
+            walletAddress: "ABC123XYZ789", username: nil
         )
     )
 }

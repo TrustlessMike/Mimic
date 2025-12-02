@@ -26,7 +26,7 @@ struct PreferencesSetupView: View {
             // Icon
             Image(systemName: "gearshape.fill")
                 .font(.system(size: 80))
-                .foregroundColor(.blue)
+                .foregroundColor(BrandColors.primary)
 
             // Title
             Text("Customize Your Experience")
@@ -44,7 +44,7 @@ struct PreferencesSetupView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Image(systemName: "bell.fill")
-                            .foregroundColor(.blue)
+                            .foregroundColor(BrandColors.primary)
                             .frame(width: 24)
 
                         VStack(alignment: .leading) {
@@ -72,7 +72,7 @@ struct PreferencesSetupView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Image(systemName: "paintbrush.fill")
-                            .foregroundColor(.blue)
+                            .foregroundColor(BrandColors.primary)
                             .frame(width: 24)
 
                         VStack(alignment: .leading) {
@@ -112,7 +112,7 @@ struct PreferencesSetupView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.blue)
+                .background(BrandColors.primary)
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }

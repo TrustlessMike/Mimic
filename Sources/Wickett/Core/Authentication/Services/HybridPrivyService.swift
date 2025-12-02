@@ -22,6 +22,11 @@ class HybridPrivyService: ObservableObject {
 
     private var authenticatedEmail: String?
 
+    /// Public accessor for Privy client (used by DelegationManager for session approvals)
+    var client: (any Privy)? {
+        return privyClient
+    }
+
     private init() {
         initializePrivySDK()
     }
@@ -51,7 +56,8 @@ class HybridPrivyService: ObservableObject {
         logger.info("📋 Configuration:")
         logger.info("   - App ID: cmh5i82000072jl0cixsq20k7")
         logger.info("   - Client ID: client-WY6SJ3DpaUXxFWCWdTG6FANZ2zzDxkaF9kUWjZTqDM5RG")
-        logger.info("   - Bundle ID: com.syndicatemike.Wickett")
+        let runtimeBundleId = Bundle.main.bundleIdentifier ?? "nil"
+        logger.info("   - Bundle ID (runtime): \(runtimeBundleId)")
     }
 
     // MARK: - Authentication
@@ -108,6 +114,10 @@ class HybridPrivyService: ObservableObject {
             }
             if case .apple(let appleAccount) = account {
                 self.authenticatedEmail = appleAccount.email
+                break
+            }
+            if case .google(let googleAccount) = account {
+                self.authenticatedEmail = googleAccount.email
                 break
             }
         }
@@ -199,6 +209,10 @@ class HybridPrivyService: ObservableObject {
         // Get or create Solana wallet
         var wallet: String? = nil
 
+        // Get Privy user ID (this is what we need for API lookups)
+        let privyUserId = privyUser.id
+        logger.info("🔑 Privy user ID: \(privyUserId)")
+
         // First check if user already has a Solana wallet
         for account in privyUser.linkedAccounts {
             if case .embeddedSolanaWallet(let sol) = account {
@@ -208,15 +222,38 @@ class HybridPrivyService: ObservableObject {
             }
         }
 
-        // If no wallet exists, create one
+        // If no wallet exists, create one SERVER-SIDE with authorization key
+        // This enables auto-convert functionality since Swift SDK doesn't support addSessionSigner
         if wallet == nil {
             do {
-                logger.info("💼 Creating new Solana wallet...")
-                let solanaWallet = try await privyUser.createSolanaWallet()
-                wallet = solanaWallet.address
-                logger.info("✅ Created Solana wallet: \(solanaWallet.address)")
+                logger.info("💼 Creating new Solana wallet SERVER-SIDE with auth key...")
+                let result = try await firebaseCallable.call(
+                    "createServerWallet",
+                    data: ["privyUserId": privyUserId]
+                )
+
+                if let data = result.data as? [String: Any],
+                   let walletAddress = data["walletAddress"] as? String {
+                    wallet = walletAddress
+                    let hasAuthKey = data["hasAuthKey"] as? Bool ?? false
+                    let alreadyExisted = data["alreadyExisted"] as? Bool ?? false
+                    logger.info("✅ Server wallet created: \(walletAddress)")
+                    logger.info("   Has auth key: \(hasAuthKey)")
+                    logger.info("   Already existed: \(alreadyExisted)")
+                } else {
+                    logger.error("❌ Server wallet creation returned no address")
+                }
             } catch {
-                logger.error("❌ Failed to create Solana wallet: \(error)")
+                logger.error("❌ Failed to create server wallet: \(error)")
+                // Fallback to client-side creation (won't have auth key for auto-convert)
+                do {
+                    logger.info("💼 Falling back to client-side wallet creation...")
+                    let solanaWallet = try await privyUser.createSolanaWallet()
+                    wallet = solanaWallet.address
+                    logger.info("⚠️ Created client-side wallet (no auth key): \(solanaWallet.address)")
+                } catch {
+                    logger.error("❌ Client-side wallet creation also failed: \(error)")
+                }
             }
         }
 
@@ -227,13 +264,35 @@ class HybridPrivyService: ObservableObject {
             return privyId.starts(with: "privy_") ? privyId : "privy_\(privyId)"
         }()
 
+        // CRITICAL: Update Firestore with wallet address AND Privy user ID
+        // The privyUserId is required for Privy API lookups (auto-convert)
+        // This ensures both are persisted in the database for use by Cloud Functions
+        if let wallet = wallet {
+            do {
+                let db = Firestore.firestore()
+                var userData: [String: Any] = [
+                    "walletAddress": wallet,
+                    "privyUserId": privyUserId as NSObject,
+                    "updatedAt": Date()
+                ]
+
+                try await db.collection("users").document(userId).setData(userData, merge: true)
+                logger.info("✅ Updated Firestore with wallet address: \(wallet)")
+                logger.info("✅ Stored Privy user ID: \(privyUserId)")
+            } catch {
+                logger.error("❌ Failed to update wallet address in Firestore: \(error)")
+                // Don't throw - this is not a fatal error, continue with auth
+            }
+        }
+
         await MainActor.run {
             self.isAuthenticated = true
             self.currentUser = User(
                 id: userId,  // Use Firebase UID instead of Privy ID
                 email: self.authenticatedEmail,
                 name: nil,
-                walletAddress: wallet
+                walletAddress: wallet,
+                username: nil
             )
             self.walletAddress = wallet
         }
@@ -267,6 +326,59 @@ class HybridPrivyService: ObservableObject {
         logger.info("✅ Signed out successfully")
     }
 
+    // MARK: - Privy Access
+
+    /// Get the current Privy user for signing transactions
+    func getPrivyUser() async throws -> PrivyUser? {
+        guard let privy = privyClient else {
+            logger.error("❌ Privy client not initialized")
+            return nil
+        }
+
+        do {
+            let user = try await privy.getUser()
+            return user
+        } catch {
+            logger.error("❌ Failed to get Privy user: \(error)")
+            return nil
+        }
+    }
+
+    /// Sign a message for sponsored transactions using Privy embedded wallet
+    /// This triggers user approval in the Privy UI
+    func signMessageForSponsorship(_ message: String) async throws -> (signature: String, walletAddress: String) {
+        guard let privy = privyClient else {
+            logger.error("❌ Privy client not initialized")
+            throw HybridPrivyError.authenticationFailed("Privy not initialized")
+        }
+
+        guard case .authenticated(let privyUser) = privy.authState else {
+            logger.error("❌ User not authenticated")
+            throw HybridPrivyError.authenticationFailed("User not authenticated")
+        }
+
+        logger.info("📝 Getting Solana wallet for signing...")
+
+        // Get the embedded Solana wallets
+        let solanaWallets = privyUser.embeddedSolanaWallets
+        guard let wallet = solanaWallets.first else {
+            logger.error("❌ No Solana wallet found")
+            throw HybridPrivyError.authenticationFailed("No Solana wallet found")
+        }
+
+        logger.info("💼 Found wallet: \(wallet.address)")
+        logger.info("✍️ Requesting signature from Privy...")
+
+        // Get the provider and sign the message
+        // This will trigger the Privy UI for user approval
+        let provider = wallet.provider
+        let signature = try await provider.signMessage(message: message)
+
+        logger.info("✅ Message signed successfully")
+
+        return (signature: signature, walletAddress: wallet.address)
+    }
+
     // MARK: - Helpers
 
     func isUserAuthenticated() async -> Bool {
@@ -281,8 +393,16 @@ class HybridPrivyService: ObservableObject {
                     do {
                         // First try to get token WITHOUT forcing refresh
                         // Firebase SDK will auto-refresh if needed (much faster)
-                        _ = try await currentUser.getIDTokenResult(forcingRefresh: false)
+                        let tokenResult = try await currentUser.getIDTokenResult(forcingRefresh: false)
                         logger.info("✅ Firebase session is valid")
+                        
+                        // Check token expiration - refresh proactively if expiring soon (within 5 minutes)
+                        let expirationTime = tokenResult.expirationDate.timeIntervalSinceNow
+                        if expirationTime < 300 { // Less than 5 minutes remaining
+                            logger.info("⏰ Token expiring soon (\(Int(expirationTime))s), refreshing proactively...")
+                            _ = try await currentUser.getIDTokenResult(forcingRefresh: true)
+                            logger.info("✅ Firebase token proactively refreshed")
+                        }
 
                         // Get Firebase UID for Firestore queries
                         let firebaseUid = currentUser.uid

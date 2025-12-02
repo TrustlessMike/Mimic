@@ -6,10 +6,13 @@ struct LoginView: View {
 
     var body: some View {
         VStack(spacing: 30) {
-            // Logo
-            Image(systemName: "lock.shield.fill")
-                .font(.system(size: 80))
-                .foregroundColor(.blue)
+            // App Logo
+            Image("Logo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 120, height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 27))
+                .shadow(color: Color.primary.opacity(0.15), radius: 10, x: 0, y: 5)
                 .padding(.top, 50)
 
             // App Name
@@ -23,10 +26,6 @@ struct LoginView: View {
             VStack(spacing: 20) {
                 Text("Sign in to continue")
                     .font(.headline)
-                    .foregroundColor(.secondary)
-
-                Text("Powered by Privy + Firebase")
-                    .font(.caption)
                     .foregroundColor(.secondary)
 
                 // Apple Sign In Button
