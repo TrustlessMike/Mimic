@@ -68,16 +68,11 @@ class SendViewModel: ObservableObject {
         logger.info("✅ SendViewModel initialized with wallet: \(userWalletAddress ?? "none")")
 
         // Auto-select first token with balance if current selection has no balance
-        Task { @MainActor in
-            // Wait a moment for balances to load
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-
-            // If selected token has no balance, find first token with balance
-            if let balance = self.availableBalance, balance.lamports == 0 {
-                if let tokenWithBalance = self.walletService.balances.first(where: { $0.hasBalance }) {
-                    logger.info("🔄 Auto-switching from \(self.selectedToken.symbol) (no balance) to \(tokenWithBalance.token.symbol)")
-                    self.selectedToken = tokenWithBalance.token
-                }
+        // Check immediately since balances should already be loaded by MainTabView
+        if let balance = self.availableBalance, balance.lamports == 0 {
+            if let tokenWithBalance = self.walletService.balances.first(where: { $0.hasBalance }) {
+                logger.info("🔄 Auto-switching from \(self.selectedToken.symbol) (no balance) to \(tokenWithBalance.token.symbol)")
+                self.selectedToken = tokenWithBalance.token
             }
         }
 

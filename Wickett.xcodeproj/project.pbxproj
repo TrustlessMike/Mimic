@@ -801,7 +801,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Sign embedded bundles (fix for Firebase SPM)\nfind \"${CODESIGNING_FOLDER_PATH}\" -name '*.bundle' -print0 | while IFS= read -r -d '' bundle; do\n    /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --preserve-metadata=identifier,entitlements --timestamp=none \"${bundle}\"\ndone\n";
+			shellScript = "# Remove loose AppIcon files (they should only be in Assets.car)\nfind \"${CODESIGNING_FOLDER_PATH}\" -maxdepth 1 -name 'AppIcon*.png' -delete\n\n# Sign embedded bundles (fix for Firebase SPM)\nfind \"${CODESIGNING_FOLDER_PATH}\" -name '*.bundle' -print0 | while IFS= read -r -d '' bundle; do\n    /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --preserve-metadata=identifier,entitlements --timestamp=none \"${bundle}\"\ndone\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

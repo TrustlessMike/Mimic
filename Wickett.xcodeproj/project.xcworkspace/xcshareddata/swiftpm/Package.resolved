@@ -94,7 +94,7 @@
     {
       "identity" : "lottie-ios",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/airbnb/lottie-ios",
+      "location" : "https://github.com/airbnb/lottie-ios.git",
       "state" : {
         "revision" : "a004050748dc197c56256a14dca49a035d74726c",
         "version" : "4.5.2"
@@ -114,8 +114,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/privy-io/privy-ios.git",
       "state" : {
-        "revision" : "6f693c4d62f024f87392c146d9164539c32b79e5",
-        "version" : "2.6.0"
+        "revision" : "56dc1e18f0bfa60a41c025238427bb06273ca8d5",
+        "version" : "2.7.0"
       }
     },
     {

@@ -293,16 +293,22 @@ struct SettingsView: View {
         Task {
             do {
                 let firebaseClient = FirebaseCallableClient.shared
+
+                // First, setup the Wickett Team user document with username for search
+                _ = try? await firebaseClient.call("setupWickettTeamUser", data: [:])
+
+                // Then add as contact for the current user
                 let result = try await firebaseClient.call("addDevContact", data: [
                     "walletAddress": "74tDwBrYudu642jnpqtfvkNpxUxiX2RVJ76jW2Ut8hUA",
-                    "displayName": "Wickett Team"
+                    "displayName": "Wickett Team",
+                    "username": "wickettteam"
                 ])
 
                 if let response = result.data as? [String: Any],
                    let success = response["success"] as? Bool,
                    success {
                     await MainActor.run {
-                        devContactMessage = "✅ Wickett Team contact added successfully! Go to Send Money to see it."
+                        devContactMessage = "✅ Wickett Team contact added successfully! You can now search for @wickettteam."
                         showingDevContactAlert = true
                     }
                     logger.info("✅ Dev contact added successfully")

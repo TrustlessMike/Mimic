@@ -74,22 +74,18 @@ class SolanaWalletService: ObservableObject {
         logger.info("🔄 Refreshing balances for \(walletAddress.prefix(8))...")
 
         do {
-            // Fetch SOL balance
-            let solBalance = try await heliusService.getSOLBalance(walletAddress: walletAddress)
+            // Fetch SOL balance, SPL balances, and prices in PARALLEL
+            async let solBalanceTask = heliusService.getSOLBalance(walletAddress: walletAddress)
+            async let splBalancesTask = heliusService.getSPLTokenBalances(walletAddress: walletAddress)
+            async let pricesTask: () = priceFeedService.refreshIfNeeded()
 
-            // Fetch SPL token balances
-            let splBalances = try await heliusService.getSPLTokenBalances(walletAddress: walletAddress)
+            // Wait for all to complete
+            let (solBalance, splBalances, _) = try await (solBalanceTask, splBalancesTask, pricesTask)
 
-            // Ensure prices are fresh - only refresh if needed to avoid rate limiting
-            await priceFeedService.refreshIfNeeded()
-
-            // Validate that critical prices loaded successfully
+            // Quick price validation (no 1 second delay - prices should be cached by now)
             let solPrice = priceFeedService.getPrice(for: "SOL")
             if solPrice == 0 && solBalance > 0 {
-                logger.warning("⚠️ SOL price is 0 despite having balance - prices may not have loaded yet")
-                // Retry price fetch once
-                try? await Task.sleep(nanoseconds: 1_000_000_000) // Wait 1 second
-                await priceFeedService.refreshPrices()
+                logger.warning("⚠️ SOL price is 0 despite having balance - will use cached price")
             }
 
             // Convert to TokenBalance objects
