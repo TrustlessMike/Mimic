@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 56;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -180,7 +180,7 @@
 		CC6FE731162FE2C6F6410F36 /* RemoteConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteConfigManager.swift; sourceTree = "<group>"; };
 		CDBC8F91127B3061F6883DB6 /* CustomTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTabBar.swift; sourceTree = "<group>"; };
 		CFD03A33A75882A5E0B25D2C /* WalletActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletActivity.swift; sourceTree = "<group>"; };
-		D12064E170101EA6115A2671 /* Wickett.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Wickett.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D12064E170101EA6115A2671 /* Wickett.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wickett.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3A46A3BFA3772E2B77ECFFB /* RecipientSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientSearchField.swift; sourceTree = "<group>"; };
 		D56C492ADC0BA5A978F7623A /* SolanaWalletService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolanaWalletService.swift; sourceTree = "<group>"; };
 		D9D1F84C9AF7624DD1E58464 /* WickettApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WickettApp.swift; sourceTree = "<group>"; };
@@ -720,6 +720,7 @@
 				BED19331AA4974766F1BDCDC /* Sources */,
 				089BBD921B5AC09D2A90F254 /* Resources */,
 				233B4222A59A916F20666CEB /* Frameworks */,
+				SIGNBUNDLES001 /* Sign Embedded Bundles */,
 			);
 			buildRules = (
 			);
@@ -747,8 +748,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = 30E013C444414955D2EAD353 /* Build configuration list for PBXProject "Wickett" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -784,6 +783,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		SIGNBUNDLES001 /* Sign Embedded Bundles */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Sign Embedded Bundles";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Sign embedded bundles (fix for Firebase SPM)\nfind \"${CODESIGNING_FOLDER_PATH}\" -name '*.bundle' -print0 | while IFS= read -r -d '' bundle; do\n    /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --preserve-metadata=identifier,entitlements --timestamp=none \"${bundle}\"\ndone\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		BED19331AA4974766F1BDCDC /* Sources */ = {
@@ -888,6 +908,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Resources/Wickett.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 3ZNP9JGQ38;
 				INFOPLIST_FILE = Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
