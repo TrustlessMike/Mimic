@@ -28,7 +28,8 @@
 		3ACA5F2EFDB56F280962D0A4 /* ActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E00C3C8B418B862B13C4C4 /* ActivityService.swift */; };
 		3D3F1B1F5825C5A8D2176D14 /* TransactionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD70E0EA49E7F5FB322010AF /* TransactionState.swift */; };
 		3D94B4E32292747882D517E0 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64EB8D2902E78F8B496FB91C /* User.swift */; };
-		3F37695AA100353D52274C0E /* Resources in Resources */ = {isa = PBXBuildFile; fileRef = 9EBEF14B8CF83A66B5EF3F62 /* Resources */; };
+		LAUNCHSB001 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = LAUNCHSBREF1 /* LaunchScreen.storyboard */; };
+		GOOGLESI001 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = GOOGLESIREF1 /* GoogleService-Info.plist */; };
 		3FA9E0ED969451522212AE73 /* CoinbaseOnrampViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA4F8C793C688337CE94FBD5 /* CoinbaseOnrampViewModel.swift */; };
 		4022C57D76DF72569101EA3C /* AccountBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76A7AA119EE0A053597A5E60 /* AccountBalance.swift */; };
 		427423239ED8D8DE45AB8937 /* HeliusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D91EA59B51A0F45BC0B3548 /* HeliusService.swift */; };
@@ -153,7 +154,8 @@
 		92BECDEDB9BD6815C6C47E09 /* QRCodeGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeGenerator.swift; sourceTree = "<group>"; };
 		9611BDAD3932550BDC12741A /* UserPreferencesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferencesService.swift; sourceTree = "<group>"; };
 		9656A820CBDBB0551CBB81F3 /* SwapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapViewModel.swift; sourceTree = "<group>"; };
-		9EBEF14B8CF83A66B5EF3F62 /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = SOURCE_ROOT; };
+		LAUNCHSBREF1 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		GOOGLESIREF1 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		A35409E59EDF56B9909BB020 /* ActivityItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityItem.swift; sourceTree = "<group>"; };
 		A3EF9DCEE6204F6ED112D25C /* TokenMetadataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenMetadataService.swift; sourceTree = "<group>"; };
 		A45D682F6E323D50587BCEFA /* SlippageSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlippageSettingsView.swift; sourceTree = "<group>"; };
@@ -560,6 +562,8 @@
 			isa = PBXGroup;
 			children = (
 				2EA57C56EB4C1A0438BE4330 /* Assets.xcassets */,
+				LAUNCHSBREF1 /* LaunchScreen.storyboard */,
+				GOOGLESIREF1 /* GoogleService-Info.plist */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -778,7 +782,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				8EC988A17049EEA49662A455 /* Assets.xcassets in Resources */,
-				3F37695AA100353D52274C0E /* Resources in Resources */,
+				LAUNCHSB001 /* LaunchScreen.storyboard in Resources */,
+				GOOGLESI001 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
