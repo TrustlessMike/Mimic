@@ -71,28 +71,29 @@ class PaymentRequestViewModel: ObservableObject {
                 )
             }
 
-            let request = try await requestService.createFiatRequest(
-                amount: amountValue,
-                currency: "USD",
-                portfolio: portfolio,
-                isFixedAmount: true,
-                memo: memo
-            )
+            let request: PaymentRequest
 
-            logger.info("✅ Request created: \(request.id)")
-
-            // Send notification to recipient if one was selected
+            // Use combined function if recipient is selected (faster - single network call)
             if let recipient = selectedRecipient {
-                do {
-                    try await requestService.sendRequestToUser(
-                        requestId: request.id,
-                        recipientUserId: recipient.userId
-                    )
-                    logger.info("✅ Notification sent to: \(recipient.displayName ?? recipient.userId)")
-                } catch {
-                    logger.error("⚠️ Failed to send notification: \(error.localizedDescription)")
-                    // Don't fail the whole request creation if notification fails
-                }
+                request = try await requestService.createAndSendFiatRequest(
+                    amount: amountValue,
+                    currency: "USD",
+                    portfolio: portfolio,
+                    isFixedAmount: true,
+                    memo: memo,
+                    recipientUserId: recipient.userId
+                )
+                logger.info("✅ Request created and sent to: \(recipient.displayName)")
+            } else {
+                // No recipient - just create the request
+                request = try await requestService.createFiatRequest(
+                    amount: amountValue,
+                    currency: "USD",
+                    portfolio: portfolio,
+                    isFixedAmount: true,
+                    memo: memo
+                )
+                logger.info("✅ Request created: \(request.id)")
             }
 
             // Generate QR code

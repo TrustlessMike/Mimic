@@ -235,6 +235,53 @@ class RequestService: ObservableObject {
         logger.info("✅ Request sent successfully")
     }
 
+    // MARK: - Combined Create + Send (Faster)
+
+    /// Create AND send a fiat payment request in a single call (~50% faster)
+    func createAndSendFiatRequest(
+        amount: Decimal,
+        currency: String,
+        portfolio: [PortfolioAllocation],
+        isFixedAmount: Bool,
+        memo: String,
+        recipientUserId: String
+    ) async throws -> PaymentRequest {
+        logger.info("📝 Creating and sending fiat request: \(amount) \(currency) to \(recipientUserId)")
+
+        let portfolioData = portfolio.map { allocation -> [String: Any] in
+            return [
+                "id": allocation.id,
+                "token": allocation.token,
+                "symbol": allocation.symbol,
+                "percentage": allocation.percentage
+            ]
+        }
+
+        let data: [String: Any] = [
+            "amount": NSDecimalNumber(decimal: amount).doubleValue,
+            "currency": currency,
+            "portfolio": portfolioData,
+            "isFixedAmount": isFixedAmount,
+            "memo": memo,
+            "recipientUserId": recipientUserId
+        ]
+
+        let result = try await firebaseClient.call("createAndSendFiatRequest", data: data)
+
+        guard let resultData = result.data as? [String: Any],
+              let success = resultData["success"] as? Bool,
+              success,
+              let responseData = resultData["data"] as? [String: Any],
+              let requestId = responseData["requestId"] as? String,
+              let requestData = responseData["request"] as? [String: Any] else {
+            let error = (result.data as? [String: Any])?["error"] as? String ?? "Failed to create and send request"
+            throw RequestError.createFailed(error)
+        }
+
+        logger.info("✅ Request created and sent: \(requestId)")
+        return try parsePaymentRequest(id: requestId, data: requestData)
+    }
+
     // MARK: - Fulfill Request
 
     /// Fulfill (pay) a payment request
