@@ -78,15 +78,12 @@ class UsernameService: ObservableObject {
         let result = try await firebaseClient.call("checkUsernameAvailability", data: data)
 
         guard let resultData = result.data as? [String: Any],
-              let success = resultData["success"] as? Bool,
-              success,
-              let responseData = resultData["data"] as? [String: Any],
-              let available = responseData["available"] as? Bool else {
+              let available = resultData["available"] as? Bool else {
             let error = (result.data as? [String: Any])?["error"] as? String ?? "Failed to check availability"
             throw UsernameError.checkFailed(error)
         }
 
-        let reason = responseData["reason"] as? String
+        let reason = resultData["reason"] as? String
 
         logger.info("\(available ? "✅ Username available" : "❌ Username taken") \(reason ?? "unknown")")
 
@@ -112,11 +109,31 @@ class UsernameService: ObservableObject {
 
         guard let resultData = result.data as? [String: Any],
               let success = resultData["success"] as? Bool,
-              success,
-              let responseData = resultData["data"] as? [String: Any],
-              let confirmedUsername = responseData["username"] as? String else {
+              success else {
             let error = (result.data as? [String: Any])?["error"] as? String ?? "Failed to update username"
+
+            // Check for cooldown error (contains "days remaining")
+            if error.contains("days remaining") {
+                // Extract days remaining from error message
+                if let range = error.range(of: "\\d+", options: .regularExpression),
+                   let days = Int(error[range]) {
+                    throw UsernameError.cooldownActive(daysRemaining: days)
+                }
+            }
+
             throw UsernameError.updateFailed(error)
+        }
+
+        // Response format: { success: true, username: "..." }
+        // OR wrapped: { success: true, data: { username: "..." } }
+        let confirmedUsername: String
+        if let responseData = resultData["data"] as? [String: Any],
+           let username = responseData["username"] as? String {
+            confirmedUsername = username
+        } else if let username = resultData["username"] as? String {
+            confirmedUsername = username
+        } else {
+            throw UsernameError.updateFailed("Invalid response format")
         }
 
         logger.info("✅ Username updated to: \(confirmedUsername)")
@@ -131,12 +148,14 @@ enum UsernameError: LocalizedError {
     case invalidFormat(String)
     case checkFailed(String)
     case updateFailed(String)
+    case cooldownActive(daysRemaining: Int)
 
     var errorDescription: String? {
         switch self {
         case .invalidFormat(let message): return message
         case .checkFailed(let message): return "Failed to check availability: \(message)"
         case .updateFailed(let message): return "Failed to update username: \(message)"
+        case .cooldownActive(let daysRemaining): return "You can change your username in \(daysRemaining) days"
         }
     }
 }

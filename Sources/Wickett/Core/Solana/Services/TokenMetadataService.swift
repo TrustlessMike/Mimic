@@ -65,8 +65,8 @@ actor TokenMetadataService {
             address: "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
             chainId: 101,
             decimals: 8,
-            name: "Wrapped Bitcoin",
-            symbol: "wBTC",
+            name: "Bitcoin",
+            symbol: "BTC",
             logoURI: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh/logo.png",
             tags: ["verified"],
             extensions: TokenMetadata.Extensions(coingeckoId: "wrapped-bitcoin")
@@ -76,8 +76,8 @@ actor TokenMetadataService {
             address: "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
             chainId: 101,
             decimals: 8,
-            name: "Wrapped Ethereum",
-            symbol: "wETH",
+            name: "Ethereum",
+            symbol: "ETH",
             logoURI: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs/logo.png",
             tags: ["verified"],
             extensions: TokenMetadata.Extensions(coingeckoId: "weth")

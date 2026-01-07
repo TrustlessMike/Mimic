@@ -54,13 +54,15 @@ struct CreateOfframpSessionRequest: Codable {
     let assetSymbol: String?
     let country: String?
     let fiatCurrency: String?
+    let privyAccessToken: String?
 
-    init(walletAddress: String, fiatAmount: Double, assetSymbol: String = "USDC", country: String = "US", fiatCurrency: String = "USD") {
+    init(walletAddress: String, fiatAmount: Double, assetSymbol: String = "USDC", country: String = "US", fiatCurrency: String = "USD", privyAccessToken: String? = nil) {
         self.walletAddress = walletAddress
         self.fiatAmount = fiatAmount
         self.assetSymbol = assetSymbol
         self.country = country
         self.fiatCurrency = fiatCurrency
+        self.privyAccessToken = privyAccessToken
     }
 }
 

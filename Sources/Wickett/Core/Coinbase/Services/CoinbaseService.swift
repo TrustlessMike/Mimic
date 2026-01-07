@@ -1,5 +1,8 @@
 import Foundation
 import FirebaseFunctions
+import OSLog
+
+private let logger = Logger(subsystem: "com.syndicatemike.Wickett", category: "CoinbaseService")
 
 /// Errors that can occur during Coinbase operations
 enum CoinbaseError: LocalizedError {
@@ -37,8 +40,25 @@ class CoinbaseService {
     static let shared = CoinbaseService()
 
     private let firebaseClient = FirebaseCallableClient.shared
+    private let privyService = HybridPrivyService.shared
 
     private init() {}
+
+    // MARK: - Private Helpers
+
+    /// Gets the current Privy access token for CDP security compliance
+    private func getPrivyAccessToken() async -> String? {
+        do {
+            if let privyUser = try await privyService.getPrivyUser() {
+                let token = try await privyUser.getAccessToken()
+                logger.info("✅ Got Privy access token for Coinbase request")
+                return token
+            }
+        } catch {
+            logger.warning("⚠️ Could not get Privy access token: \(error.localizedDescription)")
+        }
+        return nil
+    }
 
     // MARK: - Onramp (Buy Crypto)
 
@@ -61,6 +81,9 @@ class CoinbaseService {
         paymentCurrency: String = "USD",
         purchaseCurrency: String = "USDC"
     ) async throws -> CreateApplePayOrderResponse {
+        // Get Privy access token for CDP security compliance
+        let privyToken = await getPrivyAccessToken()
+
         let request = CreateApplePayOrderRequest(
             walletAddress: walletAddress,
             email: email,
@@ -69,7 +92,8 @@ class CoinbaseService {
             paymentAmount: paymentAmount,
             paymentCurrency: paymentCurrency,
             purchaseAmount: purchaseAmount,
-            purchaseCurrency: purchaseCurrency
+            purchaseCurrency: purchaseCurrency,
+            privyAccessToken: privyToken
         )
 
         do {
@@ -127,12 +151,16 @@ class CoinbaseService {
         country: String = "US",
         fiatCurrency: String = "USD"
     ) async throws -> CreateOnrampSessionResponse {
+        // Get Privy access token for CDP security compliance
+        let privyToken = await getPrivyAccessToken()
+
         let request = CreateOnrampSessionRequest(
             walletAddress: walletAddress,
             fiatAmount: fiatAmount,
             assetSymbol: assetSymbol,
             country: country,
-            fiatCurrency: fiatCurrency
+            fiatCurrency: fiatCurrency,
+            privyAccessToken: privyToken
         )
 
         do {
@@ -196,12 +224,16 @@ class CoinbaseService {
             throw CoinbaseError.invalidAmount
         }
 
+        // Get Privy access token for CDP security compliance
+        let privyToken = await getPrivyAccessToken()
+
         let request = CreateOfframpSessionRequest(
             walletAddress: walletAddress,
             fiatAmount: fiatAmount,
             assetSymbol: assetSymbol,
             country: country,
-            fiatCurrency: fiatCurrency
+            fiatCurrency: fiatCurrency,
+            privyAccessToken: privyToken
         )
 
         do {

@@ -7,6 +7,7 @@ struct OnboardingCoordinatorView: View {
     @EnvironmentObject var authCoordinator: AuthCoordinator
 
     @State private var isCompleting = false
+    @State private var isSavingProfile = false
     @State private var showError = false
     @State private var errorMessage = ""
 
@@ -22,58 +23,43 @@ struct OnboardingCoordinatorView: View {
                 case .welcome:
                     WelcomeView(onContinue: handleWelcomeContinue)
 
-                case .displayName:
-                    DisplayNameSetupView(
+                case .testingInfo:
+                    TestingInfoView(onContinue: {
+                        onboardingManager.nextStep()
+                    })
+
+                case .profile:
+                    ProfileSetupView(
                         displayName: $onboardingManager.onboardingState.displayName,
-                        onContinue: handleDisplayNameContinue,
+                        onContinue: handleProfileContinue,
                         onBack: onboardingManager.previousStep
                     )
 
-                case .username:
-                    // TODO: Implement UsernameSetupView
-                    Text("Username Setup - Coming Soon")
-                        .onAppear {
-                            handleUsernameSkip()
-                        }
-
-                case .preferences:
-                    PreferencesSetupView(
-                        preferences: $onboardingManager.onboardingState.preferences,
-                        onContinue: handlePreferencesContinue,
-                        onBack: onboardingManager.previousStep
-                    )
-
-                case .walkthrough:
-                    WalkthroughView(
-                        onContinue: handleWalkthroughContinue,
-                        onBack: onboardingManager.previousStep
-                    )
-
-                case .terms:
-                    TermsAcceptanceView(
-                        hasAccepted: $onboardingManager.onboardingState.hasAcceptedTerms,
-                        onContinue: handleTermsContinue,
-                        onBack: onboardingManager.previousStep
+                case .notifications:
+                    NotificationsSetupView(
+                        onEnable: handleEnableNotifications,
+                        onSkip: handleSkipNotifications
                     )
                 }
             }
 
             // Loading overlay
-            if isCompleting {
+            if isCompleting || isSavingProfile {
                 Color.black.opacity(0.4)
                     .ignoresSafeArea()
 
                 VStack(spacing: 20) {
                     ProgressView()
-                        .scaleEffect(1.5)
-                        .tint(.white)
-                    Text("Setting up your account...")
-                        .foregroundColor(.white)
+                        .scaleEffect(1.2)
+                        .tint(BrandColors.primary)
+                    Text(isSavingProfile ? "Setting up your profile..." : "Finishing setup...")
+                        .foregroundColor(.primary)
                         .font(.headline)
                 }
                 .padding(30)
-                .background(Color(UIColor.systemBackground))
-                .cornerRadius(16)
+                .background(Color(UIColor.secondarySystemGroupedBackground))
+                .cornerRadius(20)
+                .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
             }
         }
         .preferredColorScheme(themeManager.colorScheme)
@@ -87,69 +73,69 @@ struct OnboardingCoordinatorView: View {
     // MARK: - Step Handlers
 
     private func handleWelcomeContinue() {
-        onboardingManager.nextStep()
-    }
-
-    private func handleDisplayNameContinue() {
-        guard !onboardingManager.onboardingState.displayName.isEmpty else {
-            return
-        }
-        onboardingManager.updateDisplayName(onboardingManager.onboardingState.displayName)
-        onboardingManager.nextStep()
-    }
-
-    private func handleUsernameContinue(username: String?) {
-        if let username = username {
-            // TODO: Implement username service
-            onboardingManager.updateUsername(username)
-            onboardingManager.nextStep()
-        } else {
-            // No username provided, skip
-            onboardingManager.updateUsername(nil)
-            onboardingManager.nextStep()
-        }
-    }
-
-    private func handleUsernameSkip() {
-        onboardingManager.updateUsername(nil)
-        onboardingManager.nextStep()
-    }
-
-    private func handlePreferencesContinue() {
-        // Apply theme immediately
-        themeManager.setTheme(onboardingManager.onboardingState.preferences.theme)
-
-        onboardingManager.updatePreferences(onboardingManager.onboardingState.preferences)
-        onboardingManager.nextStep()
-    }
-
-    private func handleWalkthroughContinue() {
-        onboardingManager.completeWalkthrough()
-        onboardingManager.nextStep()
-    }
-
-    private func handleTermsContinue() {
-        guard onboardingManager.onboardingState.hasAcceptedTerms else {
-            return
-        }
-
+        // Terms are accepted on Welcome screen
         onboardingManager.acceptTerms()
+        onboardingManager.nextStep()
+    }
+
+    private func handleProfileContinue(username: String) {
+        guard !onboardingManager.onboardingState.displayName.isEmpty else { return }
+        guard !username.isEmpty else { return }
+
+        isSavingProfile = true
 
         Task {
-            await completeOnboarding()
+            do {
+                // Save username to Firebase
+                let confirmedUsername = try await UsernameService.shared.updateUsername(username: username)
+
+                await MainActor.run {
+                    onboardingManager.updateDisplayName(onboardingManager.onboardingState.displayName)
+                    onboardingManager.updateUsername(confirmedUsername)
+                    isSavingProfile = false
+                    onboardingManager.nextStep()
+                }
+            } catch {
+                await MainActor.run {
+                    isSavingProfile = false
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
+            }
+        }
+    }
+
+    private func handleEnableNotifications() {
+        Task {
+            do {
+                try await notificationManager.enableNotifications()
+            } catch {
+                // User declined or error - continue anyway
+            }
+            await finishOnboarding()
+        }
+    }
+
+    private func handleSkipNotifications() {
+        Task {
+            await finishOnboarding()
         }
     }
 
     // MARK: - Completion
 
-    private func completeOnboarding() async {
+    private func finishOnboarding() async {
         guard let userId = authCoordinator.currentUser?.id else {
-            errorMessage = "User not authenticated"
-            showError = true
+            await MainActor.run {
+                errorMessage = "User not authenticated"
+                showError = true
+            }
             return
         }
 
-        isCompleting = true
+        await MainActor.run {
+            isCompleting = true
+        }
 
         do {
             try await onboardingManager.completeOnboarding(userId: userId)
@@ -157,7 +143,6 @@ struct OnboardingCoordinatorView: View {
             // Refresh user data to fetch the displayName from Firestore
             await authCoordinator.checkAuthenticationStatus()
 
-            // Successfully completed
             await MainActor.run {
                 isCompleting = false
             }

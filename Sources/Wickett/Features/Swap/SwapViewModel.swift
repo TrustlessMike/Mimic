@@ -31,12 +31,32 @@ class SwapViewModel: ObservableObject {
 
     // MARK: - Computed Properties
 
+    /// Minimum USD value for swaps (Jupiter can't route tiny amounts)
+    private static let minimumSwapUSD: Decimal = 0.01
+
     /// Parsed from amount as lamports
     var fromAmountLamports: UInt64? {
         guard let amount = Decimal(string: fromAmount), amount > 0 else {
             return nil
         }
         return fromToken.toLamports(amount)
+    }
+
+    /// USD value of the from amount
+    var fromAmountUSD: Decimal? {
+        guard let amount = Decimal(string: fromAmount),
+              amount > 0,
+              let balance = walletService.balances.first(where: { $0.token.symbol == fromToken.symbol }),
+              balance.usdPrice > 0 else {
+            return nil
+        }
+        return amount * balance.usdPrice
+    }
+
+    /// Whether the swap amount meets minimum USD threshold
+    var meetsMinimumSwapValue: Bool {
+        guard let usdValue = fromAmountUSD else { return false }
+        return usdValue >= Self.minimumSwapUSD
     }
 
     /// Current from token balance
@@ -86,6 +106,19 @@ class SwapViewModel: ObservableObject {
             return nil
         }
         return quote.formattedOutputAmount(for: toToken)
+    }
+
+    /// USD value of output amount
+    var outputAmountUSD: String? {
+        guard let quote = currentQuote,
+              let outAmount = UInt64(quote.outAmount),
+              let balance = walletService.balances.first(where: { $0.token.symbol == toToken.symbol }),
+              balance.usdPrice > 0 else {
+            return nil
+        }
+        let tokenAmount = toToken.fromLamports(outAmount)
+        let usdValue = tokenAmount * balance.usdPrice
+        return String(format: "$%.2f", NSDecimalNumber(decimal: usdValue).doubleValue)
     }
 
     /// Minimum output after slippage
@@ -158,16 +191,37 @@ class SwapViewModel: ObservableObject {
 
     // MARK: - Quote Management
 
+    // Wrapped SOL mint address used by Jupiter for native SOL swaps
+    private static let wrappedSOLMint = "So11111111111111111111111111111111111111112"
+
     /// Fetch quote from Jupiter via Cloud Function
+    /// Also stores the unsigned transaction for later execution
+    private var pendingSwapTransaction: String?
+    private var pendingRequestId: String?
+
     func fetchQuote() async {
         guard let amountLamports = fromAmountLamports,
               amountLamports > 0,
-              fromToken.symbol != toToken.symbol,
-              let fromMint = fromToken.mint,
-              let toMint = toToken.mint else {
+              fromToken.symbol != toToken.symbol else {
             currentQuote = nil
+            pendingSwapTransaction = nil
+            pendingRequestId = nil
             return
         }
+
+        // Check minimum USD value - Jupiter can't route dust amounts
+        guard meetsMinimumSwapValue else {
+            currentQuote = nil
+            pendingSwapTransaction = nil
+            pendingRequestId = nil
+            errorMessage = "Amount too small to swap (min $0.01)"
+            logger.info("⚠️ Swap amount below minimum USD threshold")
+            return
+        }
+
+        // Use wrapped SOL address for native SOL, otherwise use token's mint
+        let fromMint = fromToken.mint ?? Self.wrappedSOLMint
+        let toMint = toToken.mint ?? Self.wrappedSOLMint
 
         isRefreshingQuote = true
         errorMessage = nil
@@ -188,11 +242,11 @@ class SwapViewModel: ObservableObject {
 
             logger.info("📊 Fetching quote: \(fromMint) → \(toMint), amount: \(amountLamports)")
 
-            let result = try await firebaseClient.call("sponsorJupiterSwap", data: data)
+            let result = try await firebaseClient.call("getJupiterSwapTransaction", data: data)
 
             // Parse response
             guard let resultData = result.data as? [String: Any] else {
-                logger.error("❌ Invalid response format from sponsorJupiterSwap")
+                logger.error("❌ Invalid response format from getJupiterSwapTransaction")
                 throw SwapError.buildFailed("Invalid response format")
             }
 
@@ -202,32 +256,44 @@ class SwapViewModel: ObservableObject {
                 throw SwapError.buildFailed(errorMsg)
             }
 
-            guard let success = resultData["success"] as? Bool, success else {
+            guard let success = resultData["success"] as? Bool, success,
+                  let responseData = resultData["data"] as? [String: Any] else {
                 let code = resultData["code"] as? String ?? "UNKNOWN"
                 logger.error("❌ Quote failed with code: \(code)")
                 throw SwapError.buildFailed("Quote failed: \(code)")
             }
 
-            guard let quoteData = resultData["quote"] as? [String: Any] else {
-                logger.error("❌ No quote data in response")
-                throw SwapError.buildFailed("No quote data returned")
+            // Store the unsigned transaction and requestId for later execution
+            guard let transaction = responseData["transaction"] as? String else {
+                logger.error("❌ No transaction in response")
+                throw SwapError.buildFailed("No transaction returned")
             }
+            pendingSwapTransaction = transaction
+            pendingRequestId = responseData["requestId"] as? String
 
-            // Decode quote
-            let jsonData = try JSONSerialization.data(withJSONObject: quoteData)
-            let quote = try JSONDecoder().decode(JupiterQuote.self, from: jsonData)
+            // Create quote from response data
+            let quote = JupiterQuote(
+                inputMint: responseData["inputMint"] as? String ?? fromMint,
+                outputMint: responseData["outputMint"] as? String ?? toMint,
+                inAmount: responseData["inAmount"] as? String ?? "",
+                outAmount: responseData["outAmount"] as? String ?? "",
+                priceImpactPct: responseData["priceImpactPct"] as? String ?? "0",
+                slippageBps: responseData["slippageBps"] as? Int ?? slippageBps
+            )
 
             currentQuote = quote
             logger.info("✅ Quote fetched: \(quote.inAmount) → \(quote.outAmount)")
         } catch {
             logger.error("❌ Failed to fetch quote: \(error)")
             currentQuote = nil
+            pendingSwapTransaction = nil
+            pendingRequestId = nil
 
             // Show user-friendly error message
             if let swapError = error as? SwapError {
                 switch swapError {
                 case .buildFailed(let msg):
-                    if msg.contains("No route found") || msg.contains("Could not find any route") {
+                    if msg.contains("No route found") || msg.contains("Could not find any route") || msg.contains("Failed to get quotes") {
                         errorMessage = "No swap route available for \(fromToken.symbol) → \(toToken.symbol). Try a different token pair."
                     } else {
                         errorMessage = msg
@@ -358,11 +424,12 @@ class SwapViewModel: ObservableObject {
 
     // MARK: - Swap Execution
 
-    /// Execute swap transaction (3-step flow)
+    /// Execute swap transaction (2-step flow: sign with Privy, execute via Jupiter Ultra API)
     func executeSwap() async {
         guard canSwap,
-              let amountLamports = fromAmountLamports else {
-            errorMessage = "Invalid swap parameters"
+              let unsignedTransaction = pendingSwapTransaction,
+              let requestId = pendingRequestId else {
+            errorMessage = "No swap ready. Please refresh the quote."
             return
         }
 
@@ -371,25 +438,15 @@ class SwapViewModel: ObservableObject {
         transactionSignature = nil
 
         do {
-            // Get user wallet address
-            guard let userWallet = try? await getWalletAddress() else {
-                throw SwapError.invalidAmount
-            }
+            // Step 1: Sign transaction with Privy
+            logger.info("✍️ Step 1: Signing swap...")
+            transactionState = .signing
 
-            // Step 1: Build partially-signed transaction
-            let partialTx = try await buildPartialSwapTransaction(
-                inputMint: fromToken.mint ?? "",
-                outputMint: toToken.mint ?? "",
-                amount: Int(amountLamports),
-                slippageBps: slippageBps,
-                userWallet: userWallet
-            )
+            let signedTx = try await signingService.signUnsignedTransaction(unsignedTransaction)
+            logger.info("✅ Swap signed")
 
-            // Step 2: Get user signature via Privy
-            let fullySignedTx = try await signTransaction(partialTx)
-
-            // Step 3: Broadcast to blockchain
-            let signature = try await broadcastTransaction(fullySignedTx)
+            // Step 2: Execute via Jupiter Ultra API
+            let signature = try await executeJupiterSwap(signedTransaction: signedTx, requestId: requestId)
 
             transactionSignature = signature
             transactionState = .completed
@@ -397,10 +454,12 @@ class SwapViewModel: ObservableObject {
             // Reset form
             fromAmount = ""
             currentQuote = nil
+            pendingSwapTransaction = nil
+            pendingRequestId = nil
 
-            // Refresh wallet balances
+            // Refresh wallet balances (force to bypass cache after swap)
             if let wallet = try? await getWalletAddress() {
-                await walletService.refreshBalances(walletAddress: wallet)
+                await walletService.refreshBalances(walletAddress: wallet, force: true)
             }
 
         } catch {
@@ -412,57 +471,36 @@ class SwapViewModel: ObservableObject {
         isLoading = false
     }
 
-    // MARK: - Private Transaction Methods
-
-    private func buildPartialSwapTransaction(
-        inputMint: String,
-        outputMint: String,
-        amount: Int,
-        slippageBps: Int,
-        userWallet: String
-    ) async throws -> String {
-        logger.info("📦 Step 1: Building partial swap transaction...")
-        transactionState = .building
+    /// Execute signed swap via Jupiter Ultra API
+    private func executeJupiterSwap(signedTransaction: String, requestId: String) async throws -> String {
+        logger.info("🚀 Step 2: Executing swap...")
+        transactionState = .broadcasting
 
         let data: [String: Any] = [
-            "inputMint": inputMint,
-            "outputMint": outputMint,
-            "amount": amount,
-            "slippageBps": slippageBps,
-            "userWalletAddress": userWallet
+            "signedTransaction": signedTransaction,
+            "requestId": requestId
         ]
 
-        let result = try await firebaseClient.call("sponsorJupiterSwap", data: data)
+        let result = try await firebaseClient.call("executeJupiterSwap", data: data)
 
         // Parse response
         guard let resultData = result.data as? [String: Any],
               let success = resultData["success"] as? Bool,
               success else {
-            let error = (result.data as? [String: Any])?["error"] as? String ?? "Unknown error"
-            throw SwapError.buildFailed(error)
+            let error = (result.data as? [String: Any])?["error"] as? String ?? "Swap execution failed"
+            throw SwapError.broadcastFailed(error)
         }
 
-        guard let partialTx = resultData["partiallySignedTransaction"] as? String else {
-            throw SwapError.buildFailed("Invalid response format - missing transaction data")
+        guard let responseData = resultData["data"] as? [String: Any],
+              let signature = responseData["signature"] as? String else {
+            throw SwapError.broadcastFailed("Invalid response - missing signature")
         }
 
-        logger.info("✅ Partial swap transaction built successfully")
-        return partialTx
+        logger.info("✅ Swap executed: \(signature)")
+        return signature
     }
 
-    private func signTransaction(_ partialTransaction: String) async throws -> String {
-        logger.info("✍️ Step 2: Signing transaction with user wallet...")
-        transactionState = .signing
-
-        do {
-            let signedTx = try await signingService.signTransaction(partialTransaction)
-            logger.info("✅ Transaction signed with Privy")
-            return signedTx
-        } catch {
-            logger.error("❌ Privy signing failed: \(error.localizedDescription)")
-            throw SwapError.signFailed(error.localizedDescription)
-        }
-    }
+    // MARK: - Private Transaction Methods
 
     private func broadcastTransaction(_ signedTransaction: String) async throws -> String {
         logger.info("📡 Step 3: Broadcasting signed transaction...")

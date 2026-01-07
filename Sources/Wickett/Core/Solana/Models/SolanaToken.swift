@@ -26,6 +26,8 @@ struct SolanaToken: Identifiable, Codable, Equatable, Hashable {
             return [Color(red: 0.95, green: 0.61, blue: 0.07), Color(red: 0.98, green: 0.72, blue: 0.25)]
         case "wETH":
             return [Color(red: 0.39, green: 0.40, blue: 0.66), Color(red: 0.48, green: 0.51, blue: 0.76)]
+        case "ZEC":
+            return [Color(red: 0.94, green: 0.71, blue: 0.20), Color(red: 0.98, green: 0.80, blue: 0.35)]
         case "JUP":
             return [Color(red: 0.18, green: 0.76, blue: 0.65), Color(red: 0.20, green: 0.85, blue: 0.75)]
         case "RAY":
@@ -131,26 +133,37 @@ struct TokenRegistry {
         coingeckoId: "bonk"
     )
 
-    /// Wrapped Bitcoin
+    /// Bitcoin (wrapped)
     static let wBTC = SolanaToken(
         id: "wrapped-bitcoin",
         symbol: "wBTC",
-        name: "Wrapped Bitcoin",
+        name: "Bitcoin",
         mint: "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
         decimals: 8,
         icon: "bitcoinsign.circle.fill",
         coingeckoId: "wrapped-bitcoin"
     )
 
-    /// Wrapped Ethereum
+    /// Ethereum (wrapped)
     static let wETH = SolanaToken(
         id: "weth",
         symbol: "wETH",
-        name: "Wrapped Ethereum",
+        name: "Ethereum",
         mint: "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
         decimals: 8,
         icon: "e.circle.fill",
         coingeckoId: "weth"
+    )
+
+    /// Zcash (wrapped)
+    static let ZEC = SolanaToken(
+        id: "zcash",
+        symbol: "ZEC",
+        name: "Zcash",
+        mint: "F3FaP2rivdFgzWw38xqx4mvNccrwWNdaQdAcM6ajPfvQ",
+        decimals: 8,
+        icon: "z.circle.fill",
+        coingeckoId: "zcash"
     )
 
     /// Jupiter token
@@ -192,7 +205,7 @@ struct TokenRegistry {
     static let AAPLx = SolanaToken(
         id: "apple-xstock",
         symbol: "AAPLx",
-        name: "Apple xStock",
+        name: "Apple",
         mint: "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
         decimals: 8,
         icon: "applelogo",
@@ -203,7 +216,7 @@ struct TokenRegistry {
     static let TSLAx = SolanaToken(
         id: "tesla-xstock",
         symbol: "TSLAx",
-        name: "Tesla xStock",
+        name: "Tesla",
         mint: "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
         decimals: 8,
         icon: "bolt.car.fill",
@@ -214,7 +227,7 @@ struct TokenRegistry {
     static let NVDAx = SolanaToken(
         id: "nvidia-xstock",
         symbol: "NVDAx",
-        name: "NVIDIA xStock",
+        name: "NVIDIA",
         mint: "Xsc9qvGRsPnJgT2cT42PYLCnFodDhfkHaSPmx9qEh",
         decimals: 8,
         icon: "cpu.fill",
@@ -225,7 +238,7 @@ struct TokenRegistry {
     static let MSFTx = SolanaToken(
         id: "microsoft-xstock",
         symbol: "MSFTx",
-        name: "Microsoft xStock",
+        name: "Microsoft",
         mint: "XspzcW1PkUWo8gpXiPvPqxLB7Lv8PPsmnAUeh3dRMX",
         decimals: 8,
         icon: "square.grid.2x2.fill",
@@ -236,7 +249,7 @@ struct TokenRegistry {
     static let AMZNx = SolanaToken(
         id: "amazon-xstock",
         symbol: "AMZNx",
-        name: "Amazon xStock",
+        name: "Amazon",
         mint: "Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg",
         decimals: 8,
         icon: "shippingbox.fill",
@@ -246,7 +259,7 @@ struct TokenRegistry {
     // MARK: - Token Groups
 
     /// Main tokens - Core cryptocurrencies and stablecoins
-    static let mainTokens: [SolanaToken] = [SOL, USDC, USDT, wBTC, wETH, GOLD]
+    static let mainTokens: [SolanaToken] = [SOL, USDC, USDT, wBTC, wETH, ZEC, GOLD]
 
     /// DeFi tokens - Solana ecosystem DEX and protocol tokens
     static let defiTokens: [SolanaToken] = [JUP, RAY, BONK]

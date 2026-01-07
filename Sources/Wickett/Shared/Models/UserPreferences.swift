@@ -69,26 +69,6 @@ enum FiatCurrency: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-// MARK: - Legacy Portfolio Allocation
-
-/// Legacy portfolio allocation for UserPreferences (simpler version)
-struct LegacyPortfolioAllocation: Codable, Identifiable, Equatable {
-    let id: UUID
-    var token: String      // Token symbol (e.g., "SOL", "AAPLx")
-    var percentage: Double // 0-100
-
-    init(id: UUID = UUID(), token: String, percentage: Double) {
-        self.id = id
-        self.token = token
-        self.percentage = min(max(percentage, 0), 100) // Clamp to 0-100
-    }
-
-    /// Format percentage for display
-    var formattedPercentage: String {
-        String(format: "%.1f%%", percentage)
-    }
-}
-
 /// User preferences for app settings
 struct UserPreferences: Codable {
     // App settings
@@ -97,7 +77,6 @@ struct UserPreferences: Codable {
 
     // Payment preferences
     var localCurrency: FiatCurrency
-    var portfolio: [LegacyPortfolioAllocation]
     var preferredPaymentToken: String?
 
     var createdAt: Date
@@ -107,7 +86,6 @@ struct UserPreferences: Codable {
         notificationsEnabled: Bool = false,
         theme: AppTheme = .system,
         localCurrency: FiatCurrency = .usd,
-        portfolio: [LegacyPortfolioAllocation] = [LegacyPortfolioAllocation(token: "SOL", percentage: 100.0)],
         preferredPaymentToken: String? = "SOL",
         createdAt: Date = Date(),
         updatedAt: Date = Date()
@@ -115,38 +93,17 @@ struct UserPreferences: Codable {
         self.notificationsEnabled = notificationsEnabled
         self.theme = theme
         self.localCurrency = localCurrency
-        self.portfolio = portfolio
         self.preferredPaymentToken = preferredPaymentToken
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
 
-    /// Validate that portfolio percentages sum to 100%
-    var isPortfolioValid: Bool {
-        let total = portfolio.reduce(0.0) { $0 + $1.percentage }
-        return abs(total - 100.0) < 0.01 // Allow small floating point errors
-    }
-
-    /// Get portfolio allocation for a specific token
-    func allocationFor(token: String) -> Double? {
-        portfolio.first(where: { $0.token == token })?.percentage
-    }
-
     /// Convert to Firestore-compatible dictionary
     func toDictionary() -> [String: Any] {
-        let portfolioData = portfolio.map { allocation in
-            [
-                "id": allocation.id.uuidString,
-                "token": allocation.token,
-                "percentage": allocation.percentage
-            ]
-        }
-
         return [
             "notificationsEnabled": notificationsEnabled,
             "theme": theme.rawValue,
             "localCurrency": localCurrency.rawValue,
-            "portfolio": portfolioData,
             "preferredPaymentToken": preferredPaymentToken as Any,
             "createdAt": createdAt,
             "updatedAt": updatedAt
@@ -163,24 +120,8 @@ struct UserPreferences: Codable {
             return nil
         }
 
-        // Parse payment preferences (optional for backwards compatibility)
         let localCurrency = (dictionary["localCurrency"] as? String)
             .flatMap { FiatCurrency(rawValue: $0) } ?? .usd
-
-        let portfolio: [LegacyPortfolioAllocation]
-        if let portfolioData = dictionary["portfolio"] as? [[String: Any]] {
-            portfolio = portfolioData.compactMap { dict in
-                guard let idString = dict["id"] as? String,
-                      let id = UUID(uuidString: idString),
-                      let token = dict["token"] as? String,
-                      let percentage = dict["percentage"] as? Double else {
-                    return nil
-                }
-                return LegacyPortfolioAllocation(id: id, token: token, percentage: percentage)
-            }
-        } else {
-            portfolio = [LegacyPortfolioAllocation(token: "SOL", percentage: 100.0)]
-        }
 
         let preferredPaymentToken = dictionary["preferredPaymentToken"] as? String
 
@@ -188,7 +129,6 @@ struct UserPreferences: Codable {
             notificationsEnabled: notificationsEnabled,
             theme: theme,
             localCurrency: localCurrency,
-            portfolio: portfolio,
             preferredPaymentToken: preferredPaymentToken,
             createdAt: createdAt,
             updatedAt: updatedAt

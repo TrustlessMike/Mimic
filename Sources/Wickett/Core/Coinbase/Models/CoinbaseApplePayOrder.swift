@@ -20,6 +20,7 @@ struct CreateApplePayOrderRequest: Codable {
     let paymentCurrency: String?
     let purchaseAmount: Double?
     let purchaseCurrency: String?
+    let privyAccessToken: String?
 
     init(
         walletAddress: String,
@@ -29,7 +30,8 @@ struct CreateApplePayOrderRequest: Codable {
         paymentAmount: Double? = nil,
         paymentCurrency: String = "USD",
         purchaseAmount: Double? = nil,
-        purchaseCurrency: String = "USDC"
+        purchaseCurrency: String = "USDC",
+        privyAccessToken: String? = nil
     ) {
         self.walletAddress = walletAddress
         self.email = email
@@ -39,6 +41,7 @@ struct CreateApplePayOrderRequest: Codable {
         self.paymentCurrency = paymentCurrency
         self.purchaseAmount = purchaseAmount
         self.purchaseCurrency = purchaseCurrency
+        self.privyAccessToken = privyAccessToken
     }
 }
 

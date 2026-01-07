@@ -1,22 +1,18 @@
 import Foundation
 
-/// Onboarding step enumeration
+/// Onboarding step enumeration (streamlined flow)
 enum OnboardingStep: Int, Codable, CaseIterable {
     case welcome = 0
-    case displayName = 1
-    case username = 2
-    case preferences = 3
-    case walkthrough = 4
-    case terms = 5
+    case testingInfo = 1
+    case profile = 2
+    case notifications = 3
 
     var title: String {
         switch self {
         case .welcome: return "Welcome"
-        case .displayName: return "Set Up Profile"
-        case .username: return "Choose Username"
-        case .preferences: return "Preferences"
-        case .walkthrough: return "Quick Tour"
-        case .terms: return "Terms & Privacy"
+        case .testingInfo: return "Testing Guide"
+        case .profile: return "Set Up Profile"
+        case .notifications: return "Notifications"
         }
     }
 
@@ -46,26 +42,24 @@ struct OnboardingState {
     var username: String?
     var preferences: UserPreferences
     var hasAcceptedTerms: Bool
-    var walkthroughCompleted: Bool
 
     init(
         currentStep: OnboardingStep = .welcome,
         displayName: String = "",
         username: String? = nil,
         preferences: UserPreferences = UserPreferences(),
-        hasAcceptedTerms: Bool = false,
-        walkthroughCompleted: Bool = false
+        hasAcceptedTerms: Bool = false
     ) {
         self.currentStep = currentStep
         self.displayName = displayName
         self.username = username
         self.preferences = preferences
         self.hasAcceptedTerms = hasAcceptedTerms
-        self.walkthroughCompleted = walkthroughCompleted
     }
 
+    /// Profile is complete when display name and username are set, and terms accepted
     var isComplete: Bool {
-        return !displayName.isEmpty && hasAcceptedTerms
+        return !displayName.isEmpty && username != nil && !username!.isEmpty && hasAcceptedTerms
     }
 
     var progress: Double {

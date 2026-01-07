@@ -27,6 +27,10 @@ class SolanaWalletService: ObservableObject {
     private let autoRefreshInterval: TimeInterval = 60 // 60 seconds
     private var refreshTimer: Timer?
 
+    /// Cache timestamp - avoid refetching if data is fresh
+    private var lastBalanceFetch: Date?
+    private let balanceCacheSeconds: TimeInterval = 30
+
     private init() {
         logger.info("✅ SolanaWalletService initialized")
     }
@@ -57,8 +61,17 @@ class SolanaWalletService: ObservableObject {
     }
 
     /// Refresh all balances and prices
-    /// - Parameter force: If true, cancels any in-progress refresh and starts a new one
+    /// - Parameter force: If true, bypasses cache and forces a refresh
     func refreshBalances(walletAddress: String, force: Bool = false) async {
+        // Check cache validity (skip if data is fresh)
+        if !force,
+           let lastFetch = lastBalanceFetch,
+           !balances.isEmpty,
+           Date().timeIntervalSince(lastFetch) < balanceCacheSeconds {
+            logger.info("💾 Using cached balances (age: \(Int(Date().timeIntervalSince(lastFetch)))s)")
+            return
+        }
+
         if isLoading {
             if force {
                 logger.info("🔄 Force refresh requested, restarting...")
@@ -116,10 +129,6 @@ class SolanaWalletService: ObservableObject {
                 let price = priceFeedService.getPrice(for: token.symbol)
                 let change = priceFeedService.getChange24h(for: token.symbol)
 
-                if price == 0 && splBalance.amount > 0 {
-                    logger.warning("⚠️ \(token.symbol) price is 0 despite having balance")
-                }
-
                 newBalances.append(TokenBalance(
                     token: token,
                     lamports: splBalance.amount,
@@ -133,6 +142,7 @@ class SolanaWalletService: ObservableObject {
 
             self.balances = newBalances
             self.lastUpdated = Date()
+            self.lastBalanceFetch = Date()
             self.isLoading = false
 
             // Update portfolio history
@@ -215,6 +225,7 @@ class SolanaWalletService: ObservableObject {
         balances = []
         error = nil
         lastUpdated = nil
+        lastBalanceFetch = nil
         isLoading = false
         logger.info("🧹 Cleared wallet state")
     }

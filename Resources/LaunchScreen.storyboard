@@ -29,15 +29,15 @@
                             <!-- App Name -->
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Wickett" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="app-name-label">
                                 <rect key="frame" x="20" y="476" width="353" height="36"/>
-                                <fontDescription key="fontDescription" type="system" weight="bold" pointSize="30"/>
+                                <fontDescription key="fontDescription" type="system" weight="bold" pointSize="34"/>
                                 <color key="textColor" systemColor="labelColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
 
                             <!-- Tagline -->
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Your Solana Wallet" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="tagline-label">
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Pay anyone, anywhere, instantly" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="tagline-label">
                                 <rect key="frame" x="20" y="522" width="353" height="20"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <color key="textColor" systemColor="secondaryLabelColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
@@ -50,12 +50,12 @@
                             <constraint firstItem="app-icon-image" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" constant="-20" id="icon-center-y"/>
 
                             <!-- App name below icon -->
-                            <constraint firstItem="app-name-label" firstAttribute="top" secondItem="app-icon-image" secondAttribute="bottom" constant="20" id="name-top"/>
+                            <constraint firstItem="app-name-label" firstAttribute="top" secondItem="app-icon-image" secondAttribute="bottom" constant="16" id="name-top"/>
                             <constraint firstItem="app-name-label" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="name-leading"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="app-name-label" secondAttribute="trailing" constant="20" id="name-trailing"/>
 
                             <!-- Tagline below app name -->
-                            <constraint firstItem="tagline-label" firstAttribute="top" secondItem="app-name-label" secondAttribute="bottom" constant="10" id="tagline-top"/>
+                            <constraint firstItem="tagline-label" firstAttribute="top" secondItem="app-name-label" secondAttribute="bottom" constant="16" id="tagline-top"/>
                             <constraint firstItem="tagline-label" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="tagline-leading"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="tagline-label" secondAttribute="trailing" constant="20" id="tagline-trailing"/>
                         </constraints>

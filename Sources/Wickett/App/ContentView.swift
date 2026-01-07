@@ -25,7 +25,7 @@ struct ContentView: View {
                     onGoogleSignIn: signInWithGoogle
                 )
                 .transition(.opacity)
-            } else if let user = authCoordinator.currentUser {
+            } else if authCoordinator.currentUser != nil {
                 // Check if user needs to complete onboarding
                 if !onboardingManager.hasCompletedOnboarding {
                     OnboardingCoordinatorView()
@@ -37,9 +37,9 @@ struct ContentView: View {
                 } else {
                     // Show main app with tab navigation
                     MainTabView(
-                        user: user,
                         onSignOut: signOut
                     )
+                    .environmentObject(authCoordinator)
                     .environmentObject(onboardingManager)
                     .environmentObject(themeManager)
                     .environmentObject(notificationManager)
@@ -77,6 +77,18 @@ struct ContentView: View {
                 // Switch portfolio history to this user's data
                 PortfolioHistoryManager.shared.switchUser(userId: userId)
             }
+
+            // Initialize wallet service after successful sign-in
+            if let walletAddress = authCoordinator.currentUser?.walletAddress {
+                walletService.isLoading = true
+                Task {
+                    async let priceInit: () = PriceFeedService.shared.refreshPrices()
+                    async let walletInit: () = walletService.initialize()
+                    _ = await (priceInit, walletInit)
+                    await walletService.refreshBalances(walletAddress: walletAddress, force: true)
+                    walletService.startAutoRefresh(walletAddress: walletAddress)
+                }
+            }
         } catch {
             await MainActor.run {
                 self.errorMessage = "Apple Sign in failed: \(error.localizedDescription)"
@@ -97,6 +109,18 @@ struct ContentView: View {
                 await onboardingManager.checkOnboardingStatus(userId: userId)
                 // Switch portfolio history to this user's data
                 PortfolioHistoryManager.shared.switchUser(userId: userId)
+            }
+
+            // Initialize wallet service after successful sign-in
+            if let walletAddress = authCoordinator.currentUser?.walletAddress {
+                walletService.isLoading = true
+                Task {
+                    async let priceInit: () = PriceFeedService.shared.refreshPrices()
+                    async let walletInit: () = walletService.initialize()
+                    _ = await (priceInit, walletInit)
+                    await walletService.refreshBalances(walletAddress: walletAddress, force: true)
+                    walletService.startAutoRefresh(walletAddress: walletAddress)
+                }
             }
         } catch {
             await MainActor.run {
@@ -132,6 +156,9 @@ struct ContentView: View {
 
                 // Initialize wallet service in background using structured concurrency
                 if let walletAddress = authCoordinator.currentUser?.walletAddress {
+                    // Set loading state BEFORE the task starts so UI shows skeleton
+                    walletService.isLoading = true
+
                     Task {
                         // Initialize price feed FIRST to warm up the cache
                         // This happens in parallel with walletService.initialize()
@@ -142,9 +169,17 @@ struct ContentView: View {
                         _ = await (priceInit, walletInit)
 
                         // Now fetch balances with prices already loaded
-                        await walletService.refreshBalances(walletAddress: walletAddress)
+                        // Use force: true since we already set isLoading = true above
+                        await walletService.refreshBalances(walletAddress: walletAddress, force: true)
                         // Start auto-refresh after initial load completes
                         walletService.startAutoRefresh(walletAddress: walletAddress)
+                    }
+
+                    // Prefetch commonly needed data in parallel (non-blocking)
+                    Task.detached(priority: .background) {
+                        async let delegationPrefetch: () = DelegationManager.shared.fetchDelegationStatus()
+                        async let activityPrefetch: () = ActivityService.shared.fetchActivity()
+                        _ = await (delegationPrefetch, activityPrefetch)
                     }
                 }
             }

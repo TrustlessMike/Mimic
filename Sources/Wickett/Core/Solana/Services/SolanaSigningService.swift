@@ -22,59 +22,91 @@ class SolanaSigningService {
     /// - Parameter partialTransaction: Base64-encoded partial transaction (with fee payer signature only)
     /// - Returns: Base64-encoded fully-signed transaction (with both fee payer and user signatures)
     func signTransaction(_ partialTransaction: String) async throws -> String {
-        logger.info("✍️ Starting transaction signing process...")
-
         do {
-            // Step 1: Deserialize the partial transaction
-            logger.info("📦 Deserializing partial transaction...")
+            // Deserialize the partial transaction
             guard let transactionData = Data(base64Encoded: partialTransaction) else {
                 throw SolanaSigningError.invalidTransaction
             }
 
             let versionedTransaction = try VersionedTransaction.deserialize(data: transactionData)
-            logger.info("✅ Transaction deserialized")
 
-            // Step 2: Extract the message to sign
-            logger.info("📝 Extracting message from transaction...")
+            // Extract the message to sign
             let messageData: Data
             switch versionedTransaction.message {
             case .legacy(let legacyMessage):
                 messageData = Data(try legacyMessage.serialize())
-                logger.info("📋 Using legacy message format")
             case .v0(let messageV0):
                 messageData = Data(try messageV0.serialize())
-                logger.info("📋 Using v0 message format")
             }
 
             let messageToSign = messageData.base64EncodedString()
-            logger.info("✅ Message extracted, length: \(messageToSign.count) characters")
 
-            // Step 3: Sign the message with Privy (this triggers user approval UI)
-            logger.info("✍️ Requesting signature from Privy...")
+            // Sign the message with Privy
             let signingResult = try await hybridPrivyService.signMessageForSponsorship(messageToSign)
 
-            logger.info("✅ Signature received from Privy")
-            logger.info("💼 Wallet address: \(signingResult.walletAddress)")
-
-            // Step 4: Add the user signature to the transaction
-            logger.info("🔧 Adding user signature to transaction...")
+            // Add the user signature to the transaction
             var completeTransaction = versionedTransaction
-
             let userPublicKey = try PublicKey(string: signingResult.walletAddress)
             guard let signatureData = Data(base64Encoded: signingResult.signature) else {
                 throw SolanaSigningError.invalidSignature
             }
 
             try completeTransaction.addSignature(publicKey: userPublicKey, signature: signatureData)
-            logger.info("✅ User signature added to transaction")
 
-            // Step 5: Serialize the fully-signed transaction
-            logger.info("📦 Serializing fully-signed transaction...")
+            // Serialize the fully-signed transaction
             let signedTransactionData = Data(try completeTransaction.serialize())
-            let serializedBase64 = signedTransactionData.base64EncodedString()
+            return signedTransactionData.base64EncodedString()
 
-            logger.info("✅ Fully-signed transaction created, length: \(serializedBase64.count) characters")
-            return serializedBase64
+        } catch let error as SolanaSigningError {
+            logger.error("❌ Transaction signing failed: \(error.localizedDescription)")
+            throw error
+        } catch {
+            logger.error("❌ Transaction signing failed: \(error.localizedDescription)")
+            throw SolanaSigningError.signingFailed(error.localizedDescription)
+        }
+    }
+
+    /// Sign an unsigned Solana transaction (for Jupiter Ultra API)
+    /// - Parameter unsignedTransaction: Base64-encoded unsigned transaction
+    /// - Returns: Base64-encoded signed transaction
+    func signUnsignedTransaction(_ unsignedTransaction: String) async throws -> String {
+        do {
+            // Deserialize the unsigned transaction
+            guard let transactionData = Data(base64Encoded: unsignedTransaction) else {
+                throw SolanaSigningError.invalidTransaction
+            }
+
+            var versionedTransaction = try VersionedTransaction.deserialize(data: transactionData)
+
+            // Extract the message to sign
+            let messageData: Data
+            switch versionedTransaction.message {
+            case .legacy(let legacyMessage):
+                messageData = Data(try legacyMessage.serialize())
+            case .v0(let messageV0):
+                messageData = Data(try messageV0.serialize())
+            }
+
+            let messageToSign = messageData.base64EncodedString()
+            logger.info("📝 Signing unsigned transaction message...")
+
+            // Sign the message with Privy
+            let signingResult = try await hybridPrivyService.signMessageForSponsorship(messageToSign)
+            logger.info("✅ Got signature from Privy for wallet: \(signingResult.walletAddress)")
+
+            // Add the user signature to the transaction at the first position (fee payer)
+            let userPublicKey = try PublicKey(string: signingResult.walletAddress)
+            guard let signatureData = Data(base64Encoded: signingResult.signature) else {
+                throw SolanaSigningError.invalidSignature
+            }
+
+            // For unsigned transactions, we need to set the signature at the correct index
+            try versionedTransaction.addSignature(publicKey: userPublicKey, signature: signatureData)
+
+            // Serialize the signed transaction
+            let signedTransactionData = Data(try versionedTransaction.serialize())
+            logger.info("✅ Transaction signed successfully")
+            return signedTransactionData.base64EncodedString()
 
         } catch let error as SolanaSigningError {
             logger.error("❌ Transaction signing failed: \(error.localizedDescription)")

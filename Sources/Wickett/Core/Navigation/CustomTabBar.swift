@@ -2,53 +2,53 @@ import SwiftUI
 
 struct CustomTabBar: View {
     @Binding var selectedTab: Tab
-    let onSendTap: () -> Void
-    
+    let onCenterTap: () -> Void
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
                 // Left Tabs
                 TabBarButton(
-                    icon: "house",
-                    selectedIcon: "house.fill",
-                    title: "Home",
-                    tab: .home,
-                    selectedTab: $selectedTab
-                )
-                
-                TabBarButton(
                     icon: "list.bullet.rectangle",
                     selectedIcon: "list.bullet.rectangle.fill",
-                    title: "Activity",
-                    tab: .activity,
+                    title: "Feed",
+                    tab: .feed,
                     selectedTab: $selectedTab
                 )
-                
-                // Center Action Button (Send)
-                Button(action: onSendTap) {
+
+                TabBarButton(
+                    icon: "sparkle.magnifyingglass",
+                    selectedIcon: "sparkle.magnifyingglass",
+                    title: "Discover",
+                    tab: .discover,
+                    selectedTab: $selectedTab
+                )
+
+                // Center Action Button (Add Wallet)
+                Button(action: onCenterTap) {
                     ZStack {
                         Circle()
                             .fill(BrandColors.primaryGradient)
                             .frame(width: 48, height: 48)
                             .shadow(color: BrandColors.primary.opacity(0.4), radius: 8, x: 0, y: 4)
-                        
-                        Image(systemName: "arrow.up.right")
+
+                        Image(systemName: "plus")
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                     }
-                    .frame(width: 60) // Hit area
+                    .frame(width: 60)
                 }
-                .offset(y: -12) // Slightly raised like Venmo/TikTok center buttons often feel
-                
+                .offset(y: -12)
+
                 // Right Tabs
                 TabBarButton(
-                    icon: "wallet.pass",
-                    selectedIcon: "wallet.pass.fill",
-                    title: "Wallet",
-                    tab: .wallet,
+                    icon: "chart.pie",
+                    selectedIcon: "chart.pie.fill",
+                    title: "Portfolio",
+                    tab: .portfolio,
                     selectedTab: $selectedTab
                 )
-                
+
                 TabBarButton(
                     icon: "gearshape",
                     selectedIcon: "gearshape.fill",
@@ -59,8 +59,6 @@ struct CustomTabBar: View {
             }
             .padding(.top, 8)
             .background(
-                // Clear background for X/TikTok style transparency
-                // Or use a gradient fade if you want "some" readability over busy content
                 LinearGradient(
                     colors: [
                         Color(UIColor.systemBackground).opacity(0.0),
@@ -73,10 +71,9 @@ struct CustomTabBar: View {
                 .ignoresSafeArea()
             )
         }
-        // This ensures the content above flows UNDER the tab bar
-        .background(Color.clear) 
+        .background(Color.clear)
     }
-    
+
     private func getSafeAreaBottom() -> CGFloat {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = windowScene.windows.first else {
@@ -92,11 +89,11 @@ struct TabBarButton: View {
     let title: String
     let tab: Tab
     @Binding var selectedTab: Tab
-    
+
     var isSelected: Bool {
         selectedTab == tab
     }
-    
+
     var body: some View {
         Button(action: {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -108,7 +105,7 @@ struct TabBarButton: View {
                     .font(.system(size: 24))
                     .scaleEffect(isSelected ? 1.1 : 1.0)
                     .foregroundColor(isSelected ? BrandColors.primary : .secondary)
-                
+
                 Text(title)
                     .font(.caption2)
                     .fontWeight(isSelected ? .medium : .regular)
@@ -130,10 +127,10 @@ struct ScaleButtonStyle: ButtonStyle {
 
 #Preview {
     ZStack {
-        Color.blue // Demo background content
+        Color.blue
         VStack {
             Spacer()
-            CustomTabBar(selectedTab: .constant(.home), onSendTap: {})
+            CustomTabBar(selectedTab: .constant(.feed), onCenterTap: {})
         }
     }
 }

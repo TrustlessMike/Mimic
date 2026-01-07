@@ -158,12 +158,6 @@ class OnboardingManager: ObservableObject {
         logger.info("📄 Terms accepted")
     }
 
-    /// Mark walkthrough as completed
-    func completeWalkthrough() {
-        onboardingState.walkthroughCompleted = true
-        logger.info("🎓 Walkthrough completed")
-    }
-
     /// Reset onboarding state (for testing or re-onboarding)
     func resetOnboarding() {
         onboardingState = OnboardingState()

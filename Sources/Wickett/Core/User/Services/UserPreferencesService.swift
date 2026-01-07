@@ -14,6 +14,10 @@ class UserPreferencesService: ObservableObject {
     private let db = Firestore.firestore()
     private var currentUserId: String?
 
+    /// Cache timestamp - avoid refetching if data is fresh
+    private var lastPreferencesFetch: Date?
+    private let preferencesCacheSeconds: TimeInterval = 60
+
     private init() {
         // Initialize with defaults
         self.preferences = UserPreferences()
@@ -22,7 +26,19 @@ class UserPreferencesService: ObservableObject {
     // MARK: - Load Preferences
 
     /// Load user preferences from Firebase
-    func loadPreferences(userId: String) async throws {
+    /// - Parameters:
+    ///   - userId: The user ID to load preferences for
+    ///   - force: If true, bypasses cache and forces a refresh
+    func loadPreferences(userId: String, force: Bool = false) async throws {
+        // Check cache validity (skip if data is fresh and same user)
+        if !force,
+           userId == currentUserId,
+           let lastFetch = lastPreferencesFetch,
+           Date().timeIntervalSince(lastFetch) < preferencesCacheSeconds {
+            logger.info("💾 Using cached preferences (age: \(Int(Date().timeIntervalSince(lastFetch)))s)")
+            return
+        }
+
         self.currentUserId = userId
 
         logger.info("📥 Loading preferences for user: \(userId)")
@@ -37,7 +53,8 @@ class UserPreferencesService: ObservableObject {
                 await MainActor.run {
                     self.preferences = prefs
                 }
-                logger.info("✅ Loaded preferences: currency=\(prefs.localCurrency.rawValue), portfolio=\(prefs.portfolio.count) tokens")
+                lastPreferencesFetch = Date()
+                logger.info("✅ Loaded preferences: currency=\(prefs.localCurrency.rawValue)")
             } else {
                 // Data exists but parsing failed, use defaults
                 logger.warning("⚠️ Failed to parse preferences, using defaults")
@@ -48,6 +65,8 @@ class UserPreferencesService: ObservableObject {
             logger.info("📝 No preferences found, creating defaults")
             await savePreferences(preferences)
         }
+
+        lastPreferencesFetch = Date()
     }
 
     // MARK: - Save Preferences
@@ -94,27 +113,6 @@ class UserPreferencesService: ObservableObject {
         await savePreferences(updated)
     }
 
-    /// Update portfolio allocation
-    func updatePortfolio(_ allocations: [PortfolioAllocation]) async {
-        guard validatePortfolio(allocations) else {
-            logger.error("❌ Invalid portfolio: percentages must sum to 100%")
-            return
-        }
-
-        logger.info("📊 Updating portfolio with \(allocations.count) allocations")
-
-        var updated = preferences
-        // Convert new PortfolioAllocation to LegacyPortfolioAllocation
-        updated.portfolio = allocations.map { allocation in
-            LegacyPortfolioAllocation(
-                token: allocation.symbol,  // Use symbol instead of mint address
-                percentage: allocation.percentage
-            )
-        }
-
-        await savePreferences(updated)
-    }
-
     /// Update preferred payment token
     func updatePreferredPaymentToken(_ token: String?) async {
         logger.info("💳 Updating preferred payment token to: \(token ?? "nil")")
@@ -125,27 +123,11 @@ class UserPreferencesService: ObservableObject {
         await savePreferences(updated)
     }
 
-    // MARK: - Validation
-
-    /// Validate that portfolio allocations sum to 100%
-    private func validatePortfolio(_ allocations: [PortfolioAllocation]) -> Bool {
-        let total = allocations.reduce(0.0) { $0 + $1.percentage }
-        return abs(total - 100.0) < 0.01 // Allow small floating point errors
-    }
-
     // MARK: - Helpers
 
     /// Get formatted amount in user's local currency
     func formatAmount(_ amount: Double) -> String {
         preferences.localCurrency.format(amount)
-    }
-
-    /// Calculate token amounts based on portfolio allocation
-    func calculatePortfolioAmounts(totalFiatAmount: Double) -> [(token: String, fiatAmount: Double)] {
-        return preferences.portfolio.map { allocation in
-            let amount = totalFiatAmount * (allocation.percentage / 100.0)
-            return (token: allocation.token, fiatAmount: amount)
-        }
     }
 }
 

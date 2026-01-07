@@ -228,6 +228,75 @@ struct SkeletonTransactionList: View {
     }
 }
 
+/// Skeleton for recipient chip (suggested contacts)
+struct SkeletonRecipientChip: View {
+    var body: some View {
+        VStack(spacing: 6) {
+            Circle()
+                .fill(Color(UIColor.systemGray5))
+                .frame(width: 52, height: 52)
+                .shimmer()
+
+            SkeletonView(width: 50, height: 12, cornerRadius: 4)
+        }
+    }
+}
+
+/// Skeleton for recipient row (recent contacts)
+struct SkeletonRecipientRow: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(Color(UIColor.systemGray5))
+                .frame(width: 44, height: 44)
+                .shimmer()
+
+            VStack(alignment: .leading, spacing: 4) {
+                SkeletonView(width: 100, height: 16, cornerRadius: 4)
+                SkeletonView(width: 80, height: 12, cornerRadius: 4)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+/// Skeleton for recipient list (chips + rows)
+struct SkeletonRecipientList: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Suggested section skeleton
+            VStack(alignment: .leading, spacing: 8) {
+                SkeletonView(width: 70, height: 14, cornerRadius: 4)
+                    .padding(.horizontal, 16)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(0..<4, id: \.self) { _ in
+                            SkeletonRecipientChip()
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+            }
+
+            // Recent section skeleton
+            VStack(alignment: .leading, spacing: 8) {
+                SkeletonView(width: 50, height: 14, cornerRadius: 4)
+                    .padding(.horizontal, 16)
+
+                VStack(spacing: 0) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        SkeletonRecipientRow()
+                            .padding(.horizontal, 16)
+                    }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Preview
 
 #Preview("Skeleton Components") {

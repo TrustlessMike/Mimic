@@ -6,6 +6,7 @@ functions/
 
 # Firebase config files
 firebase/
+.firebase/
 firebase.json
 .firebaserc
 .firebaserc-config
@@ -200,3 +201,18 @@ scripts/
 # Misc config files not needed for iOS
 AppHost.yml
 project.yml
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/google-services.json
+*.apk
+*.aab
+.cxx/
+
+# Admin Dashboard
+admin/node_modules/
+admin/dist/
+admin/.env.local

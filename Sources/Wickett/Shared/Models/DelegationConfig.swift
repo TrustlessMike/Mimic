@@ -103,6 +103,7 @@ enum SupportedToken: String, CaseIterable, Identifiable {
     case jup = "JUP"
     case weth = "WETH"
     case wbtc = "WBTC"
+    case zec = "ZEC"
     case gold = "GOLD"
     case aapl = "AAPL"
     case tsla = "TSLA"
@@ -125,7 +126,9 @@ enum SupportedToken: String, CaseIterable, Identifiable {
         case .weth:
             return "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs"
         case .wbtc:
-            return "3NZ9JMVBmGAqocyBIC2c7LQCJScmgsAZ6vQqTDzcqmJh"
+            return "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh"
+        case .zec:
+            return "F3FaP2rivdFgzWw38xqx4mvNccrwWNdaQdAcM6ajPfvQ"
         case .gold:
             return "GoLDppdjB1vDTPSGxyMJFqdnj134yH6Prg9eqsGDiw6A"
         case .aapl:
@@ -147,14 +150,15 @@ enum SupportedToken: String, CaseIterable, Identifiable {
         case .usdc: return "USD Coin"
         case .bonk: return "Bonk"
         case .jup: return "Jupiter"
-        case .weth: return "Wrapped Ethereum"
-        case .wbtc: return "Wrapped Bitcoin"
+        case .weth: return "Ethereum"
+        case .wbtc: return "Bitcoin"
+        case .zec: return "Zcash"
         case .gold: return "Pax Gold"
-        case .aapl: return "Apple (Tokenized)"
-        case .tsla: return "Tesla (Tokenized)"
-        case .nvda: return "Nvidia (Tokenized)"
-        case .msft: return "Microsoft (Tokenized)"
-        case .amzn: return "Amazon (Tokenized)"
+        case .aapl: return "Apple"
+        case .tsla: return "Tesla"
+        case .nvda: return "NVIDIA"
+        case .msft: return "Microsoft"
+        case .amzn: return "Amazon"
         }
     }
 }

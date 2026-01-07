@@ -4,8 +4,8 @@ struct WalletView: View {
     let user: User
 
     @EnvironmentObject var walletService: SolanaWalletService
-    @StateObject private var delegationManager = DelegationManager.shared
-    @StateObject private var remoteConfig = RemoteConfigManager.shared
+    @ObservedObject private var delegationManager = DelegationManager.shared
+    @ObservedObject private var remoteConfig = RemoteConfigManager.shared
     @State private var showError = false
     @State private var showAutoConvertSettings = false
 
@@ -54,7 +54,10 @@ struct WalletView: View {
                         } else {
                             VStack(spacing: 8) {
                                 ForEach(walletService.balances.filter { $0.hasBalance }) { balance in
-                                    TokenBalanceRow(balance: balance)
+                                    NavigationLink(destination: TokenDetailView(balance: balance)) {
+                                        TokenBalanceRow(balance: balance)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
                                 }
                             }
                         }
@@ -230,7 +233,7 @@ struct TotalBalanceCard: View {
 }
 
 // MARK: - Quick Actions Row
-// (Same as before)
+
 struct QuickActionsRow: View {
     let user: User
     @State private var showSendSheet = false
@@ -238,53 +241,95 @@ struct QuickActionsRow: View {
     @State private var showConvertSheet = false
     @State private var showBuySheet = false
     @State private var showSellSheet = false
-    @StateObject private var remoteConfig = RemoteConfigManager.shared
+    @State private var showMoreActions = false
+    @ObservedObject private var remoteConfig = RemoteConfigManager.shared
 
     var body: some View {
-        HStack(spacing: 12) {
-            QuickActionButton(icon: "arrow.up.circle.fill", title: "Pay", color: .blue) { showSendSheet = true }
-            QuickActionButton(icon: "arrow.down.circle.fill", title: "Get Paid", color: .green) { showRequestSheet = true }
+        HStack(spacing: 16) {
+            // Primary actions - always visible
+            WalletActionButton(
+                icon: "arrow.up",
+                label: "Send",
+                color: BrandColors.primary
+            ) { showSendSheet = true }
 
-            if remoteConfig.enableOnramp {
-                QuickActionButton(icon: "plus.circle.fill", title: "Top Up", color: .orange) { showBuySheet = true }
-            }
+            WalletActionButton(
+                icon: "arrow.down",
+                label: "Receive",
+                color: .green
+            ) { showRequestSheet = true }
 
+            WalletActionButton(
+                icon: "plus",
+                label: "Add",
+                color: .orange
+            ) { showBuySheet = true }
+
+            WalletActionButton(
+                icon: "arrow.left.arrow.right",
+                label: "Swap",
+                color: .purple
+            ) { showConvertSheet = true }
+
+            // More button if offramp is enabled
             if remoteConfig.enableOfframp {
-                QuickActionButton(icon: "minus.circle.fill", title: "Cash Out", color: .red) { showSellSheet = true }
+                WalletActionButton(
+                    icon: "ellipsis",
+                    label: "More",
+                    color: .gray
+                ) { showMoreActions = true }
             }
-
-            QuickActionButton(icon: "arrow.triangle.swap", title: "Convert", color: .purple) { showConvertSheet = true }
         }
         .sheet(isPresented: $showSendSheet) { SendView(user: user) }
         .sheet(isPresented: $showRequestSheet) { CreateRequestView(user: user) }
         .sheet(isPresented: $showConvertSheet) { SwapView() }
         .sheet(isPresented: $showBuySheet) { CoinbaseOnrampView() }
         .sheet(isPresented: $showSellSheet) { CoinbaseOfframpView() }
+        .confirmationDialog("More Actions", isPresented: $showMoreActions, titleVisibility: .hidden) {
+            Button("Cash Out") { showSellSheet = true }
+            Button("Cancel", role: .cancel) { }
+        }
     }
 }
 
-struct QuickActionButton: View {
+struct WalletActionButton: View {
     let icon: String
-    let title: String
+    let label: String
     let color: Color
     let action: () -> Void
 
+    @State private var isPressed = false
+
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(color)
-                Text(title)
-                    .font(.caption)
+        Button(action: {
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
+            action()
+        }) {
+            VStack(spacing: 6) {
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.12))
+                        .frame(width: 50, height: 50)
+
+                    Image(systemName: icon)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(color)
+                }
+
+                Text(label)
+                    .font(.caption2)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(Color(UIColor.secondarySystemBackground))
-            .cornerRadius(16)
         }
+        .scaleEffect(isPressed ? 0.92 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in isPressed = true }
+                .onEnded { _ in isPressed = false }
+        )
     }
 }
 
@@ -298,11 +343,14 @@ struct TokenBalanceRow: View {
             TokenImageView(token: balance.token, size: 44)
                 .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(balance.token.name)
                     .font(.body)
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
+                Text(balance.token.symbol)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
             }
 
             Spacer()

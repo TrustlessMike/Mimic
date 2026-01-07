@@ -7,6 +7,8 @@ struct SwapView: View {
     @State private var showToTokenSelector = false
     @State private var showSlippageSettings = false
 
+    var preselectedFromToken: SolanaToken?
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -97,6 +99,9 @@ struct SwapView: View {
             }
             .onAppear {
                 viewModel.initializeWithUserBalances()
+                if let token = preselectedFromToken {
+                    viewModel.fromToken = token
+                }
                 viewModel.startQuoteRefresh()
             }
             .onDisappear {
@@ -109,7 +114,7 @@ struct SwapView: View {
 
     private var loadingMessage: String {
         if viewModel.transactionState == .completed {
-            return "Swap completed ✓"
+            return "Done"
         } else {
             return viewModel.transactionState.displayMessage
         }
@@ -315,74 +320,58 @@ struct SwapView: View {
     // MARK: - Quote Card
 
     private func quoteCard(_ quote: JupiterQuote) -> some View {
-        VStack(spacing: 16) {
-            // Exchange Rate
-            if let rateText = viewModel.exchangeRateText {
-                quoteRow(
-                    icon: "arrow.2.squarepath",
-                    title: "Rate",
-                    value: rateText,
-                    valueColor: .primary
-                )
+        VStack(spacing: 12) {
+            // You receive (USD value)
+            HStack {
+                Text("You receive")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                if let output = viewModel.estimatedOutputAmount {
+                    Text("\(output) \(viewModel.toToken.symbol)")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                }
             }
 
-            Divider()
+            // USD Value
+            if let usdValue = viewModel.outputAmountUSD {
+                HStack {
+                    Text("Value")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
 
-            // Price Impact
+                    Spacer()
+
+                    Text(usdValue)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Price Impact (only show if significant)
             if let impactText = viewModel.priceImpactText {
-                quoteRow(
-                    icon: "chart.line.uptrend.xyaxis",
-                    title: "Price Impact",
-                    value: impactText,
-                    valueColor: viewModel.priceImpactColor
-                )
+                HStack {
+                    Text("Price Impact")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+
+                    Text(impactText)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(viewModel.priceImpactColor)
+                }
             }
-
-            Divider()
-
-            // Minimum Received
-            if let minAmount = viewModel.minimumOutputAmount {
-                quoteRow(
-                    icon: "arrow.down.circle",
-                    title: "Minimum Received",
-                    value: "\(minAmount) \(viewModel.toToken.symbol)",
-                    valueColor: .primary
-                )
-            }
-
-            Divider()
-
-            // Slippage Tolerance
-            quoteRow(
-                icon: "slider.horizontal.3",
-                title: "Slippage Tolerance",
-                value: String(format: "%.2f%%", Double(viewModel.slippageBps) / 100),
-                valueColor: .primary
-            )
         }
         .padding(16)
         .background(Color(UIColor.secondarySystemBackground))
         .cornerRadius(12)
-    }
-
-    private func quoteRow(icon: String, title: String, value: String, valueColor: Color) -> some View {
-        HStack {
-            Image(systemName: icon)
-                .font(.body)
-                .foregroundColor(.secondary)
-                .frame(width: 24)
-
-            Text(title)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-
-            Spacer()
-
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(valueColor)
-        }
     }
 
     // MARK: - Error Section

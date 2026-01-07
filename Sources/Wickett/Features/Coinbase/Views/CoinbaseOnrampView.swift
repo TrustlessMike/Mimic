@@ -3,316 +3,365 @@ import SwiftUI
 struct CoinbaseOnrampView: View {
     @StateObject private var viewModel = CoinbaseOnrampViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var dragOffset: CGFloat = 0
+    @State private var isProcessing = false
+
+    private let swipeThreshold: CGFloat = 200
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                // Background
-                Color(UIColor.systemGroupedBackground)
+        ZStack {
+            // Main Content
+            VStack(spacing: 0) {
+                // Header
+                header
+                    .padding(.top, 16)
+
+                Spacer()
+
+                // Amount Display
+                amountDisplay
+
+                // Payment Method Pill
+                paymentMethodPill
+                    .padding(.top, 20)
+
+                // Quick Amount Buttons
+                quickAmountButtons
+                    .padding(.top, 24)
+
+                Spacer()
+
+                // Custom Numpad
+                numpad
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+
+                // Swipe to Deposit Button
+                swipeToDeposit
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 24)
+            }
+            .background(Color(.systemBackground))
+            .disabled(viewModel.state == .creatingSession || viewModel.state == .pollingStatus) // Disable interactions while processing
+            
+            // Processing Overlay
+            if viewModel.state == .creatingSession || viewModel.state == .pollingStatus {
+                Color.black.opacity(0.4)
                     .ignoresSafeArea()
-
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Header
-                        VStack(spacing: 8) {
-                            Image(systemName: "dollarsign.circle.fill")
-                                .font(.system(size: 60))
-                                .foregroundColor(.green)
-
-                            Text("Buy Crypto")
-                                .font(.title2)
-                                .fontWeight(.bold)
-
-                            Text("Add funds to your Wickett wallet")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding(.top, 32)
-
-                        // Amount Input Card
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Amount")
-                                .font(.headline)
-
-                            HStack {
-                                Text("$")
-                                    .font(.title)
-                                    .foregroundColor(.secondary)
-
-                                TextField("0.00", text: $viewModel.fiatAmount)
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                                    .keyboardType(.decimalPad)
-                                    .disabled(viewModel.state != .idle)
-                            }
-
-                            Divider()
-
-                            // Quick amount buttons
-                            HStack(spacing: 12) {
-                                quickAmountButton(amount: 25)
-                                quickAmountButton(amount: 50)
-                                quickAmountButton(amount: 100)
-                                quickAmountButton(amount: 250)
-                            }
-                        }
-                        .padding()
-                        .background(Color(UIColor.secondarySystemGroupedBackground))
-                        .cornerRadius(12)
-
-                        // Asset Info
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("You'll receive")
-                                .font(.headline)
-
-                            HStack {
-                                Image("TokenUSDC")
-                                    .resizable()
-                                    .frame(width: 32, height: 32)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("USDC")
-                                        .font(.body)
-                                        .fontWeight(.semibold)
-
-                                    Text("USD Coin on Solana")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Spacer()
-
-                                if let amount = viewModel.parsedFiatAmount {
-                                    Text("≈ \(String(format: "%.2f", amount)) USDC")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(Color(UIColor.secondarySystemGroupedBackground))
-                        .cornerRadius(12)
-
-                        // Payment Method Selector
-                        PaymentMethodSelectorView(selectedMethod: $viewModel.selectedPaymentMethod)
-
-                        // Status Messages
-                        if viewModel.state == .pollingStatus {
-                            statusCard(
-                                icon: "arrow.clockwise",
-                                title: "Processing...",
-                                message: "Waiting for your purchase to complete. This may take a few minutes.",
-                                color: .blue
-                            )
-                        } else if viewModel.state == .completed {
-                            statusCard(
-                                icon: "checkmark.circle.fill",
-                                title: "Success!",
-                                message: "Your USDC has been added to your wallet.",
-                                color: .green
-                            )
-                        } else if let error = viewModel.errorMessage {
-                            statusCard(
-                                icon: "exclamationmark.triangle.fill",
-                                title: "Error",
-                                message: error,
-                                color: .red
-                            )
-                        }
-
-                        // Info Section
-                        VStack(alignment: .leading, spacing: 8) {
-                            infoRow(icon: "lock.shield.fill", text: "Secure payment powered by Coinbase")
-                            infoRow(icon: "creditcard.fill", text: "Pay with card, Apple Pay, or bank transfer")
-                            infoRow(icon: "bolt.fill", text: "Funds typically arrive in minutes")
-                        }
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding()
-
-                        Spacer(minLength: 100)
-                    }
-                    .padding(.horizontal)
-                }
-
-                // Action Button (Fixed at bottom)
-                VStack {
-                    Spacer()
-
-                    actionButton
-                        .padding()
-                        .background(Color(UIColor.systemGroupedBackground))
-                }
-            }
-            .navigationTitle("Buy Crypto")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        viewModel.cancel()
-                        dismiss()
-                    }
-                    .disabled(viewModel.state == .creatingSession)
-                }
-
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if viewModel.state == .creatingSession || viewModel.state == .pollingStatus {
-                        ProgressView()
-                    }
-                }
-            }
-            .sheet(isPresented: $viewModel.showCheckout) {
-                if let session = viewModel.currentSession,
-                   let url = URL(string: session.checkoutUrl) {
-                    NavigationView {
-                        CoinbaseSafariView(url: url) {
-                            viewModel.handleCheckoutDismissed()
-                        }
-                        .navigationTitle("Coinbase Pay")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") {
-                                    viewModel.handleCheckoutDismissed()
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .sheet(isPresented: $viewModel.showApplePaySheet) {
-                if let order = viewModel.currentApplePayOrder,
-                   let url = URL(string: order.paymentLinkUrl) {
-                    NavigationView {
-                        CoinbaseSafariView(url: url) {
-                            viewModel.handleApplePayDismissed()
-                        }
-                        .navigationTitle("Apple Pay")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") {
-                                    viewModel.handleApplePayDismissed()
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Action Button
-
-    @ViewBuilder
-    private var actionButton: some View {
-        Button(action: {
-            Task {
-                await viewModel.startOnramp()
-            }
-        }) {
-            HStack {
-                if viewModel.state == .creatingSession {
+                    .transition(.opacity)
+                
+                VStack(spacing: 20) {
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                } else {
-                    Text(actionButtonText)
-                        .fontWeight(.semibold)
+                        .scaleEffect(1.2)
+                        .tint(BrandColors.primary)
+                    
+                    Text(viewModel.state == .creatingSession ? "Securing connection..." : "Processing deposit...")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    if viewModel.state == .pollingStatus {
+                        Button("Stop Checking") {
+                            viewModel.cancel()
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    }
+                }
+                .padding(32)
+                .background(Color(UIColor.secondarySystemGroupedBackground))
+                .cornerRadius(24)
+                .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .sheet(isPresented: $viewModel.showCheckout) {
+            if let session = viewModel.currentSession,
+               let url = URL(string: session.checkoutUrl) {
+                NavigationView {
+                    CoinbaseSafariView(url: url) {
+                        viewModel.handleCheckoutDismissed()
+                    }
+                    .navigationTitle("Coinbase Pay")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                viewModel.handleCheckoutDismissed()
+                            }
+                        }
+                    }
                 }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(actionButtonColor)
-            .foregroundColor(.white)
-            .cornerRadius(12)
         }
-        .disabled(!actionButtonEnabled)
-        .opacity(actionButtonEnabled ? 1.0 : 0.5)
-    }
-
-    private var actionButtonText: String {
-        switch viewModel.state {
-        case .idle, .failed:
-            return "Continue to Payment"
-        case .completed:
-            return "Done"
-        case .pollingStatus:
-            return "Processing..."
-        default:
-            return "Loading..."
-        }
-    }
-
-    private var actionButtonColor: Color {
-        switch viewModel.state {
-        case .completed:
-            return .green
-        case .failed:
-            return .red
-        default:
-            return .blue
-        }
-    }
-
-    private var actionButtonEnabled: Bool {
-        switch viewModel.state {
-        case .idle:
-            return viewModel.canStartOnramp && viewModel.parsedFiatAmount != nil
-        case .completed:
-            return true
-        default:
-            return false
-        }
-    }
-
-    // MARK: - Helper Views
-
-    private func quickAmountButton(amount: Int) -> some View {
-        Button(action: {
-            viewModel.fiatAmount = "\(amount)"
-        }) {
-            Text("$\(amount)")
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(Color(UIColor.tertiarySystemGroupedBackground))
-                .foregroundColor(.primary)
-                .cornerRadius(8)
-        }
-        .disabled(viewModel.state != .idle)
-    }
-
-    private func statusCard(icon: String, title: String, message: String, color: Color) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(color)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                    .foregroundColor(color)
-
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+        .sheet(isPresented: $viewModel.showApplePaySheet) {
+            if let order = viewModel.currentApplePayOrder,
+               let url = URL(string: order.paymentLinkUrl) {
+                NavigationView {
+                    CoinbaseSafariView(url: url) {
+                        viewModel.handleApplePayDismissed()
+                    }
+                    .navigationTitle("Apple Pay")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                viewModel.handleApplePayDismissed()
+                            }
+                        }
+                    }
+                }
             }
+        }
+        .onChange(of: viewModel.state) { newState in
+            if newState == .completed {
+                // Auto-dismiss after success
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    dismiss()
+                }
+            }
+        }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        HStack {
+            Spacer()
+
+            Text("Deposit")
+                .font(.headline)
+                .fontWeight(.semibold)
 
             Spacer()
         }
-        .padding()
-        .background(color.opacity(0.1))
-        .cornerRadius(12)
+        .overlay(alignment: .trailing) {
+            Button(action: { dismiss() }) {
+                Image(systemName: "xmark")
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+                    .frame(width: 32, height: 32)
+                    .background(Color(.systemGray5))
+                    .clipShape(Circle())
+            }
+            .padding(.trailing, 16)
+        }
     }
 
-    private func infoRow(icon: String, text: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .frame(width: 16)
-            Text(text)
+    // MARK: - Amount Display
+
+    private var amountDisplay: some View {
+        VStack(spacing: 8) {
+            Text(viewModel.fiatAmount.isEmpty ? "$0" : "$\(viewModel.fiatAmount)")
+                .font(.system(size: 64, weight: .bold))
+                .foregroundColor(viewModel.fiatAmount.isEmpty ? .secondary.opacity(0.5) : .primary)
+                .minimumScaleFactor(0.5)
+                .lineLimit(1)
+                .padding(.horizontal)
         }
+    }
+
+    // MARK: - Payment Method Pill
+
+    private var paymentMethodPill: some View {
+        Menu {
+            Button(action: { viewModel.selectedPaymentMethod = .applePay }) {
+                Label("Apple Pay", systemImage: "apple.logo")
+            }
+            Button(action: { viewModel.selectedPaymentMethod = .creditCard }) {
+                Label("Debit Card", systemImage: "creditcard")
+            }
+            Button(action: { viewModel.selectedPaymentMethod = .creditCard }) {
+                Label("Bank Account", systemImage: "building.columns")
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: viewModel.selectedPaymentMethod == .applePay ? "apple.logo" : "creditcard.fill")
+                    .font(.subheadline)
+                Text(viewModel.selectedPaymentMethod == .applePay ? "Apple Pay" : "Debit / Bank")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Image(systemName: "chevron.down")
+                    .font(.caption)
+            }
+            .foregroundColor(.primary)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 20)
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(20)
+        }
+    }
+
+    // MARK: - Quick Amount Buttons
+
+    private var quickAmountButtons: some View {
+        HStack(spacing: 12) {
+            ForEach([30, 50, 100, 500], id: \.self) { amount in
+                Button(action: {
+                    let impact = UIImpactFeedbackGenerator(style: .light)
+                    impact.impactOccurred()
+                    viewModel.fiatAmount = "\(amount)"
+                }) {
+                    Text("$\(amount)")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .frame(width: 70, height: 44)
+                        .background(Color(.secondarySystemBackground))
+                        .foregroundColor(.primary)
+                        .cornerRadius(12)
+                }
+            }
+        }
+    }
+
+    // MARK: - Numpad
+
+    private var numpad: some View {
+        VStack(spacing: 12) {
+            ForEach(numpadRows, id: \.self) { row in
+                HStack(spacing: 24) {
+                    ForEach(row, id: \.self) { key in
+                        numpadButton(key)
+                    }
+                }
+            }
+        }
+    }
+
+    private let numpadRows: [[String]] = [
+        ["1", "2", "3"],
+        ["4", "5", "6"],
+        ["7", "8", "9"],
+        [".", "0", "⌫"]
+    ]
+
+    private func numpadButton(_ key: String) -> some View {
+        Button(action: { handleNumpadTap(key) }) {
+            Group {
+                if key == "⌫" {
+                    Image(systemName: "delete.left.fill")
+                        .font(.system(size: 24))
+                } else {
+                    Text(key)
+                        .font(.system(size: 32, weight: .medium))
+                }
+            }
+            .foregroundColor(.primary)
+            .frame(width: 80, height: 60)
+            .contentShape(Rectangle())
+        }
+    }
+
+    private func handleNumpadTap(_ key: String) {
+        let impact = UIImpactFeedbackGenerator(style: .light)
+        impact.impactOccurred()
+
+        switch key {
+        case "⌫":
+            if !viewModel.fiatAmount.isEmpty {
+                viewModel.fiatAmount.removeLast()
+            }
+        case ".":
+            if !viewModel.fiatAmount.contains(".") {
+                viewModel.fiatAmount += viewModel.fiatAmount.isEmpty ? "0." : "."
+            }
+        default:
+            if viewModel.fiatAmount.count < 6 {
+                if let dotIndex = viewModel.fiatAmount.firstIndex(of: ".") {
+                    let decimals = viewModel.fiatAmount.distance(from: dotIndex, to: viewModel.fiatAmount.endIndex) - 1
+                    if decimals >= 2 { return }
+                }
+                viewModel.fiatAmount += key
+            }
+        }
+    }
+
+    // MARK: - Swipe to Deposit
+
+    private var swipeToDeposit: some View {
+        GeometryReader { geometry in
+            let maxDrag = geometry.size.width - 70
+
+            ZStack(alignment: .leading) {
+                // Background track
+                RoundedRectangle(cornerRadius: 35)
+                    .fill(Color(.secondarySystemBackground))
+                    .frame(height: 70)
+
+                // Progress fill
+                if dragOffset > 0 {
+                    RoundedRectangle(cornerRadius: 35)
+                        .fill(BrandColors.primary.opacity(0.3))
+                        .frame(width: dragOffset + 70, height: 70)
+                }
+
+                // Text
+                HStack {
+                    Spacer()
+                    if viewModel.state == .completed {
+                        Text("Success!")
+                            .font(.headline)
+                            .foregroundColor(.green)
+                    } else {
+                        Text("Swipe to Deposit")
+                            .font(.headline)
+                            .foregroundColor(canDeposit ? .primary.opacity(0.5) : .secondary.opacity(0.3))
+                    }
+                    Spacer()
+                }
+
+                // Draggable button
+                Circle()
+                    .fill(canDeposit ? BrandColors.primary : Color(.systemGray4))
+                    .frame(width: 62, height: 62)
+                    .overlay(
+                        Image(systemName: "chevron.right.2")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                    )
+                    .offset(x: dragOffset + 4)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                guard canDeposit else { return }
+                                let newOffset = max(0, min(value.translation.width, maxDrag))
+                                dragOffset = newOffset
+                            }
+                            .onEnded { value in
+                                guard canDeposit else { return }
+                                if dragOffset > swipeThreshold {
+                                    // Trigger deposit
+                                    withAnimation(.spring()) {
+                                        dragOffset = maxDrag
+                                    }
+                                    let impact = UIImpactFeedbackGenerator(style: .heavy)
+                                    impact.impactOccurred()
+                                    
+                                    Task {
+                                        await viewModel.startOnramp()
+                                        // Reset slider if it failed/cancelled
+                                        if viewModel.state != .completed {
+                                            withAnimation { dragOffset = 0 }
+                                        }
+                                    }
+                                } else {
+                                    // Reset
+                                    withAnimation(.spring()) {
+                                        dragOffset = 0
+                                    }
+                                }
+                            }
+                    )
+            }
+        }
+        .frame(height: 70)
+    }
+
+    private var canDeposit: Bool {
+        viewModel.state == .idle &&
+        viewModel.canStartOnramp &&
+        viewModel.parsedFiatAmount != nil &&
+        (viewModel.parsedFiatAmount ?? 0) >= 5 // Minimum $5
     }
 }
 

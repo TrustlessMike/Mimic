@@ -24,12 +24,11 @@
 		2F55E630E520BE3C9972D78A /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 435E47321CDEFB7D847017EE /* WelcomeView.swift */; };
 		33CD0FE13CCE3C46F90C3051 /* DelegationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3363214B11D27D186B43256F /* DelegationManager.swift */; };
 		34D0ED472599BE1BE3B48CFB /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C7DD17FF2FEF7555CE32E08 /* LoadingView.swift */; };
+		3511DE82DC7037B22DAFBA85 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AE5D21756613EF417E14EFC /* ProfileSetupView.swift */; };
 		39E113ED44451223119AAE13 /* GameUIComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 199403C9C0A03EAFE5C9A6AA /* GameUIComponents.swift */; };
 		3ACA5F2EFDB56F280962D0A4 /* ActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E00C3C8B418B862B13C4C4 /* ActivityService.swift */; };
 		3D3F1B1F5825C5A8D2176D14 /* TransactionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD70E0EA49E7F5FB322010AF /* TransactionState.swift */; };
 		3D94B4E32292747882D517E0 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64EB8D2902E78F8B496FB91C /* User.swift */; };
-		LAUNCHSB001 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = LAUNCHSBREF1 /* LaunchScreen.storyboard */; };
-		GOOGLESI001 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = GOOGLESIREF1 /* GoogleService-Info.plist */; };
 		3FA9E0ED969451522212AE73 /* CoinbaseOnrampViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA4F8C793C688337CE94FBD5 /* CoinbaseOnrampViewModel.swift */; };
 		4022C57D76DF72569101EA3C /* AccountBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76A7AA119EE0A053597A5E60 /* AccountBalance.swift */; };
 		427423239ED8D8DE45AB8937 /* HeliusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D91EA59B51A0F45BC0B3548 /* HeliusService.swift */; };
@@ -40,6 +39,7 @@
 		55E1240DEB3D374FB83FF94F /* PaymentMethodSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2904DE577B85C221F25BC675 /* PaymentMethodSelectorView.swift */; };
 		56B86CC59B73A9BC2BF3F19B /* OnboardingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FA3D15C8B8BFCAC317F32F /* OnboardingState.swift */; };
 		5759E51DAC01AEB1A3122643 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69E757420878276FE9ED9D76 /* SettingsView.swift */; };
+		587E00DF2EE756A900B97050 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 587E00DE2EE756A900B97050 /* FirebaseMessaging */; };
 		5AC331FB39AD8598BFCA970A /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = EC4626AE57FB7425E545AEAD /* FirebaseFirestore */; };
 		5BC7CF05D9C0DF512D900DD1 /* SolanaSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0ABAEB7410CB334F0C8E8476 /* SolanaSwift */; };
 		5E48257FA599DA45B887F398 /* AuthError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 802ED00BA20CC0267CE9A545 /* AuthError.swift */; };
@@ -79,6 +79,7 @@
 		C0105B7FBF7F123DBEA68F10 /* OnboardingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29164CC4BB0309027D011918 /* OnboardingManager.swift */; };
 		C640C3B86B37A7D6259D2E04 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8032420D0D7EAF449907546D /* ContentView.swift */; };
 		C723D698E19F4892EDF773D2 /* RequestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF0EB9DDC4A4D25B7B39D87F /* RequestService.swift */; };
+		CABB599239F435EE18935D90 /* PushNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A4FFBAA3852C6D058539E3 /* PushNotificationService.swift */; };
 		CF85731AAD3A8CAA0A546473 /* OnboardingCoordinatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B780CBF622E43F77CBC941C0 /* OnboardingCoordinatorView.swift */; };
 		CF87097BC1105EE145418B05 /* TokenImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA583D5CEEC4F46C43D26CDD /* TokenImageView.swift */; };
 		D6A9CB91FD07E453D4C2E0F5 /* ActivityItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A35409E59EDF56B9909BB020 /* ActivityItem.swift */; };
@@ -87,6 +88,7 @@
 		DDD52C0AFBCDF93B5F30F0D6 /* UserPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4566770197377EEA2E7906AE /* UserPreferences.swift */; };
 		DE6CBC41DB3204D587292671 /* HybridPrivyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91056604EC148427D38CCC62 /* HybridPrivyService.swift */; };
 		E083E0808FC6E8A6A32E965D /* DisplayNameSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE1AD3FC83709E946666A16F /* DisplayNameSetupView.swift */; };
+		E0994C3BDDEE1B5876D2ED95 /* NotificationsSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7337E0C48727D1F4D6E2F5ED /* NotificationsSetupView.swift */; };
 		E0FE61FB4009F64340F82699 /* ReceivedRequestModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C0B8ECAF7FE8832703FAE8 /* ReceivedRequestModel.swift */; };
 		E21C8CC4B7560C44C72374E9 /* BrandColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFBBFF5146B296358F1D44E1 /* BrandColors.swift */; };
 		E5F5D0FEFA7D4F06E2091929 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = E945A2AAFCB0883B6E8BEB61 /* Lottie */; };
@@ -102,7 +104,9 @@
 		F5E1B6F8BBAB68FBD3F5C7CE /* CoinbaseOfframpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81FB053BED044B29EC4855E /* CoinbaseOfframpView.swift */; };
 		F653724E5DBF01C0B6D9F65D /* CoinbaseApplePayOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D3CD33AAF76BED563BE61EC /* CoinbaseApplePayOrder.swift */; };
 		F970D558241E219321C1761E /* SkeletonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B3EF26DE4CDCFA566D39B0A /* SkeletonView.swift */; };
-		F9806B0F1FBE10D5A23E2CB1 /* PaymentPreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B369811C2200BC266DC1C37E /* PaymentPreferencesView.swift */; };
+		GOOGLESI001 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = GOOGLESIREF1 /* GoogleService-Info.plist */; };
+		LAUNCHSB001 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = LAUNCHSBREF1 /* LaunchScreen.storyboard */; };
+		TOKENDET001 /* TokenDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TOKENDETREF1 /* TokenDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -143,6 +147,7 @@
 		5C7DD17FF2FEF7555CE32E08 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		64EB8D2902E78F8B496FB91C /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		69E757420878276FE9ED9D76 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		7337E0C48727D1F4D6E2F5ED /* NotificationsSetupView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationsSetupView.swift; sourceTree = "<group>"; };
 		75F316C573ED4DD587DAC594 /* CoinbaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseService.swift; sourceTree = "<group>"; };
 		76A7AA119EE0A053597A5E60 /* AccountBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountBalance.swift; sourceTree = "<group>"; };
 		802ED00BA20CC0267CE9A545 /* AuthError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthError.swift; sourceTree = "<group>"; };
@@ -154,8 +159,7 @@
 		92BECDEDB9BD6815C6C47E09 /* QRCodeGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeGenerator.swift; sourceTree = "<group>"; };
 		9611BDAD3932550BDC12741A /* UserPreferencesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferencesService.swift; sourceTree = "<group>"; };
 		9656A820CBDBB0551CBB81F3 /* SwapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapViewModel.swift; sourceTree = "<group>"; };
-		LAUNCHSBREF1 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
-		GOOGLESIREF1 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		9AE5D21756613EF417E14EFC /* ProfileSetupView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProfileSetupView.swift; sourceTree = "<group>"; };
 		A35409E59EDF56B9909BB020 /* ActivityItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityItem.swift; sourceTree = "<group>"; };
 		A3EF9DCEE6204F6ED112D25C /* TokenMetadataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenMetadataService.swift; sourceTree = "<group>"; };
 		A45D682F6E323D50587BCEFA /* SlippageSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlippageSettingsView.swift; sourceTree = "<group>"; };
@@ -165,7 +169,6 @@
 		AD70E0EA49E7F5FB322010AF /* TransactionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionState.swift; sourceTree = "<group>"; };
 		AF0EB9DDC4A4D25B7B39D87F /* RequestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestService.swift; sourceTree = "<group>"; };
 		B0C0B8ECAF7FE8832703FAE8 /* ReceivedRequestModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceivedRequestModel.swift; sourceTree = "<group>"; };
-		B369811C2200BC266DC1C37E /* PaymentPreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentPreferencesView.swift; sourceTree = "<group>"; };
 		B4D26CF998AC300574BA6341 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		B54F87FDB89266C376617588 /* SendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendView.swift; sourceTree = "<group>"; };
 		B780CBF622E43F77CBC941C0 /* OnboardingCoordinatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCoordinatorView.swift; sourceTree = "<group>"; };
@@ -190,12 +193,16 @@
 		DF1721A431D93FB596C22697 /* CoinbaseOfframpSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseOfframpSession.swift; sourceTree = "<group>"; };
 		DF876D7777536C4D1161AE08 /* PreferencesSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesSetupView.swift; sourceTree = "<group>"; };
 		E038BBA7AC12F0FA0C874CD8 /* LoadingOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingOverlay.swift; sourceTree = "<group>"; };
+		E5A4FFBAA3852C6D058539E3 /* PushNotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PushNotificationService.swift; sourceTree = "<group>"; };
 		E81FB053BED044B29EC4855E /* CoinbaseOfframpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseOfframpView.swift; sourceTree = "<group>"; };
 		EFBBFF5146B296358F1D44E1 /* BrandColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandColors.swift; sourceTree = "<group>"; };
 		F42263DE06EFA3F8E92B30D7 /* DelegationConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DelegationConfig.swift; sourceTree = "<group>"; };
 		F847E480D01DA0A6B5479945 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		FBD4DA7830BC66FF335055A1 /* AmountInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountInputField.swift; sourceTree = "<group>"; };
 		FE1AD3FC83709E946666A16F /* DisplayNameSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameSetupView.swift; sourceTree = "<group>"; };
+		GOOGLESIREF1 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		LAUNCHSBREF1 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		TOKENDETREF1 /* TokenDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenDetailView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -203,6 +210,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				587E00DF2EE756A900B97050 /* FirebaseMessaging in Frameworks */,
 				1D9D33FD66CB966C81D438E6 /* Privy in Frameworks */,
 				A878F4EAC5CCD8B336BC9BBD /* FirebaseAuth in Frameworks */,
 				5AC331FB39AD8598BFCA970A /* FirebaseFirestore in Frameworks */,
@@ -270,6 +278,8 @@
 				C504A804AAB49A0F00D75302 /* UsernameSetupView.swift */,
 				0F1CDE863848BAFDE6F2B93F /* WalkthroughView.swift */,
 				435E47321CDEFB7D847017EE /* WelcomeView.swift */,
+				9AE5D21756613EF417E14EFC /* ProfileSetupView.swift */,
+				7337E0C48727D1F4D6E2F5ED /* NotificationsSetupView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -286,6 +296,7 @@
 			isa = PBXGroup;
 			children = (
 				360EA48D3B5D76674487123F /* WalletView.swift */,
+				TOKENDETREF1 /* TokenDetailView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -358,7 +369,6 @@
 		4AC746C71BA6F9CBB41E9624 = {
 			isa = PBXGroup;
 			children = (
-				9EBEF14B8CF83A66B5EF3F62 /* Resources */,
 				A78F35C387C872F53B82DE80 /* Resources */,
 				501E62A942FCB70928BFA570 /* Wickett */,
 				C2A01457854BE9665A670024 /* Products */,
@@ -410,7 +420,6 @@
 			isa = PBXGroup;
 			children = (
 				12CF8359E7FB3F7C18D596E8 /* AutoConvertSettingsView.swift */,
-				B369811C2200BC266DC1C37E /* PaymentPreferencesView.swift */,
 				56C5E33AF0C8B26350B49ECA /* PortfolioAllocationView.swift */,
 				69E757420878276FE9ED9D76 /* SettingsView.swift */,
 			);
@@ -495,6 +504,7 @@
 				DC8439E04E731290A1297775 /* Solana */,
 				098EEF74FB4DD0490E5E4106 /* Theme */,
 				1F26CF8CA1BE1D24DF284881 /* User */,
+				B1CF1776203159AAE765C025 /* Notifications */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -574,6 +584,15 @@
 				B4D26CF998AC300574BA6341 /* ActivityView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		B1CF1776203159AAE765C025 /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				E5A4FFBAA3852C6D058539E3 /* PushNotificationService.swift */,
+			);
+			name = Notifications;
+			path = Notifications;
 			sourceTree = "<group>";
 		};
 		B7CAE935D0D4973B563E749A /* Models */ = {
@@ -739,6 +758,7 @@
 				F310AC3540F139E2B4525B64 /* FirebaseRemoteConfig */,
 				0ABAEB7410CB334F0C8E8476 /* SolanaSwift */,
 				E945A2AAFCB0883B6E8BEB61 /* Lottie */,
+				587E00DE2EE756A900B97050 /* FirebaseMessaging */,
 			);
 			productName = Wickett;
 			productReference = D12064E170101EA6115A2671 /* Wickett.app */;
@@ -768,6 +788,7 @@
 				EE19D7FF0271CB5CE70B54D9 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 				D7015187C104BB7BC133CBD6 /* XCRemoteSwiftPackageReference "privy-ios" */,
 			);
+			productRefGroup = C2A01457854BE9665A670024 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -859,7 +880,6 @@
 				C0105B7FBF7F123DBEA68F10 /* OnboardingManager.swift in Sources */,
 				56B86CC59B73A9BC2BF3F19B /* OnboardingState.swift in Sources */,
 				55E1240DEB3D374FB83FF94F /* PaymentMethodSelectorView.swift in Sources */,
-				F9806B0F1FBE10D5A23E2CB1 /* PaymentPreferencesView.swift in Sources */,
 				968B8AB5285AD909EE288A7B /* PaymentRequest.swift in Sources */,
 				B1E1DA3ECC707DC1E6A3AE41 /* PaymentRequestViewModel.swift in Sources */,
 				9EA4062192E242A60F9DF160 /* PortfolioAllocationView.swift in Sources */,
@@ -899,8 +919,12 @@
 				EE0A89D79D7F1208B47A2452 /* WalkthroughView.swift in Sources */,
 				92E93D92A1A570595840647E /* WalletActivity.swift in Sources */,
 				9B05B75178AC809F238FC462 /* WalletView.swift in Sources */,
+				TOKENDET001 /* TokenDetailView.swift in Sources */,
 				2F55E630E520BE3C9972D78A /* WelcomeView.swift in Sources */,
 				EAB54B3DE65E1522CECB4E3D /* WickettApp.swift in Sources */,
+				3511DE82DC7037B22DAFBA85 /* ProfileSetupView.swift in Sources */,
+				E0994C3BDDEE1B5876D2ED95 /* NotificationsSetupView.swift in Sources */,
+				CABB599239F435EE18935D90 /* PushNotificationService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1136,6 +1160,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 2B15A8B7F96DCE8497E6BDE4 /* XCRemoteSwiftPackageReference "solana-swift" */;
 			productName = SolanaSwift;
+		};
+		587E00DE2EE756A900B97050 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FirebaseMessaging;
 		};
 		77002A4156CBEE54CB5A51A1 /* FirebaseFunctions */ = {
 			isa = XCSwiftPackageProductDependency;

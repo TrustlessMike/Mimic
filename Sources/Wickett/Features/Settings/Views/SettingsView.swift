@@ -16,8 +16,15 @@ struct SettingsView: View {
     @EnvironmentObject var notificationManager: NotificationManager
 
     @State private var displayName: String = ""
+    @State private var username: String = ""
+    @State private var savedUsername: String? = nil // Tracks saved username for UI refresh
+    @State private var isEditingUsername = false
+    @State private var isSavingUsername = false
+    @State private var usernameError: String?
     @State private var notificationsEnabled = false
     @State private var selectedTheme: AppTheme = .system
+    @State private var degenModeEnabled = false
+    @State private var showingDegenModeWarning = false
     @State private var showingWalkthrough = false
     @State private var showingSignOutConfirmation = false
     @State private var showingDevContactAlert = false
@@ -57,8 +64,52 @@ struct SettingsView: View {
                             .multilineTextAlignment(.trailing)
                             .foregroundColor(.secondary)
                     }
+
+                    // Username field
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Username")
+                            Spacer()
+                            if isSavingUsername {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else if let existing = savedUsername ?? user.username {
+                                Text("@\(existing)")
+                                    .foregroundColor(.secondary)
+                            } else {
+                                HStack(spacing: 4) {
+                                    Text("@")
+                                        .foregroundColor(.secondary)
+                                    TextField("username", text: $username)
+                                        .textInputAutocapitalization(.never)
+                                        .autocorrectionDisabled()
+                                        .multilineTextAlignment(.trailing)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+
+                        if let error = usernameError {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+
+                        if savedUsername == nil && user.username == nil && !username.isEmpty {
+                            Button(action: saveUsername) {
+                                Text("Save Username")
+                                    .font(.subheadline)
+                                    .foregroundColor(BrandColors.primary)
+                            }
+                            .disabled(isSavingUsername)
+                        }
+                    }
                 } header: {
                     Text("Profile")
+                } footer: {
+                    if savedUsername == nil && user.username == nil {
+                        Text("Set a username so others can find you by @username")
+                    }
                 }
 
                 // Preferences Section
@@ -93,32 +144,68 @@ struct SettingsView: View {
                         themeManager.setTheme(newValue)
                     }
 
-                    NavigationLink(destination: PaymentPreferencesView()) {
+                } header: {
+                    Text("Preferences")
+                }
+
+                // Trading Mode Section (Mimic)
+                Section {
+                    Toggle(isOn: Binding(
+                        get: { degenModeEnabled },
+                        set: { newValue in
+                            if newValue {
+                                showingDegenModeWarning = true
+                            } else {
+                                degenModeEnabled = false
+                                saveDegenModeSetting(false)
+                            }
+                        }
+                    )) {
                         HStack {
-                            Image(systemName: "creditcard.fill")
-                                .foregroundColor(BrandColors.primary)
-                            Text("Payment Preferences")
+                            Image(systemName: "flame.fill")
+                                .foregroundColor(.orange)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Degen Mode")
+                                    .foregroundColor(.primary)
+                                Text("Copy trades on any token")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
+                    .tint(.orange)
 
-                    NavigationLink(destination: AutoConvertSettingsView()
-                        .environmentObject(HybridPrivyService.shared)) {
+                    if !degenModeEnabled {
                         HStack {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .foregroundColor(BrandColors.primary)
-                            Text("Auto-Convert")
-                            Spacer()
-                            Text("Beta")
-                                .font(.caption)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(BrandColors.primary)
-                                .cornerRadius(4)
+                            Image(systemName: "checkmark.shield.fill")
+                                .foregroundColor(.green)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Safe Mode Active")
+                                    .font(.subheadline)
+                                    .foregroundColor(.green)
+                                Text("Only major tokens (SOL, USDC, ETH, etc.)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    } else {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("All Tokens Unlocked")
+                                    .font(.subheadline)
+                                    .foregroundColor(.orange)
+                                Text("Including memecoins & pumpfun tokens")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                 } header: {
-                    Text("Preferences")
+                    Text("Trading Mode")
+                } footer: {
+                    Text("Degen Mode allows copying trades on any token, including high-risk memecoins. Safe Mode only allows established tokens.")
                 }
 
                 // Help & Support Section
@@ -216,12 +303,31 @@ struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("1.0.0")
+                        Text(appVersionString)
                             .foregroundColor(.secondary)
                     }
                 } header: {
                     Text("About")
                 }
+
+                // Developer Section (for testing)
+                #if DEBUG
+                Section {
+                    Button(action: {
+                        onboardingManager.resetOnboarding()
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise")
+                                .foregroundColor(.orange)
+                            Text("Reset Onboarding")
+                        }
+                    }
+                } header: {
+                    Text("Developer")
+                } footer: {
+                    Text("Resets onboarding state to test the onboarding flow again")
+                }
+                #endif
                 
                 // Spacer for custom tab bar
                 Section {
@@ -234,6 +340,7 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.large)
             .onAppear {
                 loadPreferences()
+                loadDegenModeSetting()
             }
             .onChange(of: displayName) { _ in
                 savePreferences()
@@ -284,10 +391,56 @@ struct SettingsView: View {
             } message: {
                 Text(deleteAccountErrorMessage)
             }
+            .alert("Enable Degen Mode?", isPresented: $showingDegenModeWarning) {
+                Button("Cancel", role: .cancel) {}
+                Button("Enable", role: .destructive) {
+                    degenModeEnabled = true
+                    saveDegenModeSetting(true)
+                }
+            } message: {
+                Text("Degen Mode unlocks ALL tokens including high-risk memecoins and pumpfun tokens.\n\n⚠️ Most copy traders lose money on memecoins. Only enable if you understand the risks.")
+            }
         }
     }
 
+    // MARK: - Computed Properties
+
+    private var appVersionString: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "\(version) (\(build))"
+    }
+
     // MARK: - Helpers
+
+    private func saveUsername() {
+        guard !username.isEmpty else { return }
+
+        isSavingUsername = true
+        usernameError = nil
+
+        Task {
+            do {
+                let confirmedUsername = try await UsernameService.shared.updateUsername(username: username)
+
+                // Refresh user data so username persists across views
+                await AuthCoordinator.shared.fetchUserData()
+
+                await MainActor.run {
+                    isSavingUsername = false
+                    savedUsername = confirmedUsername
+                    username = "" // Clear input field
+                    logger.info("✅ Username saved: @\(confirmedUsername)")
+                }
+            } catch {
+                await MainActor.run {
+                    isSavingUsername = false
+                    usernameError = error.localizedDescription
+                }
+                logger.error("❌ Failed to save username: \(error.localizedDescription)")
+            }
+        }
+    }
 
     private func addDevContact() {
         Task {
@@ -388,6 +541,42 @@ struct SettingsView: View {
                 } catch {
                     notificationsEnabled = false
                 }
+            }
+        }
+    }
+
+    private func saveDegenModeSetting(_ enabled: Bool) {
+        guard let userId = user.id as String? else { return }
+
+        Task {
+            do {
+                try await db.collection("users").document(userId).setData([
+                    "preferences": [
+                        "degenMode": enabled
+                    ],
+                    "updatedAt": Date()
+                ], merge: true)
+                logger.info("✅ Degen mode \(enabled ? "enabled" : "disabled")")
+            } catch {
+                logger.error("❌ Failed to save degen mode setting: \(error)")
+            }
+        }
+    }
+
+    private func loadDegenModeSetting() {
+        guard let userId = user.id as String? else { return }
+
+        Task {
+            do {
+                let doc = try await db.collection("users").document(userId).getDocument()
+                if let prefs = doc.data()?["preferences"] as? [String: Any],
+                   let degenMode = prefs["degenMode"] as? Bool {
+                    await MainActor.run {
+                        degenModeEnabled = degenMode
+                    }
+                }
+            } catch {
+                logger.error("Failed to load degen mode setting: \(error)")
             }
         }
     }

@@ -81,12 +81,9 @@ class CoinbaseOnrampViewModel: ObservableObject {
         logger.info("Starting onramp flow with payment method: \(self.selectedPaymentMethod.rawValue)")
 
         do {
-            switch self.selectedPaymentMethod {
-            case .applePay:
-                try await startApplePayOnramp()
-            case .creditCard:
-                try await startHostedCheckoutOnramp()
-            }
+            // For now, both payment methods use the hosted checkout flow
+            // Apple Pay native integration can be added later
+            try await startHostedCheckoutOnramp()
         } catch {
             logger.error("❌ Failed to create onramp: \(error.localizedDescription)")
             errorMessage = error.localizedDescription

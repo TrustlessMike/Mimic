@@ -4,7 +4,7 @@ struct UsernameSetupView: View {
     let onContinue: (String?) -> Void
     let onSkip: () -> Void
 
-    @StateObject private var usernameService = UsernameService.shared
+    @ObservedObject private var usernameService = UsernameService.shared
     @State private var username: String = ""
     @State private var isChecking: Bool = false
     @State private var isAvailable: Bool? = nil
@@ -45,9 +45,17 @@ struct UsernameSetupView: View {
                     // Username field
                     TextField("username", text: $username)
                         .font(.title2)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.asciiCapable)
                         .onChange(of: username) { newValue in
+                            // Enforce lowercase and remove spaces in real-time
+                            let sanitized = newValue.lowercased().replacingOccurrences(of: " ", with: "")
+                            if sanitized != newValue {
+                                username = sanitized
+                                return // onChange will fire again with sanitized value
+                            }
+
                             // Cancel previous check
                             checkTask?.cancel()
 

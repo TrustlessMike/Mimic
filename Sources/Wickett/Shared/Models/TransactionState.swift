@@ -15,17 +15,17 @@ enum TransactionState {
         case .idle:
             return ""
         case .building:
-            return "Building transaction..."
+            return "Submitting..."
         case .signing:
-            return "Waiting for signature..."
+            return "Submitting..."
         case .broadcasting:
-            return "Broadcasting to network..."
+            return "Submitting..."
         case .confirming:
-            return "Confirming on blockchain..."
+            return "Submitting..."
         case .completed:
-            return "Transaction completed!"
+            return "Submitted"
         case .failed:
-            return "Transaction failed"
+            return "Failed"
         }
     }
 }

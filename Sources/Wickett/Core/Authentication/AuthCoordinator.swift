@@ -126,45 +126,53 @@ class AuthCoordinator: ObservableObject {
         }
     }
 
-    // MARK: - Fetch Display Name
+    // MARK: - Fetch User Data
 
     private func fetchDisplayName(userId: String) async {
-        logger.info("🔍 Attempting to fetch displayName for userId: \(userId)")
+        await fetchUserData(userId: userId)
+    }
+
+    /// Fetches user data from Firestore and updates currentUser
+    func fetchUserData(userId: String? = nil) async {
+        let uid = userId ?? currentUser?.id
+        guard let uid = uid else {
+            logger.warning("⚠️ Cannot fetch user data - no userId")
+            return
+        }
+
+        logger.info("🔍 Fetching user data for userId: \(uid)")
 
         do {
-            let document = try await db.collection("users").document(userId).getDocument()
+            let document = try await db.collection("users").document(uid).getDocument()
 
             logger.info("📄 Document exists: \(document.exists)")
 
             if document.exists, let data = document.data() {
-                logger.info("📦 Document data: \(data)")
+                let displayName = data["displayName"] as? String
+                let username = data["username"] as? String
 
-                if let displayName = data["displayName"] as? String, !displayName.isEmpty {
-                    logger.info("✅ Fetched displayName from Firestore: \(displayName)")
+                logger.info("✅ Fetched from Firestore - displayName: \(displayName ?? "nil"), username: \(username ?? "nil")")
 
-                    // Update current user with displayName
-                    await MainActor.run {
-                        if let user = self.currentUser {
-                            self.currentUser = User(
-                                id: user.id,
-                                email: user.email,
-                                name: displayName,
-                                walletAddress: user.walletAddress,
-                                username: user.username
-                            )
-                            logger.info("✅ Updated currentUser.name to: \(displayName)")
-                        } else {
-                            logger.error("❌ currentUser is nil, cannot update displayName")
-                        }
+                // Update current user with fetched data
+                await MainActor.run {
+                    if let user = self.currentUser {
+                        self.currentUser = User(
+                            id: user.id,
+                            email: user.email,
+                            name: displayName ?? user.name,
+                            walletAddress: user.walletAddress,
+                            username: username
+                        )
+                        logger.info("✅ Updated currentUser - name: \(displayName ?? "nil"), username: \(username ?? "nil")")
+                    } else {
+                        logger.error("❌ currentUser is nil, cannot update")
                     }
-                } else {
-                    logger.warning("⚠️ displayName field is missing or empty in Firestore document")
                 }
             } else {
-                logger.warning("⚠️ Firestore document does not exist for userId: \(userId)")
+                logger.warning("⚠️ Firestore document does not exist for userId: \(uid)")
             }
         } catch {
-            logger.error("❌ Failed to fetch displayName: \(error)")
+            logger.error("❌ Failed to fetch user data: \(error)")
         }
     }
 }
