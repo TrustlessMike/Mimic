@@ -6,7 +6,7 @@ interface SkeletonProps {
 
 export const Skeleton = memo(function Skeleton({ className = '' }: SkeletonProps) {
   return (
-    <div className={`animate-pulse bg-dark-700/50 rounded ${className}`} />
+    <div className={`animate-pulse bg-surface-200 rounded ${className}`} />
   );
 });
 
@@ -39,7 +39,7 @@ export const TableRowSkeleton = memo(function TableRowSkeleton({ cols = 4 }: { c
 
 export const ListItemSkeleton = memo(function ListItemSkeleton() {
   return (
-    <div className="flex items-center justify-between p-3 rounded-xl bg-dark-800/50">
+    <div className="flex items-center justify-between p-3 rounded-xl bg-surface-100">
       <div className="flex items-center gap-3">
         <Skeleton className="w-10 h-10 rounded-lg" />
         <div>

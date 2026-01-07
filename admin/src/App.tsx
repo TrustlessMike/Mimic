@@ -13,6 +13,8 @@ const RequestsPage = lazy(() => import('./pages/RequestsPage').then(m => ({ defa
 const CoinbaseTransfersPage = lazy(() => import('./pages/CoinbaseTransfersPage').then(m => ({ default: m.CoinbaseTransfersPage })));
 const AutoSwapLogsPage = lazy(() => import('./pages/AutoSwapLogsPage').then(m => ({ default: m.AutoSwapLogsPage })));
 const InsightsPage = lazy(() => import('./pages/InsightsPage').then(m => ({ default: m.InsightsPage })));
+const PredictionsPage = lazy(() => import('./pages/PredictionsPage').then(m => ({ default: m.PredictionsPage })));
+const WalletTrackingPage = lazy(() => import('./pages/WalletTrackingPage').then(m => ({ default: m.WalletTrackingPage })));
 
 function PageLoader() {
   return (
@@ -97,6 +99,16 @@ function AppRoutes() {
         <Route path="/insights" element={
           <Suspense fallback={<PageLoader />}>
             <InsightsPage />
+          </Suspense>
+        } />
+        <Route path="/predictions" element={
+          <Suspense fallback={<PageLoader />}>
+            <PredictionsPage />
+          </Suspense>
+        } />
+        <Route path="/wallet-tracking" element={
+          <Suspense fallback={<PageLoader />}>
+            <WalletTrackingPage />
           </Suspense>
         } />
       </Route>

@@ -97,6 +97,127 @@ export interface DashboardStats {
   autoSwapsLast24h: number;
 }
 
+// ============================================
+// Prediction Markets Types
+// ============================================
+
+export type BetDirection = 'YES' | 'NO';
+export type BetStatus = 'open' | 'won' | 'lost' | 'claimed';
+
+export interface PredictorStats {
+  totalBets: number;
+  winRate: number;
+  totalPnl: number;
+  avgBetSize: number;
+  lastBetAt?: Timestamp;
+}
+
+export interface SmartMoneyWallet {
+  id: string;
+  address: string;
+  nickname?: string;
+  notes?: string;
+  stats: PredictorStats;
+  addedAt: Timestamp;
+  addedBy: string;
+  isActive: boolean;
+  removedAt?: Timestamp;
+  removedBy?: string;
+}
+
+export interface PredictionBet {
+  id: string;
+  walletAddress: string;
+  walletNickname?: string;
+  signature: string;
+  timestamp: Timestamp;
+  marketAddress: string;
+  marketTitle?: string;
+  marketCategory?: string;
+  direction: BetDirection;
+  amount: number;
+  shares: number;
+  avgPrice: number;
+  status: BetStatus;
+  pnl?: number;
+  canCopy: boolean;
+}
+
+// ============================================
+// Wallet Tracking Types
+// ============================================
+
+export interface WalletStats {
+  totalTrades: number;
+  winRate: number;
+  pnl: number;
+  lastTradeAt?: Timestamp;
+}
+
+export interface TrackedWallet {
+  id: string;
+  oduserId: string;
+  walletAddress: string;
+  nickname?: string;
+  createdAt: Timestamp;
+  stats: WalletStats;
+}
+
+export interface TokenInfo {
+  mint: string;
+  symbol: string;
+  amount: number;
+  usdValue?: number;
+}
+
+export type TradeType = 'buy' | 'sell';
+
+export interface TrackedTrade {
+  id: string;
+  walletAddress: string;
+  walletNickname?: string;
+  signature: string;
+  timestamp: Timestamp;
+  type: TradeType;
+  inputToken: TokenInfo;
+  outputToken: TokenInfo;
+  isSafeModeTrade: boolean;
+  canCopy: boolean;
+}
+
+export interface CopyBot {
+  id: string;
+  userId: string;
+  sourceWalletAddress: string;
+  sourceNickname?: string;
+  isActive: boolean;
+  maxTradeSize: number;
+  slippageBps: number;
+  degenModeEnabled: boolean;
+  createdAt: Timestamp;
+  stats: {
+    totalCopied: number;
+    successRate: number;
+    totalVolume: number;
+  };
+}
+
+export interface CopyTradeLog {
+  id: string;
+  oduserId: string;
+  originalTradeId: string;
+  inputMint: string;
+  outputMint: string;
+  inputAmount: string;
+  expectedOutput: string;
+  platformFeeBps: number;
+  degenMode: boolean;
+  status: 'pending_signature' | 'submitted' | 'confirmed' | 'failed';
+  createdAt: Timestamp;
+  signature?: string;
+  error?: string;
+}
+
 export type OnrampStatus = 'created' | 'pending' | 'completed' | 'failed' | 'expired';
 export type OfframpStatus = 'created' | 'awaiting_crypto' | 'processing' | 'completed' | 'failed' | 'expired';
 
