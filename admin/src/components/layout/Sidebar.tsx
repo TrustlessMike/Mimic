@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Zap, TrendingUp, Eye } from 'lucide-react';
+import { LayoutDashboard, Zap, TrendingUp, Eye, BarChart3 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Predictions', href: '/predictions', icon: TrendingUp },
   { name: 'Wallet Tracking', href: '/wallet-tracking', icon: Eye },
+  { name: 'Polymarket', href: '/polymarket', icon: BarChart3 },
 ];
 
 export function Sidebar() {

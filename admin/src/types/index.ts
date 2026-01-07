@@ -261,3 +261,47 @@ export interface CoinbaseOfframpSession {
   completedAt?: Timestamp;
   failureReason?: string;
 }
+
+// ============================================
+// Polymarket Types
+// ============================================
+
+export interface PolymarketMarket {
+  id: string;
+  conditionId: string;
+  question: string;
+  eventTitle: string;
+  volume: number;
+  yesPrice: number;
+  jupiterMarketId?: string;
+  jupiterMarketTitle?: string;
+  matchConfidence?: number;
+  lastSyncedAt: Timestamp;
+}
+
+export interface CrossPlatformSignal {
+  id: string;
+  polymarketConditionId: string;
+  jupiterMarketId: string;
+  question: string;
+  polymarketYesPrice: number;
+  jupiterYesPrice: number;
+  priceDiff: number;
+  signalType: 'arbitrage' | 'divergence' | 'consensus';
+  strength: 'weak' | 'medium' | 'strong';
+  createdAt: Timestamp;
+}
+
+export interface ArbitrageOpportunity {
+  id: string;
+  polymarketConditionId: string;
+  jupiterMarketId: string;
+  question: string;
+  polymarketPrice: number;
+  jupiterPrice: number;
+  spreadPct: number;
+  direction: 'buy_poly_sell_jup' | 'buy_jup_sell_poly';
+  estimatedProfit: number;
+  isActive: boolean;
+  createdAt: Timestamp;
+}
