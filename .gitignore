@@ -191,9 +191,11 @@ deploy.sh
 test-functions.swift
 scripts/
 
-# All root-level JS/SH dev scripts
-*.js
-*.sh
+# All root-level JS/SH dev scripts (exclude admin config)
+/*.js
+/*.sh
+!admin/*.js
+!admin/*.config.js
 
 # Private keys and certs
 *.pem
