@@ -29,12 +29,17 @@ const JUPITER_PREDICTION_PROGRAM = "3ZZuTbwC6aJbvteyVxXUS7gtFYdf7AuXeitx6VyvjvUp
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 // Smart money wallets cache
 let smartMoneyWallets = new Map();
+// Market metadata cache (in-memory for quick lookups)
+let marketCache = new Map();
+// Jupiter Prediction API
+const JUPITER_PREDICTION_API = "https://prediction-market-api.jup.ag/api/v1";
 // Stats
 let stats = {
     connected: false,
     lastMessage: 0,
     txProcessed: 0,
     betsFound: 0,
+    marketsKnown: 0,
     startTime: Date.now(),
 };
 /**
@@ -64,6 +69,7 @@ async function start() {
                 txProcessed: stats.txProcessed,
                 betsFound: stats.betsFound,
                 walletsTracked: smartMoneyWallets.size,
+                marketsKnown: marketCache.size,
                 lastMessage: stats.lastMessage ? new Date(stats.lastMessage).toISOString() : null,
             }));
         }
@@ -81,8 +87,10 @@ async function start() {
     // Now initialize Firebase and start tracking
     try {
         await refreshSmartMoneyWallets();
+        await syncMarketMetadata(); // Initial sync of market metadata
         connectWebSocket();
         setInterval(refreshSmartMoneyWallets, 5 * 60 * 1000);
+        setInterval(syncMarketMetadata, 10 * 60 * 1000); // Sync markets every 10 min
     }
     catch (error) {
         console.error("Failed to initialize tracking:", error);
@@ -227,29 +235,111 @@ function parseBet(tx) {
     };
 }
 /**
- * Get market info (cached)
+ * Get market info from cache (in-memory first, then Firestore)
  */
 async function getMarketInfo(address) {
     try {
+        // Check in-memory cache first (fastest)
+        const memCached = marketCache.get(address);
+        if (memCached && Date.now() - memCached.cachedAt < 3600000) {
+            return memCached;
+        }
+        // Check Firestore cache
         const cached = await db.collection("prediction_markets").doc(address).get();
         if (cached.exists) {
             const data = cached.data();
-            if (Date.now() - (data?.cachedAt?.toMillis() || 0) < 3600000) {
-                return data;
+            // Update in-memory cache
+            if (data?.title) {
+                marketCache.set(address, {
+                    title: data.title,
+                    category: data.category || "Unknown",
+                    cachedAt: Date.now(),
+                });
             }
+            return data;
         }
-        const res = await fetch(`https://markets-api.jup.ag/markets/${address}`);
-        if (!res.ok)
-            return null;
-        const market = await res.json();
-        await db.collection("prediction_markets").doc(address).set({
-            ...market,
-            cachedAt: firestore_1.FieldValue.serverTimestamp(),
-        }, { merge: true });
-        return market;
+        return null;
     }
     catch {
         return null;
+    }
+}
+/**
+ * Sync market metadata by fetching positions from active wallets
+ * This discovers markets by looking at what smart money is betting on
+ */
+async function syncMarketMetadata() {
+    console.log("🔄 Syncing market metadata from Jupiter API...");
+    try {
+        // Fetch top traders from leaderboard
+        const leaderboardRes = await fetch(`${JUPITER_PREDICTION_API}/leaderboards?period=weekly&metric=volume&limit=20`);
+        if (!leaderboardRes.ok) {
+            console.error("Failed to fetch leaderboard");
+            return;
+        }
+        const leaderboardData = await leaderboardRes.json();
+        const traders = leaderboardData.data || [];
+        let marketsFound = 0;
+        // Fetch positions for each trader to discover markets
+        for (const trader of traders.slice(0, 10)) {
+            try {
+                const positionsRes = await fetch(`${JUPITER_PREDICTION_API}/positions?ownerPubkey=${trader.ownerPubkey}&limit=20`);
+                if (!positionsRes.ok)
+                    continue;
+                const positionsData = await positionsRes.json();
+                const positions = positionsData.data || [];
+                for (const position of positions) {
+                    const marketId = position.marketId || position.market;
+                    const eventMeta = position.eventMetadata;
+                    const marketMeta = position.marketMetadata;
+                    if (!marketId || !eventMeta?.title)
+                        continue;
+                    // Check if we already have this market
+                    if (marketCache.has(marketId))
+                        continue;
+                    // Cache in memory
+                    marketCache.set(marketId, {
+                        title: eventMeta.title,
+                        category: eventMeta.category || "Unknown",
+                        cachedAt: Date.now(),
+                    });
+                    // Save to Firestore
+                    await db.collection("prediction_markets").doc(marketId).set({
+                        title: eventMeta.title,
+                        subtitle: eventMeta.subtitle,
+                        category: eventMeta.category,
+                        isActive: eventMeta.isActive,
+                        marketTitle: marketMeta?.title,
+                        marketStatus: marketMeta?.status,
+                        cachedAt: firestore_1.FieldValue.serverTimestamp(),
+                    }, { merge: true });
+                    marketsFound++;
+                }
+                // Rate limit
+                await new Promise((r) => setTimeout(r, 200));
+            }
+            catch (err) {
+                // Ignore individual wallet errors
+            }
+        }
+        stats.marketsKnown = marketCache.size;
+        console.log(`✅ Market sync complete: ${marketsFound} new markets, ${marketCache.size} total known`);
+        // Also load existing markets from Firestore into memory cache
+        const existingMarkets = await db.collection("prediction_markets").limit(200).get();
+        existingMarkets.docs.forEach((doc) => {
+            const data = doc.data();
+            if (data.title && !marketCache.has(doc.id)) {
+                marketCache.set(doc.id, {
+                    title: data.title,
+                    category: data.category || "Unknown",
+                    cachedAt: Date.now(),
+                });
+            }
+        });
+        stats.marketsKnown = marketCache.size;
+    }
+    catch (error) {
+        console.error("Market sync error:", error);
     }
 }
 /**
