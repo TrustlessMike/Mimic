@@ -1,6 +1,7 @@
 import Foundation
 import FirebaseFirestore
 import FirebaseAuth
+import FirebaseFunctions
 import OSLog
 
 private let logger = Logger(subsystem: "com.syndicatemike.Mimic", category: "PredictionCopy")
@@ -26,26 +27,46 @@ struct PendingCopyTrade: Identifiable, Codable {
     var executedSignature: String?
 }
 
+/// Prediction delegation configuration
+struct PredictionDelegation: Codable {
+    let id: String
+    let status: String  // "active", "revoked", "expired"
+    let maxCopyAmountUsd: Double
+    let copyPercentage: Double
+    let minBetSizeUsd: Double
+    let expiresAt: Date
+    let totalCopiesExecuted: Int
+    let totalVolumeUsd: Double
+}
+
 /// Service for managing prediction market copy trading
 @MainActor
 class PredictionCopyService: ObservableObject {
     static let shared = PredictionCopyService()
 
     private let db = Firestore.firestore()
+    private let functions = Functions.functions()
 
     @Published var trackedPredictors: [TrackedPredictor] = []
     @Published var pendingCopies: [PendingCopyTrade] = []
     @Published var isLoading = false
     @Published var error: String?
 
+    // Delegation state
+    @Published var delegationActive = false
+    @Published var delegation: PredictionDelegation?
+    @Published var isDelegationLoading = false
+
     private var predictorsListener: ListenerRegistration?
     private var pendingListener: ListenerRegistration?
+    private var delegationListener: ListenerRegistration?
 
     private init() {}
 
     deinit {
         predictorsListener?.remove()
         pendingListener?.remove()
+        delegationListener?.remove()
     }
 
     // MARK: - Load Tracked Predictors
@@ -317,6 +338,187 @@ class PredictionCopyService: ObservableObject {
         return URL(string: urlString)
     }
 
+    // MARK: - Delegation Management
+
+    /// Load current delegation status
+    func loadDelegationStatus() async {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+
+        do {
+            // Check user document for delegation status
+            let userDoc = try await db.collection("users").document(userId).getDocument()
+            let userData = userDoc.data() ?? [:]
+
+            delegationActive = userData["predictionDelegationActive"] as? Bool ?? false
+
+            if delegationActive, let delegationId = userData["predictionDelegationId"] as? String {
+                // Load delegation details
+                let delegationDoc = try await db.collection("users")
+                    .document(userId)
+                    .collection("prediction_delegations")
+                    .document(delegationId)
+                    .getDocument()
+
+                if let data = delegationDoc.data() {
+                    delegation = parseDelegation(delegationDoc.documentID, data: data)
+                }
+            }
+
+            logger.info("Delegation status: \(self.delegationActive)")
+        } catch {
+            logger.error("Failed to load delegation status: \(error.localizedDescription)")
+        }
+    }
+
+    /// Start listener for delegation changes
+    func startDelegationListener() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+
+        delegationListener?.remove()
+
+        delegationListener = db.collection("users")
+            .document(userId)
+            .collection("prediction_delegations")
+            .whereField("status", isEqualTo: "active")
+            .limit(to: 1)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self else { return }
+
+                if let error = error {
+                    logger.error("Delegation listener error: \(error.localizedDescription)")
+                    return
+                }
+
+                Task { @MainActor in
+                    if let doc = snapshot?.documents.first {
+                        self.delegationActive = true
+                        self.delegation = self.parseDelegation(doc.documentID, data: doc.data())
+                    } else {
+                        self.delegationActive = false
+                        self.delegation = nil
+                    }
+                }
+            }
+    }
+
+    func stopDelegationListener() {
+        delegationListener?.remove()
+        delegationListener = nil
+    }
+
+    /// Approve prediction copy trading delegation
+    func approveDelegation(
+        maxCopyAmountUsd: Double,
+        copyPercentage: Double,
+        minBetSizeUsd: Double,
+        expirationDays: Int,
+        privyAccessToken: String
+    ) async throws {
+        isDelegationLoading = true
+        error = nil
+
+        defer { isDelegationLoading = false }
+
+        do {
+            let result = try await functions.httpsCallable("approvePredictionDelegation").call([
+                "maxCopyAmountUsd": maxCopyAmountUsd,
+                "copyPercentage": copyPercentage,
+                "minBetSizeUsd": minBetSizeUsd,
+                "expirationDays": expirationDays,
+                "privyAccessToken": privyAccessToken
+            ])
+
+            if let data = result.data as? [String: Any],
+               let success = data["success"] as? Bool, success {
+                delegationActive = true
+                await loadDelegationStatus()
+                logger.info("Delegation approved successfully")
+            } else {
+                throw PredictionCopyError.delegationFailed
+            }
+        } catch {
+            logger.error("Failed to approve delegation: \(error.localizedDescription)")
+            self.error = error.localizedDescription
+            throw error
+        }
+    }
+
+    /// Revoke prediction copy trading delegation
+    func revokeDelegation() async throws {
+        isDelegationLoading = true
+        error = nil
+
+        defer { isDelegationLoading = false }
+
+        do {
+            let result = try await functions.httpsCallable("revokePredictionDelegation").call([:])
+
+            if let data = result.data as? [String: Any],
+               let success = data["success"] as? Bool, success {
+                delegationActive = false
+                delegation = nil
+                logger.info("Delegation revoked successfully")
+            } else {
+                throw PredictionCopyError.revokeFailed
+            }
+        } catch {
+            logger.error("Failed to revoke delegation: \(error.localizedDescription)")
+            self.error = error.localizedDescription
+            throw error
+        }
+    }
+
+    /// Execute a copy trade server-side (for users with delegation)
+    func executeCopyServerSide(_ copy: PendingCopyTrade) async throws -> String {
+        guard delegationActive else {
+            throw PredictionCopyError.noDelegation
+        }
+
+        isLoading = true
+        error = nil
+
+        defer { isLoading = false }
+
+        do {
+            let result = try await functions.httpsCallable("executePredictionCopyServer").call([
+                "pendingCopyId": copy.id
+            ])
+
+            if let data = result.data as? [String: Any],
+               let success = data["success"] as? Bool, success,
+               let signature = data["signature"] as? String {
+                pendingCopies.removeAll { $0.id == copy.id }
+                logger.info("Copy executed server-side: \(signature)")
+                return signature
+            } else {
+                let message = (result.data as? [String: Any])?["message"] as? String ?? "Unknown error"
+                throw NSError(domain: "PredictionCopy", code: -1, userInfo: [NSLocalizedDescriptionKey: message])
+            }
+        } catch {
+            logger.error("Server-side execution failed: \(error.localizedDescription)")
+            self.error = error.localizedDescription
+            throw error
+        }
+    }
+
+    private func parseDelegation(_ id: String, data: [String: Any]) -> PredictionDelegation {
+        var expiresAt = Date()
+        if let timestamp = data["expiresAt"] as? Timestamp {
+            expiresAt = timestamp.dateValue()
+        }
+
+        return PredictionDelegation(
+            id: id,
+            status: data["status"] as? String ?? "unknown",
+            maxCopyAmountUsd: data["maxCopyAmountUsd"] as? Double ?? 50,
+            copyPercentage: data["copyPercentage"] as? Double ?? 10,
+            minBetSizeUsd: data["minBetSizeUsd"] as? Double ?? 5,
+            expiresAt: expiresAt,
+            totalCopiesExecuted: data["totalCopiesExecuted"] as? Int ?? 0,
+            totalVolumeUsd: data["totalVolumeUsd"] as? Double ?? 0
+        )
+    }
+
     // MARK: - Parsing
 
     private func parseTrackedPredictor(_ doc: DocumentSnapshot) -> TrackedPredictor? {
@@ -425,6 +627,9 @@ enum PredictionCopyError: LocalizedError {
     case alreadyTracking
     case addFailed
     case removeFailed
+    case delegationFailed
+    case revokeFailed
+    case noDelegation
 
     var errorDescription: String? {
         switch self {
@@ -433,6 +638,9 @@ enum PredictionCopyError: LocalizedError {
         case .alreadyTracking: return "You're already tracking this wallet"
         case .addFailed: return "Failed to add predictor"
         case .removeFailed: return "Failed to remove predictor"
+        case .delegationFailed: return "Failed to enable auto-copy"
+        case .revokeFailed: return "Failed to disable auto-copy"
+        case .noDelegation: return "Auto-copy not enabled"
         }
     }
 }

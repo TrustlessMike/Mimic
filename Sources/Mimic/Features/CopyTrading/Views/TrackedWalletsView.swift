@@ -1,4 +1,5 @@
 import SwiftUI
+import PrivySDK
 
 /// View for managing tracked predictors and prediction copy trading
 struct TrackedWalletsView: View {
@@ -14,9 +15,16 @@ struct TrackedWalletsView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
+    // Delegation state
+    @State private var showingDelegationSettings = false
+    @State private var isExecutingCopy = false
+
     var body: some View {
         NavigationStack {
             List {
+                // Auto-Execute Delegation Section
+                delegationSection
+
                 // Pending Copy Trades Section
                 if !copyService.pendingCopies.isEmpty {
                     pendingCopiesSection
@@ -72,20 +80,149 @@ struct TrackedWalletsView: View {
             .task {
                 await copyService.loadTrackedPredictors()
                 await copyService.loadPendingCopies()
+                await copyService.loadDelegationStatus()
                 copyService.startPredictorsListener()
                 copyService.startPendingListener()
+                copyService.startDelegationListener()
             }
             .onDisappear {
                 copyService.stopPredictorsListener()
                 copyService.stopPendingListener()
+                copyService.stopDelegationListener()
             }
             .sheet(isPresented: $showingAddPredictor) {
                 addPredictorSheet
+            }
+            .sheet(isPresented: $showingDelegationSettings) {
+                DelegationSettingsSheet()
             }
             .alert("Error", isPresented: $showingError) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(errorMessage)
+            }
+        }
+    }
+
+    // MARK: - Delegation Section
+
+    private var delegationSection: some View {
+        Section {
+            if copyService.delegationActive, let delegation = copyService.delegation {
+                // Active delegation status
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    HStack {
+                        Image(systemName: "checkmark.shield.fill")
+                            .foregroundColor(SemanticColors.success)
+                            .font(.title2)
+
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            Text("Auto-Execute Enabled")
+                                .font(Typography.bodyMedium)
+                                .fontWeight(.semibold)
+                                .foregroundColor(SemanticColors.textPrimary)
+
+                            Text("Trades will execute automatically")
+                                .font(Typography.labelSmall)
+                                .foregroundColor(SemanticColors.textSecondary)
+                        }
+
+                        Spacer()
+
+                        Button(action: { showingDelegationSettings = true }) {
+                            Image(systemName: "gearshape.fill")
+                                .foregroundColor(SemanticColors.textSecondary)
+                        }
+                    }
+
+                    // Stats row
+                    HStack(spacing: Spacing.lg) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Max per trade")
+                                .font(Typography.labelSmall)
+                                .foregroundColor(SemanticColors.textSecondary)
+                            Text("$\(Int(delegation.maxCopyAmountUsd))")
+                                .font(Typography.bodySmall)
+                                .fontWeight(.medium)
+                                .foregroundColor(SemanticColors.textPrimary)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Executed")
+                                .font(Typography.labelSmall)
+                                .foregroundColor(SemanticColors.textSecondary)
+                            Text("\(delegation.totalCopiesExecuted) trades")
+                                .font(Typography.bodySmall)
+                                .fontWeight(.medium)
+                                .foregroundColor(SemanticColors.textPrimary)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Volume")
+                                .font(Typography.labelSmall)
+                                .foregroundColor(SemanticColors.textSecondary)
+                            Text("$\(Int(delegation.totalVolumeUsd))")
+                                .font(Typography.bodySmall)
+                                .fontWeight(.medium)
+                                .foregroundColor(SemanticColors.textPrimary)
+                        }
+                    }
+
+                    // Expiry info
+                    if delegation.expiresAt > Date() {
+                        let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: delegation.expiresAt).day ?? 0
+                        Text("Expires in \(daysRemaining) days")
+                            .font(Typography.labelSmall)
+                            .foregroundColor(SemanticColors.textSecondary)
+                    }
+                }
+                .padding(.vertical, Spacing.xs)
+            } else {
+                // Enable delegation prompt
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    HStack {
+                        Image(systemName: "bolt.shield")
+                            .foregroundColor(BrandColors.primary)
+                            .font(.title2)
+
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            Text("Auto-Execute Copy Trades")
+                                .font(Typography.bodyMedium)
+                                .fontWeight(.semibold)
+                                .foregroundColor(SemanticColors.textPrimary)
+
+                            Text("Automatically copy trades without tapping")
+                                .font(Typography.labelSmall)
+                                .foregroundColor(SemanticColors.textSecondary)
+                        }
+                    }
+
+                    Button(action: { showingDelegationSettings = true }) {
+                        HStack {
+                            Image(systemName: "bolt.fill")
+                            Text("Enable Auto-Execute")
+                        }
+                        .font(Typography.bodySmall)
+                        .fontWeight(.semibold)
+                        .foregroundColor(SemanticColors.textInverse)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Spacing.sm)
+                        .background(
+                            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                                .fill(BrandColors.primaryGradient)
+                        )
+                    }
+                    .disabled(copyService.isDelegationLoading)
+                }
+                .padding(.vertical, Spacing.xs)
+            }
+        } header: {
+            Text("Auto-Execute")
+        } footer: {
+            if copyService.delegationActive {
+                Text("Your trades are automatically executed when tracked wallets bet")
+            } else {
+                Text("Enable to have trades automatically execute without manual approval")
             }
         }
     }
@@ -615,6 +752,245 @@ struct CopySettingsSheet: View {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - Delegation Settings Sheet
+
+struct DelegationSettingsSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @StateObject private var copyService = PredictionCopyService.shared
+    @StateObject private var privyService = HybridPrivyService.shared
+
+    @State private var maxCopyAmount: Double = 50
+    @State private var copyPercentage: Double = 10
+    @State private var minBetSize: Double = 5
+    @State private var expirationDays: Int = 30
+    @State private var isLoading = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
+    @State private var showingRevokeConfirm = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if copyService.delegationActive {
+                    // Active delegation - show status and revoke option
+                    Section {
+                        HStack {
+                            Image(systemName: "checkmark.shield.fill")
+                                .foregroundColor(SemanticColors.success)
+                            Text("Auto-Execute is Active")
+                                .font(Typography.bodyMedium)
+                                .foregroundColor(SemanticColors.textPrimary)
+                        }
+
+                        if let delegation = copyService.delegation {
+                            LabeledContent("Max per trade", value: "$\(Int(delegation.maxCopyAmountUsd))")
+                            LabeledContent("Copy percentage", value: "\(Int(delegation.copyPercentage))%")
+                            LabeledContent("Min bet size", value: "$\(Int(delegation.minBetSizeUsd))")
+                            LabeledContent("Trades executed", value: "\(delegation.totalCopiesExecuted)")
+                            LabeledContent("Total volume", value: "$\(Int(delegation.totalVolumeUsd))")
+
+                            if delegation.expiresAt > Date() {
+                                let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: delegation.expiresAt).day ?? 0
+                                LabeledContent("Expires in", value: "\(daysRemaining) days")
+                            }
+                        }
+                    } header: {
+                        Text("Current Settings")
+                    }
+
+                    Section {
+                        Button(role: .destructive, action: { showingRevokeConfirm = true }) {
+                            HStack {
+                                Spacer()
+                                if isLoading {
+                                    ProgressView()
+                                } else {
+                                    Text("Disable Auto-Execute")
+                                }
+                                Spacer()
+                            }
+                        }
+                        .disabled(isLoading)
+                    } footer: {
+                        Text("Disabling will require you to manually approve each copy trade")
+                    }
+                } else {
+                    // Setup new delegation
+                    Section {
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
+                            HStack {
+                                Text("Max Copy Amount")
+                                Spacer()
+                                Text("$\(Int(maxCopyAmount))")
+                                    .foregroundColor(BrandColors.primary)
+                                    .fontWeight(.semibold)
+                            }
+                            Slider(value: $maxCopyAmount, in: 10...500, step: 10)
+                        }
+                    } header: {
+                        Text("Trade Limits")
+                    } footer: {
+                        Text("Maximum amount that will be used per copy trade")
+                    }
+
+                    Section {
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
+                            HStack {
+                                Text("Copy Percentage")
+                                Spacer()
+                                Text("\(Int(copyPercentage))%")
+                                    .foregroundColor(BrandColors.primary)
+                                    .fontWeight(.semibold)
+                            }
+                            Slider(value: $copyPercentage, in: 1...100, step: 1)
+                        }
+                    } footer: {
+                        Text("Percentage of the original bet to copy")
+                    }
+
+                    Section {
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
+                            HStack {
+                                Text("Min Bet to Copy")
+                                Spacer()
+                                Text("$\(Int(minBetSize))")
+                                    .foregroundColor(BrandColors.primary)
+                                    .fontWeight(.semibold)
+                            }
+                            Slider(value: $minBetSize, in: 1...100, step: 1)
+                        }
+                    } footer: {
+                        Text("Only copy bets larger than this amount")
+                    }
+
+                    Section {
+                        Picker("Duration", selection: $expirationDays) {
+                            Text("30 days").tag(30)
+                            Text("90 days").tag(90)
+                            Text("1 year").tag(365)
+                        }
+                        .pickerStyle(.segmented)
+                    } header: {
+                        Text("Expiration")
+                    } footer: {
+                        Text("Auto-execute will need to be re-enabled after this period")
+                    }
+
+                    Section {
+                        Button(action: enableDelegation) {
+                            HStack {
+                                Spacer()
+                                if isLoading {
+                                    ProgressView()
+                                        .tint(SemanticColors.textInverse)
+                                } else {
+                                    Image(systemName: "bolt.fill")
+                                    Text("Enable Auto-Execute")
+                                }
+                                Spacer()
+                            }
+                            .font(Typography.bodyMedium)
+                            .fontWeight(.semibold)
+                            .foregroundColor(SemanticColors.textInverse)
+                            .padding(.vertical, Spacing.sm)
+                        }
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                                .fill(BrandColors.primaryGradient)
+                        )
+                        .disabled(isLoading)
+                    } footer: {
+                        Text("You'll be asked to approve this in your wallet")
+                    }
+                }
+
+                // Security info
+                Section {
+                    Label {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            Text("Secure Delegation")
+                                .font(Typography.bodySmall)
+                                .foregroundColor(SemanticColors.textPrimary)
+                            Text("Only Jupiter Prediction Market trades are allowed. Your funds remain in your wallet at all times.")
+                                .font(Typography.labelSmall)
+                                .foregroundColor(SemanticColors.textSecondary)
+                        }
+                    } icon: {
+                        Image(systemName: "lock.shield.fill")
+                            .foregroundColor(SemanticColors.success)
+                    }
+                } header: {
+                    Text("Security")
+                }
+            }
+            .navigationTitle(copyService.delegationActive ? "Auto-Execute Settings" : "Enable Auto-Execute")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .alert("Error", isPresented: $showingError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
+            }
+            .confirmationDialog(
+                "Disable Auto-Execute?",
+                isPresented: $showingRevokeConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Disable", role: .destructive) {
+                    Task { await revokeDelegation() }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("You will need to manually approve each copy trade after disabling.")
+            }
+        }
+    }
+
+    private func enableDelegation() {
+        Task {
+            isLoading = true
+            defer { isLoading = false }
+
+            do {
+                // Get Privy access token
+                guard let accessToken = try await privyService.getAccessToken() else {
+                    throw PredictionCopyError.notAuthenticated
+                }
+
+                try await copyService.approveDelegation(
+                    maxCopyAmountUsd: maxCopyAmount,
+                    copyPercentage: copyPercentage,
+                    minBetSizeUsd: minBetSize,
+                    expirationDays: expirationDays,
+                    privyAccessToken: accessToken
+                )
+
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+                showingError = true
+            }
+        }
+    }
+
+    private func revokeDelegation() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            try await copyService.revokeDelegation()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+            showingError = true
         }
     }
 }

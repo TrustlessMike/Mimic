@@ -312,6 +312,30 @@ class HybridPrivyService: ObservableObject {
         return await privy.getUser()
     }
 
+    /// Get the Privy access token for API calls
+    /// This token is used to authorize wallet updates like adding signers
+    func getAccessToken() async throws -> String? {
+        guard let privy = privyClient else {
+            logger.error("Privy client not initialized")
+            return nil
+        }
+
+        guard case .authenticated(let privyUser) = await privy.getAuthState() else {
+            logger.error("User not authenticated")
+            return nil
+        }
+
+        // Get the access token from the authenticated user
+        do {
+            let token = try await privyUser.getAccessToken()
+            logger.debug("Retrieved Privy access token")
+            return token
+        } catch {
+            logger.error("Could not retrieve Privy access token: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     /// Sign a message for sponsored transactions using Privy embedded wallet
     /// This triggers user approval in the Privy UI
     func signMessageForSponsorship(_ message: String) async throws -> (signature: String, walletAddress: String) {
