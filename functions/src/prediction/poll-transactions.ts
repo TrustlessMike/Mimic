@@ -164,6 +164,7 @@ async function parsePredictionTransaction(
   amount: number;
   shares: number;
   avgPrice: number;
+  sharesEstimated?: boolean;
   status: string;
   canCopy: boolean;
 } | null> {
@@ -219,10 +220,17 @@ async function parsePredictionTransaction(
 
     // Calculate average price
     let avgPrice = 0.5;
+    let sharesEstimated = false;
+
     if (sharesReceived > 0 && usdcSpent > 0) {
       avgPrice = usdcSpent / sharesReceived;
       if (avgPrice > 1) avgPrice = 1;
+    } else if (usdcSpent > 0 && sharesReceived === 0) {
+      // Shares were minted (not transferred), estimate based on default price
+      sharesReceived = usdcSpent / avgPrice;
+      sharesEstimated = true;
     }
+
     const direction = await determineDirection(outcomeToken, marketAddress);
 
     return {
@@ -234,6 +242,7 @@ async function parsePredictionTransaction(
       amount,
       shares: sharesReceived,
       avgPrice,
+      sharesEstimated,
       status: isPlacingBet ? "open" : "claimed",
       canCopy: isPlacingBet,
     };

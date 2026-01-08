@@ -171,6 +171,16 @@ export const predictionWebhook = onRequest(
             bet.marketTitle = marketInfo.title;
             bet.marketCategory = marketInfo.category;
 
+            // Refine shares estimate if we have market price data
+            if (bet.sharesEstimated && bet.amount > 0) {
+              const marketPrice = bet.direction === "YES" ? marketInfo.yesPrice : marketInfo.noPrice;
+              if (marketPrice && marketPrice > 0 && marketPrice < 1) {
+                bet.avgPrice = marketPrice;
+                bet.shares = bet.amount / marketPrice;
+                logger.info(`Refined shares estimate using market price: ${bet.shares.toFixed(2)} shares at ${(marketPrice * 100).toFixed(1)}¢`);
+              }
+            }
+
             // Cache market data for future lookups
             await cacheMarketData(bet.marketAddress, marketInfo);
 
@@ -526,6 +536,8 @@ async function parsePredictionBet(
     // Calculate average price if we have shares
     // Price = USDC spent / shares received (should be between 0 and 1)
     let avgPrice = 0.5; // Default fallback
+    let sharesEstimated = false;
+
     if (sharesReceived > 0 && usdcSpent > 0) {
       avgPrice = usdcSpent / sharesReceived;
       // Sanity check: price should be between 0 and 1 for prediction markets
@@ -534,6 +546,13 @@ async function parsePredictionBet(
         // Shares might be in wrong units, try adjusting
         avgPrice = Math.min(avgPrice, 1);
       }
+    } else if (usdcSpent > 0 && sharesReceived === 0) {
+      // Shares were minted (not transferred), so they don't appear in Helius data
+      // Estimate shares using default price assumption (50¢ per share)
+      // This will be refined later if we have market price data
+      sharesReceived = usdcSpent / avgPrice;
+      sharesEstimated = true;
+      logger.info(`Estimated ${sharesReceived.toFixed(2)} shares for tx ${tx.signature.slice(0, 8)} (minted, not transferred)`);
     }
 
     // Determine YES/NO direction
@@ -548,6 +567,7 @@ async function parsePredictionBet(
       amount,
       shares: sharesReceived,
       avgPrice,
+      sharesEstimated, // True if shares were estimated (minted tokens don't show in Helius)
       status: isPlacingBet ? "open" : "claimed",
       canCopy: isPlacingBet, // Only copy new bets
     };
