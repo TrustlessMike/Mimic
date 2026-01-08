@@ -42,7 +42,6 @@ class HeliusService {
             throw HeliusError.invalidResponse
         }
 
-        logger.info("✅ SOL balance: \(balance) lamports")
         return balance
     }
 
@@ -105,7 +104,6 @@ class HeliusService {
             }
         }
 
-        logger.info("✅ Found \(allTokenAccounts.count) SPL token accounts")
         return allTokenAccounts
     }
 

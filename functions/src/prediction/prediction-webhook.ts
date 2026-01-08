@@ -40,7 +40,7 @@ interface HeliusTransaction {
   accountData?: Array<{
     account: string;
     nativeBalanceChange: number;
-    tokenBalanceChanges: Array<{
+    tokenBalanceChanges?: Array<{
       mint: string;
       rawTokenAmount: {
         tokenAmount: string;
@@ -48,6 +48,16 @@ interface HeliusTransaction {
       };
       userAccount: string;
     }>;
+  }>;
+  // Helius enhanced transactions use tokenTransfers at top level
+  tokenTransfers?: Array<{
+    fromTokenAccount: string;
+    toTokenAccount: string;
+    fromUserAccount: string;
+    toUserAccount: string;
+    tokenAmount: number;
+    mint: string;
+    tokenStandard: string;
   }>;
   instructions?: Array<{
     programId: string;
@@ -437,34 +447,94 @@ async function parsePredictionBet(
     const marketAddress = instruction.accounts[1];
     const outcomeToken = instruction.accounts[3];
 
-    // Find USDC balance change to determine bet amount
-    let usdcChange = 0;
+    // Find USDC and outcome token transfers
+    let usdcSpent = 0;
+    let usdcReceived = 0;
     let sharesReceived = 0;
 
-    for (const account of tx.accountData || []) {
-      for (const change of account.tokenBalanceChanges || []) {
-        if (change.mint === USDC_MINT && change.userAccount === userWallet) {
-          const amount = parseFloat(change.rawTokenAmount.tokenAmount);
-          const decimals = change.rawTokenAmount.decimals;
-          usdcChange = amount / Math.pow(10, decimals);
+    // Debug: log transaction structure
+    logger.info(`Parsing tx ${tx.signature.slice(0, 8)}: feePayer=${tx.feePayer.slice(0, 8)}, tokenTransfers=${tx.tokenTransfers?.length || 0}, accountData=${tx.accountData?.length || 0}`);
+
+    // Method 1: Use tokenTransfers (Helius enhanced format - most reliable)
+    for (const transfer of tx.tokenTransfers || []) {
+      logger.debug(`Transfer: mint=${transfer.mint.slice(0, 8)}, amount=${transfer.tokenAmount}, from=${transfer.fromUserAccount?.slice(0, 8)}, to=${transfer.toUserAccount?.slice(0, 8)}`);
+
+      // USDC transfer
+      if (transfer.mint === USDC_MINT) {
+        if (transfer.fromUserAccount === tx.feePayer) {
+          usdcSpent += transfer.tokenAmount;
         }
-        // Track outcome token changes for shares
-        if (change.mint === outcomeToken && change.userAccount === userWallet) {
+        if (transfer.toUserAccount === tx.feePayer) {
+          usdcReceived += transfer.tokenAmount;
+        }
+      }
+      // Outcome token transfer (shares)
+      if (transfer.mint === outcomeToken && transfer.toUserAccount === tx.feePayer) {
+        sharesReceived += transfer.tokenAmount;
+      }
+    }
+
+    // Method 2: Fallback to accountData.tokenBalanceChanges
+    if (usdcSpent === 0 && usdcReceived === 0) {
+      logger.info(`Using accountData fallback for tx ${tx.signature.slice(0, 8)}`);
+
+      for (const account of tx.accountData || []) {
+        for (const change of account.tokenBalanceChanges || []) {
           const amount = parseFloat(change.rawTokenAmount.tokenAmount);
           const decimals = change.rawTokenAmount.decimals;
-          sharesReceived = Math.abs(amount / Math.pow(10, decimals));
+          const value = amount / Math.pow(10, decimals);
+
+          // Only count changes for the user's accounts (userAccount matches feePayer)
+          const isUserAccount = change.userAccount === tx.feePayer;
+
+          logger.debug(`Balance change: mint=${change.mint.slice(0, 8)}, value=${value}, userAccount=${change.userAccount?.slice(0, 8) || 'null'}, isUser=${isUserAccount}`);
+
+          // For USDC, count user's spending (negative) and receiving (positive)
+          if (change.mint === USDC_MINT && isUserAccount) {
+            if (value < 0) {
+              usdcSpent += Math.abs(value);
+            } else if (value > 0) {
+              usdcReceived += value;
+            }
+          }
+
+          // For outcome tokens, look for user receiving shares (positive)
+          if (change.mint === outcomeToken && isUserAccount && value > 0) {
+            sharesReceived += value;
+          }
         }
       }
     }
 
+    // Net USDC change: negative means placing bet, positive means claiming
+    const usdcChange = usdcReceived - usdcSpent;
+
+    logger.info(`Parsed tx ${tx.signature.slice(0, 8)}: spent=${usdcSpent}, received=${usdcReceived}, netUSDC=${usdcChange}, shares=${sharesReceived}`);
+
     // Determine bet direction and type based on USDC flow
-    // Negative USDC = placing a bet (buying shares)
-    // Positive USDC = claiming winnings or closing position
-    const isPlacingBet = usdcChange < 0;
-    const amount = Math.abs(usdcChange);
+    // Spending USDC = placing a bet (buying shares)
+    // Receiving USDC = claiming winnings or closing position
+    const isPlacingBet = usdcSpent > usdcReceived;
+    const amount = isPlacingBet ? usdcSpent : usdcReceived;
+
+    // Skip if no meaningful amount
+    if (amount === 0) {
+      logger.warn(`No USDC movement found for tx ${tx.signature.slice(0, 8)}`);
+      return null;
+    }
 
     // Calculate average price if we have shares
-    const avgPrice = sharesReceived > 0 ? amount / sharesReceived : 0;
+    // Price = USDC spent / shares received (should be between 0 and 1)
+    let avgPrice = 0.5; // Default fallback
+    if (sharesReceived > 0 && usdcSpent > 0) {
+      avgPrice = usdcSpent / sharesReceived;
+      // Sanity check: price should be between 0 and 1 for prediction markets
+      if (avgPrice > 1) {
+        logger.warn(`Unusual avgPrice ${avgPrice} for tx ${tx.signature.slice(0, 8)}, shares might need adjustment`);
+        // Shares might be in wrong units, try adjusting
+        avgPrice = Math.min(avgPrice, 1);
+      }
+    }
 
     // Determine YES/NO direction
     const direction: BetDirection = await determineDirection(outcomeToken, marketAddress);
