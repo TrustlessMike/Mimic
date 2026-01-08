@@ -16,6 +16,12 @@ enum OnrampState {
     case failed
 }
 
+/// Payment method for fiat onramp
+enum OnrampPaymentMethod: String {
+    case applePay = "apple_pay"
+    case creditCard = "credit_card"
+}
+
 @MainActor
 class CoinbaseOnrampViewModel: ObservableObject {
     // MARK: - Published State

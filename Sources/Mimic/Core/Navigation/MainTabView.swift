@@ -8,11 +8,7 @@ struct MainTabView: View {
     private var user: User? { authCoordinator.currentUser }
 
     @State private var selectedTab: Tab = .feed
-
-    // Jupiter Prediction Markets URL
-    private let jupiterPredictionURL = URL(string: "https://jup.ag/perps/SOL-PERP")!
-
-    // Mimic - Track smart money on Jupiter Prediction Markets
+    @State private var showingCopyTrading = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -43,12 +39,14 @@ struct MainTabView: View {
             CustomTabBar(
                 selectedTab: $selectedTab,
                 onCenterTap: {
-                    // Open Jupiter Prediction Markets
-                    UIApplication.shared.open(jupiterPredictionURL)
+                    showingCopyTrading = true
                 }
             )
         }
         .ignoresSafeArea(.keyboard)
+        .sheet(isPresented: $showingCopyTrading) {
+            TrackedWalletsView()
+        }
     }
 }
 

@@ -30,7 +30,7 @@ struct CustomTabBar: View {
                     selectedTab: $selectedTab
                 )
 
-                // Center Action Button (Place Bet on Jupiter)
+                // Center Action Button (Copy Trading)
                 Button(action: onCenterTap) {
                     ZStack {
                         Circle()
@@ -43,8 +43,8 @@ struct CustomTabBar: View {
                                 y: Elevation.brand().y
                             )
 
-                        Image(systemName: "dollarsign.circle.fill")
-                            .font(.system(size: IconSize.xl, weight: .semibold))
+                        Image(systemName: "doc.on.doc.fill")
+                            .font(.system(size: IconSize.lg, weight: .semibold))
                             .foregroundColor(SemanticColors.textInverse)
                     }
                     .frame(width: 70)
