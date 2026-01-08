@@ -11,11 +11,11 @@ export async function GET(request: Request) {
 
   try {
     // Parallel queries for speed
-    const [walletsSnap, betsSnap, marketsSnap, polySnap] = await Promise.all([
+    const [walletsSnap, betsSnap, marketsSnap, kalshiSnap] = await Promise.all([
       db.collection('smart_money_wallets').where('isActive', '==', true).count().get(),
       db.collection('prediction_bets').count().get(),
       db.collection('prediction_markets').count().get(),
-      db.collection('polymarket_markets').count().get(),
+      db.collection('kalshi_markets').count().get(),
     ]);
 
     // Get recent bet volume
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
       wallets: walletsSnap.data().count,
       bets: betsSnap.data().count,
       markets: marketsSnap.data().count,
-      polymarketMatches: polySnap.data().count,
+      kalshiMatches: kalshiSnap.data().count,
       recent: {
         volume: totalVolume,
         yesCount,

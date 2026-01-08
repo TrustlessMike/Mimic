@@ -53,11 +53,11 @@ async function start() {
   console.log("🚀 Starting Helius Real-Time Smart Money Tracker");
   console.log(`   Program: ${JUPITER_PREDICTION_PROGRAM}`);
 
-  // Health check server FIRST (required for Cloud Run)
-  const server = http.createServer((req, res) => {
+  // HTTP server for health checks and webhook
+  const server = http.createServer(async (req, res) => {
     // CORS headers for browser access
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
     // Handle preflight
@@ -67,7 +67,8 @@ async function start() {
       return;
     }
 
-    if (req.url === "/health" || req.url === "/") {
+    // Health check endpoint
+    if ((req.url === "/health" || req.url === "/") && req.method === "GET") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
         status: "ok",
@@ -79,10 +80,42 @@ async function start() {
         marketsKnown: marketCache.size,
         lastMessage: stats.lastMessage ? new Date(stats.lastMessage).toISOString() : null,
       }));
-    } else {
-      res.writeHead(404);
-      res.end();
+      return;
     }
+
+    // Helius webhook endpoint
+    if (req.url === "/webhook" && req.method === "POST") {
+      try {
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) {
+          chunks.push(chunk as Buffer);
+        }
+        const body = Buffer.concat(chunks).toString();
+        const data = JSON.parse(body);
+
+        stats.lastMessage = Date.now();
+        console.log(`📨 Webhook received: ${Array.isArray(data) ? data.length : 1} transaction(s)`);
+
+        // Helius sends an array of transactions
+        const transactions = Array.isArray(data) ? data : [data];
+
+        for (const tx of transactions) {
+          stats.txProcessed++;
+          await processWebhookTransaction(tx);
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true }));
+      } catch (error) {
+        console.error("Webhook error:", error);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Internal error" }));
+      }
+      return;
+    }
+
+    res.writeHead(404);
+    res.end();
   });
 
   await new Promise<void>((resolve) => {
@@ -96,9 +129,18 @@ async function start() {
   try {
     await refreshSmartMoneyWallets();
     await syncMarketMetadata(); // Initial sync of market metadata
-    connectWebSocket();
+
+    // Try WebSocket but don't fail if it doesn't work - webhook is the backup
+    try {
+      connectWebSocket();
+    } catch (wsError) {
+      console.log("⚠️ WebSocket not available, using webhook only");
+    }
+
     setInterval(refreshSmartMoneyWallets, 5 * 60 * 1000);
     setInterval(syncMarketMetadata, 10 * 60 * 1000); // Sync markets every 10 min
+
+    console.log("✅ Ready to receive webhook events at /webhook");
   } catch (error) {
     console.error("Failed to initialize tracking:", error);
     // Keep server running for health checks even if tracking fails
@@ -207,21 +249,37 @@ async function processTransaction(signature: string) {
       bet.marketCategory = market.category;
     }
 
-    // Try to get accurate direction and price from wallet's positions
-    try {
-      const positionData = await fetchWalletPosition(bet.walletAddress, bet.marketAddress);
-      if (positionData) {
-        bet.direction = positionData.side || bet.direction;
-        if (positionData.avgPrice > 0) {
-          bet.avgPrice = positionData.avgPrice;
-        }
-        if (positionData.shares > 0) {
-          bet.shares = positionData.shares;
-        }
+    // Get accurate direction and price from wallet's positions via Jupiter API
+    // This is more reliable than parsing transaction data
+    console.log(`   Fetching position data from Jupiter API...`);
+    const positionData = await fetchWalletPosition(bet.walletAddress, bet.marketAddress);
+
+    if (positionData) {
+      console.log(`   API data: side=${positionData.side}, avgPrice=${positionData.avgPrice}, shares=${positionData.shares}`);
+
+      // Always prefer API data for direction (it's authoritative)
+      bet.direction = positionData.side;
+
+      // Use API price if we don't have a valid one from parsing
+      if (positionData.avgPrice > 0 && (bet.avgPrice === 0 || bet.avgPrice < 0.01 || bet.avgPrice > 0.99)) {
+        bet.avgPrice = positionData.avgPrice;
       }
-    } catch {
-      // Use parsed values if position lookup fails
+
+      // Use API shares if we don't have valid ones
+      if (positionData.shares > 0 && bet.shares === 0) {
+        bet.shares = positionData.shares;
+      }
+    } else {
+      console.log(`   ⚠️ No position data from API, using parsed values`);
     }
+
+    // Final sanity check - if avgPrice is still bad, estimate from market
+    if (bet.avgPrice === 0 && bet.amount > 0 && bet.shares > 0) {
+      bet.avgPrice = bet.amount / bet.shares;
+    }
+
+    // Log final values before saving
+    console.log(`   Final bet: ${bet.direction} $${bet.amount.toFixed(2)} @ ${(bet.avgPrice * 100).toFixed(0)}¢`);
 
     // Save to Firestore
     await db.collection("prediction_bets").doc(signature).set({
@@ -248,6 +306,85 @@ async function processTransaction(signature: string) {
 
   } catch (error) {
     // Silently ignore - not all program txs are bets
+  }
+}
+
+/**
+ * Process transaction from Helius webhook
+ * Webhook data is already in enhanced format
+ */
+async function processWebhookTransaction(tx: any) {
+  const startTime = Date.now();
+
+  try {
+    // Check if smart money
+    const walletInfo = smartMoneyWallets.get(tx.feePayer);
+    if (!walletInfo) return;
+
+    console.log(`   Processing tx from ${walletInfo.nickname || tx.feePayer.slice(0, 8)}...`);
+
+    // Parse bet from the enhanced transaction data
+    const bet = parseBet(tx);
+    if (!bet || bet.amount === 0) return;
+
+    bet.walletNickname = walletInfo.nickname;
+
+    // Get market info
+    const market = await getMarketInfo(bet.marketAddress, bet.walletAddress);
+    if (market) {
+      bet.marketTitle = market.title;
+      bet.marketCategory = market.category;
+    }
+
+    // Get accurate direction and price from wallet's positions via Jupiter API
+    console.log(`   Fetching position data from Jupiter API...`);
+    const positionData = await fetchWalletPosition(bet.walletAddress, bet.marketAddress);
+
+    if (positionData) {
+      console.log(`   API data: side=${positionData.side}, avgPrice=${positionData.avgPrice}, shares=${positionData.shares}`);
+      bet.direction = positionData.side;
+      if (positionData.avgPrice > 0 && (bet.avgPrice === 0 || bet.avgPrice < 0.01 || bet.avgPrice > 0.99)) {
+        bet.avgPrice = positionData.avgPrice;
+      }
+      if (positionData.shares > 0 && bet.shares === 0) {
+        bet.shares = positionData.shares;
+      }
+    } else {
+      console.log(`   ⚠️ No position data from API, using parsed values`);
+    }
+
+    // Final sanity check
+    if (bet.avgPrice === 0 && bet.amount > 0 && bet.shares > 0) {
+      bet.avgPrice = bet.amount / bet.shares;
+    }
+
+    console.log(`   Final bet: ${bet.direction} $${bet.amount.toFixed(2)} @ ${(bet.avgPrice * 100).toFixed(0)}¢`);
+
+    // Save to Firestore
+    await db.collection("prediction_bets").doc(tx.signature).set({
+      ...bet,
+      source: "helius_webhook",
+      latencyMs: Date.now() - startTime,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    stats.betsFound++;
+
+    // Send push notification
+    await sendNotification(bet);
+
+    // Trigger auto-copy
+    triggerAutoCopy(bet, tx.signature).catch((err) => {
+      console.error("Auto-copy trigger error:", err);
+    });
+
+    console.log(
+      `⚡ [${Date.now() - startTime}ms] ${walletInfo.nickname || tx.feePayer.slice(0, 8)}... ` +
+      `${bet.direction} $${bet.amount.toFixed(2)} "${bet.marketTitle || ""}"`
+    );
+
+  } catch (error) {
+    console.error("processWebhookTransaction error:", error);
   }
 }
 
@@ -292,43 +429,34 @@ function parseBet(tx: any): any | null {
   const isBuy = usdcChange < 0;
   const amount = Math.abs(usdcChange);
 
-  // Determine direction from instruction data
-  // Jupiter Prediction uses instruction data where byte pattern indicates YES(0) or NO(1)
-  let direction: "YES" | "NO" = "YES";
+  // Determine direction from the token received
+  // The direction is determined by which outcome token the user receives
+  // We need to check the actual token mint against known patterns or use API lookup later
+  let direction: "YES" | "NO" | null = null;
+  let receivedTokenMint: string | null = null;
 
-  if (ix.data) {
-    // Try to parse instruction data - format varies but often has direction indicator
-    // Check common patterns: base58 decoded first byte after discriminator
-    try {
-      // The instruction data often encodes direction in the parameters
-      // Account ordering: YES token is typically accounts[2], NO token is accounts[3]
-      // If the user received tokens from accounts[3], it's likely a NO bet
-      const yesTokenAccount = ix.accounts[2];
-      const noTokenAccount = ix.accounts[3];
-
-      // Check which token the user received
-      for (const change of tokenChanges) {
-        if (change.amount > 0) {
-          // User received this token
-          if (change.mint === noTokenAccount ||
-              ix.accounts.indexOf(change.mint) > ix.accounts.indexOf(yesTokenAccount)) {
-            direction = "NO";
-          }
-        }
-      }
-    } catch {
-      // Default to YES if parsing fails
+  // Find which non-USDC token the user received (positive balance change = received)
+  for (const change of tokenChanges) {
+    if (change.amount > 0) {
+      receivedTokenMint = change.mint;
+      break;
     }
   }
 
-  // Calculate avgPrice - if shares is 0 but amount > 0, estimate from amount
+  // Log token changes for debugging
+  if (tokenChanges.length > 0) {
+    console.log(`   Token changes: ${tokenChanges.map(t => `${t.mint.slice(0,8)}:${t.amount > 0 ? '+' : ''}${t.amount.toFixed(2)}`).join(', ')}`);
+  }
+
+  // Calculate avgPrice from amount and shares
   let avgPrice = 0;
-  if (shares > 0) {
+  if (shares > 0 && amount > 0) {
     avgPrice = amount / shares;
-  } else if (amount > 0) {
-    // Estimate: typical prediction market prices are 0.10 - 0.90
-    // Without shares, we can't calculate exact price, so use a reasonable estimate
-    avgPrice = 0.50; // Will be updated by position lookup if available
+    // Sanity check: price should be between 0.01 and 0.99
+    if (avgPrice < 0.01 || avgPrice > 0.99) {
+      console.log(`   ⚠️ Unusual avgPrice: ${avgPrice.toFixed(4)} (amount=${amount}, shares=${shares})`);
+      avgPrice = 0; // Mark as needing API lookup
+    }
   }
 
   return {
@@ -336,10 +464,11 @@ function parseBet(tx: any): any | null {
     signature: tx.signature,
     timestamp: new Date(tx.timestamp * 1000),
     marketAddress: ix.accounts[1],
-    direction,
+    direction: direction || "YES", // Default YES, will be corrected by API lookup
     amount,
     shares,
     avgPrice,
+    receivedTokenMint, // Store for potential future matching
     status: isBuy ? "open" : "claimed",
     canCopy: isBuy,
   };
@@ -399,42 +528,60 @@ async function getMarketInfo(address: string, walletAddress?: string): Promise<a
 
 /**
  * Fetch wallet's position for a specific market to get direction and price
+ * Returns the most recently created position (sorted by timestamp)
  */
-async function fetchWalletPosition(walletAddress: string, marketAddress: string): Promise<{ side: "YES" | "NO"; avgPrice: number; shares: number } | null> {
+async function fetchWalletPosition(walletAddress: string, marketAddress: string): Promise<{ side: "YES" | "NO"; avgPrice: number; shares: number; marketId?: string } | null> {
   try {
     const res = await fetch(
       `${JUPITER_PREDICTION_API}/positions?ownerPubkey=${walletAddress}&limit=50`
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.log(`   Position API returned ${res.status}`);
+      return null;
+    }
 
     const data = await res.json() as any;
     const positions = data.data || [];
 
-    // Look for a position that matches this market
+    console.log(`   Found ${positions.length} positions for wallet`);
+
+    if (positions.length === 0) return null;
+
+    // First try exact market match
     for (const pos of positions) {
-      // Check by market ID or address
-      if (pos.marketId === marketAddress || pos.market === marketAddress) {
+      const posMarket = pos.marketId || pos.market;
+      if (posMarket === marketAddress) {
+        console.log(`   ✅ Exact market match: ${pos.side} @ ${pos.avgPrice || pos.averagePrice}`);
         return {
           side: pos.side?.toUpperCase() === "NO" ? "NO" : "YES",
           avgPrice: pos.avgPrice || pos.averagePrice || 0,
           shares: pos.shares || pos.quantity || 0,
+          marketId: posMarket,
         };
       }
     }
 
-    // If no exact match, return the most recent position as best guess
-    // (since we just detected this bet, it's likely their latest position)
-    if (positions.length > 0) {
-      const pos = positions[0];
-      return {
-        side: pos.side?.toUpperCase() === "NO" ? "NO" : "YES",
-        avgPrice: pos.avgPrice || pos.averagePrice || 0,
-        shares: pos.shares || pos.quantity || 0,
-      };
-    }
+    // No exact match - use the most recent position (likely the one we just detected)
+    // Sort by creation time if available, otherwise use first item
+    const sortedPositions = positions.sort((a: any, b: any) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA; // Most recent first
+    });
 
-    return null;
-  } catch {
+    const pos = sortedPositions[0];
+    const posMarket = pos.marketId || pos.market;
+
+    console.log(`   Using most recent position: ${pos.side} @ ${pos.avgPrice || pos.averagePrice} (market: ${posMarket?.slice(0,8)}...)`);
+
+    return {
+      side: pos.side?.toUpperCase() === "NO" ? "NO" : "YES",
+      avgPrice: pos.avgPrice || pos.averagePrice || 0,
+      shares: pos.shares || pos.quantity || 0,
+      marketId: posMarket,
+    };
+  } catch (err) {
+    console.log(`   Position fetch error: ${err}`);
     return null;
   }
 }

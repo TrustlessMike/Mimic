@@ -94,6 +94,7 @@
 		EEFD7CCCF908B2426191838C /* PriceFeedServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC792D7F1CE29FF01B8E459 /* PriceFeedServiceTests.swift */; };
 		EF0C1D94A099FA4B6BA56546 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB27051ADC7891A0054CA93 /* ProfileSetupView.swift */; };
 		F1CD68E452902124080D1FDF /* Privy in Frameworks */ = {isa = PBXBuildFile; productRef = 0E2F5BD1331441A1CAA1AA9C /* Privy */; };
+		F274FE83CE39925C21CB3E75 /* BetDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94CCB9CE16EE2AE00EC3E8B5 /* BetDetailView.swift */; };
 		F9F65239B3CEC180A0646616 /* AuthenticationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 512DC9F2BCDB5B74F500D2B3 /* AuthenticationService.swift */; };
 		FC3F092E5C367CB2932FCE44 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F2DF942BEA57B8597DCA8262 /* FirebaseCrashlytics */; };
 		FF5C7DFA6F343A1817AA4A78 /* LoadingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 949B0C290D90961E4FEE8845 /* LoadingOverlay.swift */; };
@@ -162,6 +163,7 @@
 		873DDC96363BCD3A37E1CD1C /* CopyTradingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyTradingService.swift; sourceTree = "<group>"; };
 		8B4E580A1D6A3FC4F5880719 /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
 		949B0C290D90961E4FEE8845 /* LoadingOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingOverlay.swift; sourceTree = "<group>"; };
+		94CCB9CE16EE2AE00EC3E8B5 /* BetDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BetDetailView.swift; sourceTree = "<group>"; };
 		9FD144F7416BC00DF177E2F0 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		A4A9D2C9460E12AA10C53C93 /* WalletActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletActivity.swift; sourceTree = "<group>"; };
 		A6367F6AFD28415CECC32C0A /* AuthCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCoordinator.swift; sourceTree = "<group>"; };
@@ -522,6 +524,7 @@
 			isa = PBXGroup;
 			children = (
 				C6524AE9113FFA8F42AB81B2 /* BetCardView.swift */,
+				94CCB9CE16EE2AE00EC3E8B5 /* BetDetailView.swift */,
 				3B52DEDF175FE74397336BDC /* LeaderboardView.swift */,
 				EC0ADAC15A700B686D95AC2E /* PredictionFeedView.swift */,
 			);
@@ -828,6 +831,7 @@
 				7E4EC60EBDC4EBCAF5724164 /* AuthError.swift in Sources */,
 				F9F65239B3CEC180A0646616 /* AuthenticationService.swift in Sources */,
 				A1E960421FDE075F721895AC /* BetCardView.swift in Sources */,
+				F274FE83CE39925C21CB3E75 /* BetDetailView.swift in Sources */,
 				954E3B328F256D910EE60934 /* BrandColors.swift in Sources */,
 				634E4143B125368EF333A257 /* ButtonStyles.swift in Sources */,
 				52A5940F8EBAEE5F4A3C8387 /* CoinbaseApplePayOrder.swift in Sources */,

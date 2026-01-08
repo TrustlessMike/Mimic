@@ -6,7 +6,7 @@ interface Stats {
   wallets: number;
   bets: number;
   markets: number;
-  polymarketMatches: number;
+  kalshiMatches: number;
   recent: {
     volume: number;
     yesCount: number;
@@ -162,8 +162,8 @@ export default function Dashboard() {
             <div style={styles.statLabel}>Markets</div>
           </div>
           <div style={styles.statCard}>
-            <div style={styles.statValue}>{stats.polymarketMatches}</div>
-            <div style={styles.statLabel}>Polymarket Matches</div>
+            <div style={styles.statValue}>{stats.kalshiMatches}</div>
+            <div style={styles.statLabel}>Kalshi Matches</div>
           </div>
         </div>
       )}
@@ -235,7 +235,8 @@ export default function Dashboard() {
           <li>/api/wallets - Smart money wallets</li>
           <li>/api/bets - Recent prediction bets</li>
           <li>/api/markets - Jupiter markets</li>
-          <li>/api/polymarket - Polymarket matches</li>
+          <li>/api/kalshi - Kalshi matches</li>
+          <li>/api/kalshi/signals - Kalshi price signals</li>
         </ul>
       </div>
     </main>

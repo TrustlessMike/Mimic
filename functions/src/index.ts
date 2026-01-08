@@ -48,14 +48,12 @@ export { pollRecentTransactions } from "./prediction/poll-transactions";
 export { calculateOnChainStats } from "./prediction/calculate-stats";
 
 // ============================================
-// POLYMARKET CROSS-REFERENCE
+// KALSHI CROSS-REFERENCE (Jupiter uses Kalshi data)
 // ============================================
 
-// Polymarket market sync (hourly sync + manual trigger)
-export { syncPolymarketMarkets, syncPolymarketNow } from "./prediction/polymarket-sync";
-
-// Cross-platform signals (processes signals, serves to iOS)
-export { processPolymarketSignals, getCrossPlatformSignals, getMatchedMarkets, cleanupPolymarketData } from "./prediction/polymarket-signals";
+// Kalshi market sync (every 15 min + manual trigger)
+// Jupiter eventId matches Kalshi event_ticker exactly (e.g., KXSB-26)
+export { syncKalshiMarkets, syncKalshiNow, getKalshiSignals } from "./prediction/kalshi-sync";
 
 // ============================================
 // PREDICTION COPY TRADING - Auto-copy with Privy delegation

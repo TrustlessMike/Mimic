@@ -263,45 +263,46 @@ export interface CoinbaseOfframpSession {
 }
 
 // ============================================
-// Polymarket Types
+// Kalshi Types (Jupiter uses Kalshi data)
 // ============================================
 
-export interface PolymarketMarket {
+export interface KalshiMarket {
   id: string;
-  conditionId: string;
-  question: string;
+  ticker: string;
+  eventTicker: string;
+  title: string;
   eventTitle: string;
+  category: string;
+  yesBid: number;
+  yesAsk: number;
+  midPrice: number;
+  spread: number;
   volume: number;
-  yesPrice: number;
+  volume24h: number;
+  liquidity: number;
   jupiterMarketId?: string;
-  jupiterMarketTitle?: string;
-  matchConfidence?: number;
+  jupiterEventId?: string;
+  jupiterTitle?: string;
+  matchType: 'exact_ticker';
   lastSyncedAt: Timestamp;
 }
 
-export interface CrossPlatformSignal {
+export interface KalshiSignal {
   id: string;
-  polymarketConditionId: string;
+  kalshiTicker: string;
+  kalshiEventTicker: string;
+  kalshiTitle: string;
+  eventTitle: string;
+  category: string;
   jupiterMarketId: string;
-  question: string;
-  polymarketYesPrice: number;
-  jupiterYesPrice: number;
-  priceDiff: number;
-  signalType: 'arbitrage' | 'divergence' | 'consensus';
-  strength: 'weak' | 'medium' | 'strong';
-  createdAt: Timestamp;
-}
-
-export interface ArbitrageOpportunity {
-  id: string;
-  polymarketConditionId: string;
-  jupiterMarketId: string;
-  question: string;
-  polymarketPrice: number;
-  jupiterPrice: number;
-  spreadPct: number;
-  direction: 'buy_poly_sell_jup' | 'buy_jup_sell_poly';
-  estimatedProfit: number;
-  isActive: boolean;
+  jupiterEventId: string;
+  jupiterTitle: string;
+  direction: 'YES' | 'NO';
+  priceChange: number;
+  kalshiPrice: number;
+  previousPrice: number;
+  volume: number;
+  signalStrength: number;
+  status: 'pending' | 'acted' | 'expired';
   createdAt: Timestamp;
 }

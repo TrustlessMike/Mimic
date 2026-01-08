@@ -3,92 +3,98 @@ import SwiftUI
 /// Clean, X-inspired feed showing prediction bets from smart money wallets
 struct PredictionFeedView: View {
     @StateObject private var predictionService = PredictionService.shared
+    @StateObject private var copyTradingService = CopyTradingService.shared
     @State private var selectedFilter: BetFeedFilter = .all
     @State private var showSmartMoneyList = false
     @State private var isLoadingMore = false
+    @State private var selectedBetForDetail: PredictionBet?
+    @State private var trackingWalletAddress: String?
 
-    // Scroll-to-hide header
-    @State private var headerOffset: CGFloat = 0
-    @State private var lastScrollOffset: CGFloat = 0
+    // Scroll-to-hide
+    @State private var headerVisible = true
+    @State private var lastOffset: CGFloat = 0
 
-    private let headerHeight: CGFloat = 100 // Header + filters
+    // Header height (title + filters + divider + padding)
+    private let headerContentHeight: CGFloat = 116
 
     var body: some View {
-        ZStack(alignment: .top) {
-            // Main content
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    // Scroll offset tracker
-                    GeometryReader { geo in
-                        Color.clear
-                            .preference(
-                                key: ScrollOffsetKey.self,
-                                value: geo.frame(in: .named("feedScroll")).minY
-                            )
-                    }
-                    .frame(height: 0)
+        GeometryReader { geometry in
+            let safeAreaTop = geometry.safeAreaInsets.top
+            let totalHeaderHeight = safeAreaTop + headerContentHeight
 
-                    // Spacer for sticky header + filters
-                    Color.clear.frame(height: headerHeight)
+            ZStack(alignment: .top) {
+                // Scrollable content
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        // Header spacer
+                        Color.clear.frame(height: headerContentHeight)
 
-                    // Content
-                    if predictionService.betFeed.isEmpty && predictionService.isLoadingFeed {
-                        loadingState
-                    } else if predictionService.betFeed.isEmpty {
-                        emptyState
-                    } else {
-                        feedContent
+                        // Content
+                        if predictionService.betFeed.isEmpty && predictionService.isLoadingFeed {
+                            loadingState
+                        } else if predictionService.betFeed.isEmpty {
+                            emptyState
+                        } else {
+                            feedContent
+                        }
                     }
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear
+                                .onChange(of: geo.frame(in: .global).minY) { oldValue, newValue in
+                                    let delta = newValue - lastOffset
+
+                                    // Scrolling down (content moving up)
+                                    if delta < -5 && newValue < 100 {
+                                        withAnimation(.easeOut(duration: 0.2)) {
+                                            headerVisible = false
+                                        }
+                                    }
+                                    // Scrolling up (content moving down)
+                                    else if delta > 5 {
+                                        withAnimation(.easeOut(duration: 0.2)) {
+                                            headerVisible = true
+                                        }
+                                    }
+
+                                    lastOffset = newValue
+                                }
+                        }
+                    )
                 }
-            }
-            .coordinateSpace(name: "feedScroll")
-            .onPreferenceChange(ScrollOffsetKey.self) { offset in
-                handleScroll(offset)
-            }
+                .refreshable {
+                    await refreshData()
+                }
 
-            // Collapsible header
-            stickyHeader
-                .offset(y: headerOffset)
+                // Header with safe area background
+                VStack(spacing: 0) {
+                    // Safe area fill
+                    Color(.systemBackground)
+                        .frame(height: safeAreaTop)
+
+                    headerView
+                }
+                .background(.ultraThinMaterial)
+                .offset(y: headerVisible ? 0 : -totalHeaderHeight)
+            }
+            .ignoresSafeArea(.container, edges: .top)
+            .background(Color(.systemBackground))
         }
-        .background(Color(.systemBackground))
         .task {
             await loadData()
-        }
-        .refreshable {
-            await refreshData()
         }
         .sheet(isPresented: $showSmartMoneyList) {
             SmartMoneyListSheet()
         }
+        .sheet(item: $selectedBetForDetail) { bet in
+            BetDetailView(bet: bet)
+        }
     }
 
-    // MARK: - Scroll Handling
+    // MARK: - Header
 
-    private func handleScroll(_ offset: CGFloat) {
-        let delta = offset - lastScrollOffset
-
-        // Calculate header offset based on scroll direction
-        if delta < 0 && offset < 0 {
-            // Scrolling down - hide header
-            headerOffset = max(-headerHeight, headerOffset + delta * 0.5)
-        } else if delta > 0 {
-            // Scrolling up - show header
-            headerOffset = min(0, headerOffset + delta * 0.5)
-        }
-
-        // Snap to fully shown/hidden when near threshold
-        if offset > -20 {
-            withAnimation(.easeOut(duration: 0.2)) { headerOffset = 0 }
-        }
-
-        lastScrollOffset = offset
-    }
-
-    // MARK: - Sticky Header
-
-    private var stickyHeader: some View {
+    private var headerView: some View {
         VStack(spacing: 0) {
-            // Title row
             HStack {
                 Text("Feed")
                     .font(.system(size: 20, weight: .bold))
@@ -107,13 +113,10 @@ struct PredictionFeedView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
 
-            // Filter pills
             filterRow
-                .padding(.vertical, 8)
 
             Divider()
         }
-        .background(.ultraThinMaterial)
     }
 
     // MARK: - Filter Row
@@ -144,16 +147,25 @@ struct PredictionFeedView: View {
     private var feedContent: some View {
         LazyVStack(spacing: 0) {
             ForEach(predictionService.betFeed) { bet in
-                FeedBetCard(bet: bet)
-                    .onAppear {
-                        if bet.id == predictionService.betFeed.last?.id && !isLoadingMore {
-                            Task {
-                                isLoadingMore = true
-                                defer { isLoadingMore = false }
-                                await predictionService.loadMoreBets(filter: selectedFilter)
-                            }
+                FeedBetCard(
+                    bet: bet,
+                    isWalletTracked: isWalletTracked(bet.walletAddress),
+                    onViewTapped: {
+                        selectedBetForDetail = bet
+                    },
+                    onTrackTapped: {
+                        trackWallet(address: bet.walletAddress, nickname: bet.walletNickname)
+                    }
+                )
+                .onAppear {
+                    if bet.id == predictionService.betFeed.last?.id && !isLoadingMore {
+                        Task {
+                            isLoadingMore = true
+                            defer { isLoadingMore = false }
+                            await predictionService.loadMoreBets(filter: selectedFilter)
                         }
                     }
+                }
 
                 Divider()
                     .padding(.leading, 68) // Align with content after avatar
@@ -167,6 +179,25 @@ struct PredictionFeedView: View {
                     Spacer()
                 }
             }
+        }
+    }
+
+    // MARK: - Wallet Tracking
+
+    private func isWalletTracked(_ address: String) -> Bool {
+        copyTradingService.trackedWallets.contains { $0.walletAddress == address }
+    }
+
+    private func trackWallet(address: String, nickname: String?) {
+        trackingWalletAddress = address
+
+        Task {
+            do {
+                try await copyTradingService.addTrackedWallet(address: address, nickname: nickname)
+            } catch {
+                // Error is handled by the service
+            }
+            trackingWalletAddress = nil
         }
     }
 
@@ -209,9 +240,13 @@ struct PredictionFeedView: View {
     // MARK: - Data Loading
 
     private func loadData() async {
-        await predictionService.loadSmartMoneyWallets()
-        await predictionService.loadBetFeed(filter: selectedFilter, refresh: true)
+        async let wallets: () = copyTradingService.loadTrackedWallets()
+        async let smartMoney: () = predictionService.loadSmartMoneyWallets()
+        async let feed: () = predictionService.loadBetFeed(filter: selectedFilter, refresh: true)
+
+        _ = await (wallets, smartMoney, feed)
         predictionService.startFeedListener()
+        copyTradingService.startWalletsListener()
     }
 
     private func refreshData() async {
@@ -247,6 +282,9 @@ private struct FilterPill: View {
 
 private struct FeedBetCard: View {
     let bet: PredictionBet
+    let isWalletTracked: Bool
+    var onViewTapped: (() -> Void)?
+    var onTrackTapped: (() -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -325,16 +363,29 @@ private struct FeedBetCard: View {
                 .padding(.top, 4)
 
                 // Action Row
-                HStack(spacing: 24) {
-                    ActionButton(icon: "arrow.up.right.square", label: "View") {
-                        if let url = bet.explorerURL {
-                            UIApplication.shared.open(url)
-                        }
+                HStack(spacing: 20) {
+                    ActionButton(icon: "info.circle", label: "View") {
+                        onViewTapped?()
                     }
 
                     if bet.canCopy {
                         ActionButton(icon: "doc.on.doc", label: "Copy") {
                             // TODO: Copy action
+                        }
+                    }
+
+                    // Track button
+                    if isWalletTracked {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 14))
+                            Text("Tracking")
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .foregroundColor(SemanticColors.success)
+                    } else {
+                        ActionButton(icon: "plus.circle", label: "Track") {
+                            onTrackTapped?()
                         }
                     }
 
@@ -499,17 +550,92 @@ private struct SkeletonBetCard: View {
 
 private struct SmartMoneyListSheet: View {
     @Environment(\.dismiss) var dismiss
-    @StateObject private var predictionService = PredictionService.shared
+    @StateObject private var copyTradingService = CopyTradingService.shared
+    @State private var showAddWallet = false
+    @State private var walletAddress = ""
+    @State private var walletNickname = ""
+    @State private var isAdding = false
+    @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
             List {
+                // Add Wallet Section
                 Section {
-                    ForEach(predictionService.smartMoneyWallets) { wallet in
-                        SmartMoneyRow(wallet: wallet)
+                    if showAddWallet {
+                        VStack(spacing: 12) {
+                            TextField("Wallet Address", text: $walletAddress)
+                                .font(.system(size: 15))
+                                .autocapitalization(.none)
+                                .autocorrectionDisabled()
+
+                            TextField("Nickname (optional)", text: $walletNickname)
+                                .font(.system(size: 15))
+
+                            if let error = errorMessage {
+                                Text(error)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(SemanticColors.error)
+                            }
+
+                            HStack(spacing: 12) {
+                                Button("Cancel") {
+                                    withAnimation {
+                                        showAddWallet = false
+                                        walletAddress = ""
+                                        walletNickname = ""
+                                        errorMessage = nil
+                                    }
+                                }
+                                .foregroundColor(SemanticColors.textSecondary)
+
+                                Spacer()
+
+                                Button(action: addWallet) {
+                                    if isAdding {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                    } else {
+                                        Text("Add")
+                                            .fontWeight(.semibold)
+                                    }
+                                }
+                                .disabled(walletAddress.isEmpty || isAdding)
+                            }
+                            .padding(.top, 4)
+                        }
+                        .padding(.vertical, 8)
+                    } else {
+                        Button(action: {
+                            withAnimation {
+                                showAddWallet = true
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(Color(BrandColors.primary))
+                                Text("Add Wallet to Track")
+                                    .foregroundColor(SemanticColors.textPrimary)
+                            }
+                        }
+                    }
+                }
+
+                // Tracked Wallets Section
+                Section {
+                    if copyTradingService.trackedWallets.isEmpty {
+                        Text("No wallets tracked yet")
+                            .font(.system(size: 15))
+                            .foregroundColor(SemanticColors.textSecondary)
+                            .padding(.vertical, 8)
+                    } else {
+                        ForEach(copyTradingService.trackedWallets) { wallet in
+                            TrackedWalletRow(wallet: wallet)
+                        }
+                        .onDelete(perform: deleteWallets)
                     }
                 } header: {
-                    Text("Tracking \(predictionService.smartMoneyWallets.count) wallets")
+                    Text("Tracking \(copyTradingService.trackedWallets.count) wallets")
                 }
             }
             .listStyle(.insetGrouped)
@@ -521,14 +647,58 @@ private struct SmartMoneyListSheet: View {
                         .fontWeight(.medium)
                 }
             }
+            .task {
+                await copyTradingService.loadTrackedWallets()
+            }
+        }
+    }
+
+    private func addWallet() {
+        guard !walletAddress.isEmpty else { return }
+
+        isAdding = true
+        errorMessage = nil
+
+        Task {
+            do {
+                try await copyTradingService.addTrackedWallet(
+                    address: walletAddress.trimmingCharacters(in: .whitespacesAndNewlines),
+                    nickname: walletNickname.isEmpty ? nil : walletNickname
+                )
+
+                await MainActor.run {
+                    withAnimation {
+                        showAddWallet = false
+                        walletAddress = ""
+                        walletNickname = ""
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                }
+            }
+
+            await MainActor.run {
+                isAdding = false
+            }
+        }
+    }
+
+    private func deleteWallets(at offsets: IndexSet) {
+        for index in offsets {
+            let wallet = copyTradingService.trackedWallets[index]
+            Task {
+                try? await copyTradingService.removeTrackedWallet(wallet)
+            }
         }
     }
 }
 
-// MARK: - Smart Money Row
+// MARK: - Tracked Wallet Row
 
-private struct SmartMoneyRow: View {
-    let wallet: SmartMoneyWallet
+private struct TrackedWalletRow: View {
+    let wallet: TrackedWallet
 
     var body: some View {
         HStack(spacing: 12) {
@@ -536,17 +706,17 @@ private struct SmartMoneyRow: View {
                 .fill(avatarGradient)
                 .frame(width: 40, height: 40)
                 .overlay(
-                    Text(String((wallet.nickname ?? wallet.address).prefix(1)).uppercased())
+                    Text(String((wallet.nickname ?? wallet.walletAddress).prefix(1)).uppercased())
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                 )
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(wallet.nickname ?? shortenAddress(wallet.address))
+                Text(wallet.nickname ?? shortenAddress(wallet.walletAddress))
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(SemanticColors.textPrimary)
 
-                Text("\(wallet.stats.totalBets) bets")
+                Text("\(wallet.stats.totalTrades) trades")
                     .font(.system(size: 13))
                     .foregroundColor(SemanticColors.textSecondary)
             }
@@ -567,7 +737,7 @@ private struct SmartMoneyRow: View {
     }
 
     private var avatarGradient: LinearGradient {
-        let hash = wallet.address.hashValue
+        let hash = wallet.walletAddress.hashValue
         let hue = Double(abs(hash) % 360) / 360.0
         return LinearGradient(
             colors: [
@@ -585,14 +755,6 @@ private struct SmartMoneyRow: View {
     }
 }
 
-// MARK: - Scroll Offset Preference Key
-
-private struct ScrollOffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
 
 #Preview {
     PredictionFeedView()

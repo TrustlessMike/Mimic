@@ -15,7 +15,6 @@ const AutoSwapLogsPage = lazy(() => import('./pages/AutoSwapLogsPage').then(m =>
 const InsightsPage = lazy(() => import('./pages/InsightsPage').then(m => ({ default: m.InsightsPage })));
 const PredictionsPage = lazy(() => import('./pages/PredictionsPage').then(m => ({ default: m.PredictionsPage })));
 const WalletTrackingPage = lazy(() => import('./pages/WalletTrackingPage').then(m => ({ default: m.WalletTrackingPage })));
-const PolymarketSignalsPage = lazy(() => import('./pages/PolymarketSignalsPage').then(m => ({ default: m.PolymarketSignalsPage })));
 
 function PageLoader() {
   return (
@@ -110,11 +109,6 @@ function AppRoutes() {
         <Route path="/wallet-tracking" element={
           <Suspense fallback={<PageLoader />}>
             <WalletTrackingPage />
-          </Suspense>
-        } />
-        <Route path="/polymarket" element={
-          <Suspense fallback={<PageLoader />}>
-            <PolymarketSignalsPage />
           </Suspense>
         } />
       </Route>
