@@ -18,6 +18,11 @@ struct BetDetailView: View {
                     // Bet Details
                     detailsCard
 
+                    // Kalshi Market Data (if available)
+                    if bet.hasKalshiData {
+                        kalshiCard
+                    }
+
                     // Actions
                     actionsCard
                 }
@@ -175,6 +180,84 @@ struct BetDetailView: View {
         }
         .background(Color(.systemBackground))
         .cornerRadius(16)
+    }
+
+    // MARK: - Kalshi Card
+
+    private var kalshiCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.bar.xaxis")
+                    .foregroundColor(BrandColors.primary)
+                Text("Kalshi Market Data")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(SemanticColors.textSecondary)
+            }
+
+            VStack(spacing: 0) {
+                if let midPrice = bet.formattedKalshiPrice {
+                    kalshiRow(label: "Mid Price", value: midPrice)
+                    Divider().padding(.leading, 16)
+                }
+
+                if let yesBid = bet.kalshiYesBid {
+                    kalshiRow(label: "Yes Bid", value: "\(Int(yesBid * 100))¢")
+                    Divider().padding(.leading, 16)
+                }
+
+                if let yesAsk = bet.kalshiYesAsk {
+                    kalshiRow(label: "Yes Ask", value: "\(Int(yesAsk * 100))¢")
+                    Divider().padding(.leading, 16)
+                }
+
+                if let spread = bet.formattedKalshiSpread {
+                    kalshiRow(label: "Spread", value: spread)
+                    Divider().padding(.leading, 16)
+                }
+
+                if let comparison = bet.priceComparisonText, let diff = bet.priceVsKalshi {
+                    HStack {
+                        Text("Execution")
+                            .font(.system(size: 15))
+                            .foregroundColor(SemanticColors.textSecondary)
+
+                        Spacer()
+
+                        HStack(spacing: 4) {
+                            Image(systemName: diff < 0 ? "arrow.down.circle.fill" : (diff > 0 ? "arrow.up.circle.fill" : "equal.circle.fill"))
+                                .font(.system(size: 12))
+                            Text(comparison)
+                                .font(.system(size: 15, weight: .semibold))
+                        }
+                        .foregroundColor(diff < 0 ? SemanticColors.success : (diff > 0 ? SemanticColors.error : SemanticColors.textSecondary))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                }
+            }
+            .background(Color(.tertiarySystemBackground))
+            .cornerRadius(10)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+    }
+
+    private func kalshiRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 15))
+                .foregroundColor(SemanticColors.textSecondary)
+
+            Spacer()
+
+            Text(value)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(SemanticColors.textPrimary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 
     private func detailRow(label: String, value: String) -> some View {

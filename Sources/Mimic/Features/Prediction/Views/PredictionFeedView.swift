@@ -355,6 +355,24 @@ private struct FeedBetCard: View {
                     Text("@ \(Int(bet.avgPrice * 100))¢")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(SemanticColors.textSecondary)
+
+                    // Kalshi price context
+                    if let kalshiPrice = bet.formattedKalshiPrice {
+                        Text("• Kalshi \(kalshiPrice)")
+                            .font(.system(size: 13))
+                            .foregroundColor(SemanticColors.textTertiary)
+                    }
+                }
+
+                // Price comparison indicator
+                if let comparison = bet.priceComparisonText, let diff = bet.priceVsKalshi {
+                    HStack(spacing: 4) {
+                        Image(systemName: diff < 0 ? "arrow.down.circle.fill" : (diff > 0 ? "arrow.up.circle.fill" : "equal.circle.fill"))
+                            .font(.system(size: 11))
+                        Text(comparison)
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(diff < 0 ? SemanticColors.success : (diff > 0 ? SemanticColors.error : SemanticColors.textSecondary))
                 }
 
                 // Market Title

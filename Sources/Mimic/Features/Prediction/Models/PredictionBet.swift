@@ -26,6 +26,14 @@ struct PredictionBet: Identifiable, Codable {
     // Tracking
     let canCopy: Bool
 
+    // Kalshi market data at time of trade (optional)
+    var kalshiTicker: String?
+    var kalshiYesBid: Double?
+    var kalshiYesAsk: Double?
+    var kalshiMidPrice: Double?
+    var kalshiSpread: Double?
+    var kalshiVolume: Int?
+
     enum BetDirection: String, Codable {
         case yes = "YES"
         case no = "NO"
@@ -85,6 +93,45 @@ struct PredictionBet: Identifiable, Codable {
     /// Explorer URL for the transaction
     var explorerURL: URL? {
         URL(string: "https://solscan.io/tx/\(signature)")
+    }
+
+    /// Whether we have Kalshi price data
+    var hasKalshiData: Bool {
+        kalshiMidPrice != nil
+    }
+
+    /// Formatted Kalshi mid price
+    var formattedKalshiPrice: String? {
+        guard let mid = kalshiMidPrice else { return nil }
+        return "\(Int(mid * 100))¢"
+    }
+
+    /// Formatted Kalshi spread
+    var formattedKalshiSpread: String? {
+        guard let spread = kalshiSpread else { return nil }
+        return "\(String(format: "%.1f", spread * 100))¢"
+    }
+
+    /// Price comparison - did they get a good price vs Kalshi mid?
+    var priceVsKalshi: Double? {
+        guard let kalshiMid = kalshiMidPrice, kalshiMid > 0 else { return nil }
+        // For YES: lower price = better deal
+        // For NO: we're buying NO shares, so compare against (1 - kalshiMid)
+        let kalshiPriceForDirection = direction == .yes ? kalshiMid : (1 - kalshiMid)
+        return avgPrice - kalshiPriceForDirection
+    }
+
+    /// Human-readable price comparison
+    var priceComparisonText: String? {
+        guard let diff = priceVsKalshi else { return nil }
+        let diffCents = abs(diff * 100)
+        if diff < -0.005 {
+            return "\(String(format: "%.1f", diffCents))¢ below Kalshi"
+        } else if diff > 0.005 {
+            return "\(String(format: "%.1f", diffCents))¢ above Kalshi"
+        } else {
+            return "At Kalshi mid"
+        }
     }
 }
 
