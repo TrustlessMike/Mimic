@@ -4,7 +4,8 @@ import PackageDescription
 let package = Package(
     name: "Mimic",
     platforms: [
-        .iOS(.v17)
+        .iOS(.v17),
+        .macOS(.v13)
     ],
     products: [
         .library(
@@ -14,7 +15,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "10.20.0"),
-        .package(url: "https://github.com/metaplex-foundation/Solana.Swift.git", from: "2.0.1")
+        .package(url: "https://github.com/TrustlessMike/solana-swift.git", branch: "main")
     ],
     targets: [
         .target(
@@ -27,7 +28,7 @@ let package = Package(
                 .product(name: "FirebaseRemoteConfig", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseCrashlytics", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseAnalytics", package: "firebase-ios-sdk"),
-                .product(name: "Solana", package: "Solana.Swift")
+                .product(name: "SolanaSwift", package: "solana-swift")
             ],
             path: "Sources/Mimic",
             resources: [

@@ -13,6 +13,7 @@
 		0C0AFCD8BD3E8D64ABA58ECC /* CustomTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68920012DE247A18267C39A7 /* CustomTabBar.swift */; };
 		0E55D291D95228EE5BD65271 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76BD08866E10E4C5AC858543 /* WelcomeView.swift */; };
 		12862451FC03E0392A543FA5 /* SolanaSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 1FB8A4F217877EF34A1AF6D6 /* SolanaSwift */; };
+		1BC39317967BAA62E261556F /* HeliusServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFEEBB180CA1ED67823E4C0A /* HeliusServiceTests.swift */; };
 		1E598BC458636E4E2291FD1A /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7ACE0EBBC28C5233525FE52 /* DesignSystem.swift */; };
 		23065A45A53FB01E0B599C34 /* CoinbaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3945AECC680D77F425BBC30C /* CoinbaseService.swift */; };
 		29786604B253F0FAC6A518AB /* OnboardingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73C8D435DC48BCAFFE01BD76 /* OnboardingState.swift */; };
@@ -35,6 +36,7 @@
 		4B22BC3572952F7BE49537A2 /* PredictionFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0ADAC15A700B686D95AC2E /* PredictionFeedView.swift */; };
 		4E049567A28FF2ADAC614CAB /* WalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6004526206B8EDE74AC3C3 /* WalletView.swift */; };
 		4E72E64A7225ABAB26E81654 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 975937DCE6FC462AE5D7E41A /* FirebaseFunctions */; };
+		4FEFED338289553C79F5DF47 /* SolanaWalletServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F26CA247637A95A2EE2504C /* SolanaWalletServiceTests.swift */; };
 		52A5940F8EBAEE5F4A3C8387 /* CoinbaseApplePayOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE785C93092E936B9863348A /* CoinbaseApplePayOrder.swift */; };
 		54B4234756F67339B04C286C /* TransactionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 623E9FB99A59F72BD055D07B /* TransactionState.swift */; };
 		5B2624F53A6B85DC8949A738 /* WalkthroughSlide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D50CA2744A57F413BEB75E /* WalkthroughSlide.swift */; };
@@ -49,6 +51,7 @@
 		7E4EC60EBDC4EBCAF5724164 /* AuthError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24435B1A0431B3468C5F2F25 /* AuthError.swift */; };
 		8109380F1485D8B0C8D1C10D /* LeaderboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B52DEDF175FE74397336BDC /* LeaderboardView.swift */; };
 		814C0EA97C1A732685346CA7 /* OnboardingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156A9C262ABCC1ADCF352C34 /* OnboardingManager.swift */; };
+		81C856A38B5CE5C80C1E8EBA /* OptimizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83A11F05671EDB700996889D /* OptimizationTests.swift */; };
 		827FE530CD6566F499504C95 /* TokenBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AC7413147D08868F2EF658D /* TokenBalance.swift */; };
 		83666C719A09F0F9EC214140 /* HybridPrivyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2614BAB8DF13951BFCFAA399 /* HybridPrivyService.swift */; };
 		85F6E79D125AF119099C2ADD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3285D2F8173CD0B1FC48B22F /* SettingsView.swift */; };
@@ -65,6 +68,7 @@
 		A1E960421FDE075F721895AC /* BetCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6524AE9113FFA8F42AB81B2 /* BetCardView.swift */; };
 		A2D895E56AE2F687AF78605E /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 9BAE89A08E8BF2ADB1FF7E41 /* Lottie */; };
 		A32B93DE3C7FED2F2ABACB2B /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAAC63E4AAD33652FC5A3DA3 /* ViewModifiers.swift */; };
+		A3C862A10257D94CE7C21985 /* MimicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D92582820674390252845A53 /* MimicTests.swift */; };
 		A6251700B767174DF34F38EB /* CoinbaseSafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8482816D8F3F20DD5EEE81CB /* CoinbaseSafariView.swift */; };
 		ABF50FD9FC39DAA3EBF36B68 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 9BA24BF7E69469D9B434F203 /* FirebaseRemoteConfig */; };
 		AC756DD65884E5F68790307A /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 100E97BCB0763D4A32BED804 /* FirebaseFirestore */; };
@@ -87,12 +91,23 @@
 		E160F02501F3752AC2352AD7 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71CFBEF338F4454C07A57CF7 /* ConfettiView.swift */; };
 		E8E30A2B8647273226F4ED01 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD144F7416BC00DF177E2F0 /* NotificationManager.swift */; };
 		EB21C496D8F89C6DE177AE21 /* FirebaseCallableClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630DD0BD3E4F4D69782ED918 /* FirebaseCallableClient.swift */; };
+		EEFD7CCCF908B2426191838C /* PriceFeedServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC792D7F1CE29FF01B8E459 /* PriceFeedServiceTests.swift */; };
 		EF0C1D94A099FA4B6BA56546 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB27051ADC7891A0054CA93 /* ProfileSetupView.swift */; };
 		F1CD68E452902124080D1FDF /* Privy in Frameworks */ = {isa = PBXBuildFile; productRef = 0E2F5BD1331441A1CAA1AA9C /* Privy */; };
 		F9F65239B3CEC180A0646616 /* AuthenticationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 512DC9F2BCDB5B74F500D2B3 /* AuthenticationService.swift */; };
 		FC3F092E5C367CB2932FCE44 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F2DF942BEA57B8597DCA8262 /* FirebaseCrashlytics */; };
 		FF5C7DFA6F343A1817AA4A78 /* LoadingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 949B0C290D90961E4FEE8845 /* LoadingOverlay.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		76356D7593CBC2297443A5C6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8F5C6FC34238B01DE6029F1F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 602DB8F8DDD76460B012FA04;
+			remoteInfo = Mimic;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		008579C9995AD01F4759B797 /* PositionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PositionsView.swift; sourceTree = "<group>"; };
@@ -121,6 +136,7 @@
 		485B68DC198AF6D586C92C0A /* DisplayNameSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameSetupView.swift; sourceTree = "<group>"; };
 		49A96CC7A65DB65896B6F21B /* PushNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationService.swift; sourceTree = "<group>"; };
 		4A805B59F4AA5DB3C2444567 /* SkeletonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonView.swift; sourceTree = "<group>"; };
+		4F26CA247637A95A2EE2504C /* SolanaWalletServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolanaWalletServiceTests.swift; sourceTree = "<group>"; };
 		512DC9F2BCDB5B74F500D2B3 /* AuthenticationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationService.swift; sourceTree = "<group>"; };
 		53800D5297C748238108123D /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		56D02E03E9B7AECBAC94C990 /* TermsAcceptanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermsAcceptanceView.swift; sourceTree = "<group>"; };
@@ -139,7 +155,9 @@
 		76BD08866E10E4C5AC858543 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		7875AF2E9E8214706B1C6256 /* UserPreferencesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferencesService.swift; sourceTree = "<group>"; };
 		7C73B00911492D8E2E7C4361 /* UserPosition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPosition.swift; sourceTree = "<group>"; };
+		7EC792D7F1CE29FF01B8E459 /* PriceFeedServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceFeedServiceTests.swift; sourceTree = "<group>"; };
 		81A56AE5D397802A5C28463F /* TokenImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenImageView.swift; sourceTree = "<group>"; };
+		83A11F05671EDB700996889D /* OptimizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimizationTests.swift; sourceTree = "<group>"; };
 		8482816D8F3F20DD5EEE81CB /* CoinbaseSafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseSafariView.swift; sourceTree = "<group>"; };
 		873DDC96363BCD3A37E1CD1C /* CopyTradingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyTradingService.swift; sourceTree = "<group>"; };
 		8B4E580A1D6A3FC4F5880719 /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
@@ -159,13 +177,16 @@
 		C514AF4DC4E7DF499809804B /* CoinbaseOnrampSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseOnrampSession.swift; sourceTree = "<group>"; };
 		C6524AE9113FFA8F42AB81B2 /* BetCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BetCardView.swift; sourceTree = "<group>"; };
 		CC3194395A36AE693772256D /* PredictionCopyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionCopyService.swift; sourceTree = "<group>"; };
+		D92582820674390252845A53 /* MimicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MimicTests.swift; sourceTree = "<group>"; };
 		DC3120CECB8528F63B654391 /* TrackedWalletsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackedWalletsView.swift; sourceTree = "<group>"; };
 		E964EDB49B2B856F93A84AE8 /* NotificationsSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsSetupView.swift; sourceTree = "<group>"; };
 		EC0ADAC15A700B686D95AC2E /* PredictionFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionFeedView.swift; sourceTree = "<group>"; };
 		EDC1F371B68D3C0A51D46A65 /* HeliusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeliusService.swift; sourceTree = "<group>"; };
 		EE3AF6D9E6DD55FD47E4BF31 /* SolanaToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolanaToken.swift; sourceTree = "<group>"; };
 		EE840B2A1FFE4141A8F1365A /* WalkthroughView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkthroughView.swift; sourceTree = "<group>"; };
+		EFEEBB180CA1ED67823E4C0A /* HeliusServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeliusServiceTests.swift; sourceTree = "<group>"; };
 		EFF7ED46606485ADC089E4DA /* OnboardingCoordinatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCoordinatorView.swift; sourceTree = "<group>"; };
+		F000185ADD8ED6D99702DB12 /* MimicTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MimicTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F148DF1A2A2DC1B241C99AEA /* BrandColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandColors.swift; sourceTree = "<group>"; };
 		F9CBD3DAD2D0597EF72C5AB3 /* CoinbaseOnrampViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseOnrampViewModel.swift; sourceTree = "<group>"; };
 		FAAC63E4AAD33652FC5A3DA3 /* ViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModifiers.swift; sourceTree = "<group>"; };
@@ -341,6 +362,16 @@
 			path = Coinbase;
 			sourceTree = "<group>";
 		};
+		4E3BACA8584B78A58B59C470 /* MimicTests */ = {
+			isa = PBXGroup;
+			children = (
+				D92582820674390252845A53 /* MimicTests.swift */,
+				93C4D7C044C27C411A868858 /* Services */,
+			);
+			name = MimicTests;
+			path = Tests/MimicTests;
+			sourceTree = "<group>";
+		};
 		535FEA6383EE3B63D42AEFDE /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -476,6 +507,17 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
+		93C4D7C044C27C411A868858 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				EFEEBB180CA1ED67823E4C0A /* HeliusServiceTests.swift */,
+				83A11F05671EDB700996889D /* OptimizationTests.swift */,
+				7EC792D7F1CE29FF01B8E459 /* PriceFeedServiceTests.swift */,
+				4F26CA247637A95A2EE2504C /* SolanaWalletServiceTests.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
 		9439A10F0D97CF2DFD7F346E /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -490,6 +532,7 @@
 			isa = PBXGroup;
 			children = (
 				36A3BA0A0BE4551C487C8CC6 /* Mimic.app */,
+				F000185ADD8ED6D99702DB12 /* MimicTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -592,6 +635,7 @@
 			isa = PBXGroup;
 			children = (
 				418BE8E58811B9F342B73984 /* Mimic */,
+				4E3BACA8584B78A58B59C470 /* MimicTests */,
 				5E3306E6A2F08A9439CAB1FE /* Resources */,
 				988FBC3BA121AF2FCCD15986 /* Products */,
 			);
@@ -680,6 +724,22 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		5278B1677D9F8CE2B4A756A4 /* MimicTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3DA84F82F835A6D1BF3735C5 /* Build configuration list for PBXNativeTarget "MimicTests" */;
+			buildPhases = (
+				F6E6B05B279409040B9B7320 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D2C4B34E5B27B4890E9191B3 /* PBXTargetDependency */,
+			);
+			name = MimicTests;
+			productName = MimicTests;
+			productReference = F000185ADD8ED6D99702DB12 /* MimicTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		602DB8F8DDD76460B012FA04 /* Mimic */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E746F4E9F072835EA456955C /* Build configuration list for PBXNativeTarget "Mimic" */;
@@ -739,6 +799,7 @@
 			projectRoot = "";
 			targets = (
 				602DB8F8DDD76460B012FA04 /* Mimic */,
+				5278B1677D9F8CE2B4A756A4 /* MimicTests */,
 			);
 		};
 /* End PBXProject section */
@@ -836,7 +897,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F6E6B05B279409040B9B7320 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1BC39317967BAA62E261556F /* HeliusServiceTests.swift in Sources */,
+				A3C862A10257D94CE7C21985 /* MimicTests.swift in Sources */,
+				81C856A38B5CE5C80C1E8EBA /* OptimizationTests.swift in Sources */,
+				EEFD7CCCF908B2426191838C /* PriceFeedServiceTests.swift in Sources */,
+				4FEFED338289553C79F5DF47 /* SolanaWalletServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D2C4B34E5B27B4890E9191B3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 602DB8F8DDD76460B012FA04 /* Mimic */;
+			targetProxy = 76356D7593CBC2297443A5C6 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1945349CBEF496CF7247F0E5 /* Debug */ = {
@@ -857,6 +938,23 @@
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		8B9855A3ADE7850F06B13E1E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.syndicatemike.MimicTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mimic.app/Mimic";
 			};
 			name = Debug;
 		};
@@ -922,6 +1020,23 @@
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
+		};
+		BBE4A603D882C192C00CCE8D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.syndicatemike.MimicTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mimic.app/Mimic";
+			};
+			name = Release;
 		};
 		BD230F92A7A08C9FC198E07C /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -1000,6 +1115,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		3DA84F82F835A6D1BF3735C5 /* Build configuration list for PBXNativeTarget "MimicTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8B9855A3ADE7850F06B13E1E /* Debug */,
+				BBE4A603D882C192C00CCE8D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		882A9BF5007CAB6281D803ED /* Build configuration list for PBXProject "Mimic" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

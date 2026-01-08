@@ -21,6 +21,20 @@
                ReferencedContainer = "container:Mimic.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "5278B1677D9F8CE2B4A756A4"
+               BuildableName = "MimicTests.xctest"
+               BlueprintName = "MimicTests"
+               ReferencedContainer = "container:Mimic.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -39,7 +53,19 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "5278B1677D9F8CE2B4A756A4"
+               BuildableName = "MimicTests.xctest"
+               BlueprintName = "MimicTests"
+               ReferencedContainer = "container:Mimic.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
+      <CommandLineArguments>
+      </CommandLineArguments>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
