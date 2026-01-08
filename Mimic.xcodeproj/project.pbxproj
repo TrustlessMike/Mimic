@@ -37,6 +37,7 @@
 		5B2624F53A6B85DC8949A738 /* WalkthroughSlide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D50CA2744A57F413BEB75E /* WalkthroughSlide.swift */; };
 		634E4143B125368EF333A257 /* ButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C42D4EA1E011B10C273C118 /* ButtonStyles.swift */; };
 		69179386508917F15F03470A /* UserPreferencesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7875AF2E9E8214706B1C6256 /* UserPreferencesService.swift */; };
+		6ABAEF8AC91CE4CC83621D28 /* PredictionCopyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 277C1CCCC0147E870FAF6ECC /* PredictionCopyService.swift */; };
 		6E1082D8A4EB0B548E0F70FA /* SolanaSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 1FB8A4F217877EF34A1AF6D6 /* SolanaSwift */; };
 		6F8789B8AF9528BA5F7A488C /* GameUIComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E05DB5267450B179C5B4CB8 /* GameUIComponents.swift */; };
 		70976A032C5F2209081E2A59 /* SolanaToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3AF6D9E6DD55FD47E4BF31 /* SolanaToken.swift */; };
@@ -111,6 +112,7 @@
 		233BEEA98D0457D3B4AA905C /* UserPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferences.swift; sourceTree = "<group>"; };
 		24435B1A0431B3468C5F2F25 /* AuthError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthError.swift; sourceTree = "<group>"; };
 		2614BAB8DF13951BFCFAA399 /* HybridPrivyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HybridPrivyService.swift; sourceTree = "<group>"; };
+		277C1CCCC0147E870FAF6ECC /* PredictionCopyService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PredictionCopyService.swift; sourceTree = "<group>"; };
 		2B958EF636C35D58CDD242B1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2CB4E83701B5AC4F0D566B5B /* PriceFeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceFeedService.swift; sourceTree = "<group>"; };
 		2DFB66B59A15652804904F93 /* SolanaWalletService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolanaWalletService.swift; sourceTree = "<group>"; };
@@ -447,6 +449,7 @@
 			isa = PBXGroup;
 			children = (
 				5CB396B2D1325A8015A05B8B /* PredictionService.swift */,
+				277C1CCCC0147E870FAF6ECC /* PredictionCopyService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -855,6 +858,7 @@
 				02B72813515ECDDBE3861C64 /* WalletActivity.swift in Sources */,
 				4E049567A28FF2ADAC614CAB /* WalletView.swift in Sources */,
 				0E55D291D95228EE5BD65271 /* WelcomeView.swift in Sources */,
+				6ABAEF8AC91CE4CC83621D28 /* PredictionCopyService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

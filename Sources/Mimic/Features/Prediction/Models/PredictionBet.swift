@@ -95,7 +95,37 @@ struct TrackedPredictor: Identifiable, Codable {
     let walletAddress: String
     var nickname: String?
     let createdAt: Date
-    var stats: PredictorStats
+    var stats: PredictorStats?
+
+    // Copy trading settings
+    var autoCopyEnabled: Bool
+    var copyPercentage: Double       // % of original bet to copy (e.g., 5 = 5%)
+    var maxCopyAmountUsd: Double     // Max USD per copy bet
+    var minBetSizeUsd: Double        // Min original bet size to trigger copy
+
+    init(
+        id: String,
+        userId: String,
+        walletAddress: String,
+        nickname: String? = nil,
+        createdAt: Date = Date(),
+        stats: PredictorStats? = nil,
+        autoCopyEnabled: Bool = false,
+        copyPercentage: Double = 5,
+        maxCopyAmountUsd: Double = 50,
+        minBetSizeUsd: Double = 5
+    ) {
+        self.id = id
+        self.userId = userId
+        self.walletAddress = walletAddress
+        self.nickname = nickname
+        self.createdAt = createdAt
+        self.stats = stats
+        self.autoCopyEnabled = autoCopyEnabled
+        self.copyPercentage = copyPercentage
+        self.maxCopyAmountUsd = maxCopyAmountUsd
+        self.minBetSizeUsd = minBetSizeUsd
+    }
 
     /// Display name for the predictor
     var displayName: String {

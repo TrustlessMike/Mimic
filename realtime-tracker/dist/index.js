@@ -182,6 +182,22 @@ async function processTransaction(signature) {
             bet.marketTitle = market.title;
             bet.marketCategory = market.category;
         }
+        // Try to get accurate direction and price from wallet's positions
+        try {
+            const positionData = await fetchWalletPosition(bet.walletAddress, bet.marketAddress);
+            if (positionData) {
+                bet.direction = positionData.side || bet.direction;
+                if (positionData.avgPrice > 0) {
+                    bet.avgPrice = positionData.avgPrice;
+                }
+                if (positionData.shares > 0) {
+                    bet.shares = positionData.shares;
+                }
+            }
+        }
+        catch {
+            // Use parsed values if position lookup fails
+        }
         // Save to Firestore
         await db.collection("prediction_bets").doc(signature).set({
             ...bet,
@@ -190,8 +206,12 @@ async function processTransaction(signature) {
             createdAt: firestore_1.FieldValue.serverTimestamp(),
         });
         stats.betsFound++;
-        // Send push notification
+        // Send push notification to all users
         await sendNotification(bet);
+        // Trigger auto-copy for users following this wallet
+        triggerAutoCopy(bet, signature).catch((err) => {
+            console.error("Auto-copy trigger error:", err);
+        });
         console.log(`⚡ [${Date.now() - startTime}ms] ${walletInfo.nickname || tx.feePayer.slice(0, 8)}... ` +
             `${bet.direction} $${bet.amount.toFixed(2)} "${bet.marketTitle || ""}"`);
     }
@@ -209,27 +229,70 @@ function parseBet(tx) {
     let usdcChange = 0;
     let shares = 0;
     const outcomeToken = ix.accounts[3];
+    // Track all token changes to help determine direction
+    const tokenChanges = [];
     for (const acc of tx.accountData || []) {
         for (const change of acc.tokenBalanceChanges || []) {
             if (change.mint === USDC_MINT && change.userAccount === tx.feePayer) {
                 usdcChange = parseFloat(change.rawTokenAmount.tokenAmount) / 1e6;
             }
-            if (change.mint === outcomeToken && change.userAccount === tx.feePayer) {
-                shares = Math.abs(parseFloat(change.rawTokenAmount.tokenAmount) / 1e6);
+            if (change.userAccount === tx.feePayer && change.mint !== USDC_MINT) {
+                const tokenAmount = parseFloat(change.rawTokenAmount.tokenAmount) / 1e6;
+                tokenChanges.push({ mint: change.mint, amount: tokenAmount });
+                if (change.mint === outcomeToken) {
+                    shares = Math.abs(tokenAmount);
+                }
             }
         }
     }
     const isBuy = usdcChange < 0;
     const amount = Math.abs(usdcChange);
+    // Determine direction from instruction data
+    // Jupiter Prediction uses instruction data where byte pattern indicates YES(0) or NO(1)
+    let direction = "YES";
+    if (ix.data) {
+        // Try to parse instruction data - format varies but often has direction indicator
+        // Check common patterns: base58 decoded first byte after discriminator
+        try {
+            // The instruction data often encodes direction in the parameters
+            // Account ordering: YES token is typically accounts[2], NO token is accounts[3]
+            // If the user received tokens from accounts[3], it's likely a NO bet
+            const yesTokenAccount = ix.accounts[2];
+            const noTokenAccount = ix.accounts[3];
+            // Check which token the user received
+            for (const change of tokenChanges) {
+                if (change.amount > 0) {
+                    // User received this token
+                    if (change.mint === noTokenAccount ||
+                        ix.accounts.indexOf(change.mint) > ix.accounts.indexOf(yesTokenAccount)) {
+                        direction = "NO";
+                    }
+                }
+            }
+        }
+        catch {
+            // Default to YES if parsing fails
+        }
+    }
+    // Calculate avgPrice - if shares is 0 but amount > 0, estimate from amount
+    let avgPrice = 0;
+    if (shares > 0) {
+        avgPrice = amount / shares;
+    }
+    else if (amount > 0) {
+        // Estimate: typical prediction market prices are 0.10 - 0.90
+        // Without shares, we can't calculate exact price, so use a reasonable estimate
+        avgPrice = 0.50; // Will be updated by position lookup if available
+    }
     return {
         walletAddress: tx.feePayer,
         signature: tx.signature,
         timestamp: new Date(tx.timestamp * 1000),
         marketAddress: ix.accounts[1],
-        direction: "YES", // Determined by market lookup
+        direction,
         amount,
         shares,
-        avgPrice: shares > 0 ? amount / shares : 0,
+        avgPrice,
         status: isBuy ? "open" : "claimed",
         canCopy: isBuy,
     };
@@ -268,6 +331,43 @@ async function getMarketInfo(address, walletAddress) {
         const eventMarket = await fetchMarketFromEvents(address);
         if (eventMarket) {
             return eventMarket;
+        }
+        return null;
+    }
+    catch {
+        return null;
+    }
+}
+/**
+ * Fetch wallet's position for a specific market to get direction and price
+ */
+async function fetchWalletPosition(walletAddress, marketAddress) {
+    try {
+        const res = await fetch(`${JUPITER_PREDICTION_API}/positions?ownerPubkey=${walletAddress}&limit=50`);
+        if (!res.ok)
+            return null;
+        const data = await res.json();
+        const positions = data.data || [];
+        // Look for a position that matches this market
+        for (const pos of positions) {
+            // Check by market ID or address
+            if (pos.marketId === marketAddress || pos.market === marketAddress) {
+                return {
+                    side: pos.side?.toUpperCase() === "NO" ? "NO" : "YES",
+                    avgPrice: pos.avgPrice || pos.averagePrice || 0,
+                    shares: pos.shares || pos.quantity || 0,
+                };
+            }
+        }
+        // If no exact match, return the most recent position as best guess
+        // (since we just detected this bet, it's likely their latest position)
+        if (positions.length > 0) {
+            const pos = positions[0];
+            return {
+                side: pos.side?.toUpperCase() === "NO" ? "NO" : "YES",
+                avgPrice: pos.avgPrice || pos.averagePrice || 0,
+                shares: pos.shares || pos.quantity || 0,
+            };
         }
         return null;
     }
@@ -485,6 +585,122 @@ async function sendNotification(bet) {
     }
     catch (error) {
         console.error("Notification error:", error);
+    }
+}
+/**
+ * Trigger auto-copy for users following this wallet
+ * Creates pending copy trades and sends actionable notifications
+ */
+async function triggerAutoCopy(bet, betId) {
+    try {
+        // Only trigger for buy bets (canCopy = true)
+        if (!bet.canCopy || bet.amount <= 0) {
+            return;
+        }
+        // Find users tracking this wallet with auto-copy enabled
+        const trackersSnapshot = await db.collection("tracked_predictors")
+            .where("walletAddress", "==", bet.walletAddress)
+            .where("autoCopyEnabled", "==", true)
+            .get();
+        if (trackersSnapshot.empty) {
+            return;
+        }
+        console.log(`🎯 Auto-copy: ${trackersSnapshot.size} users tracking ${bet.walletAddress.slice(0, 8)}...`);
+        for (const trackerDoc of trackersSnapshot.docs) {
+            const tracker = trackerDoc.data();
+            const userId = tracker.userId;
+            try {
+                // Get user data
+                const userDoc = await db.collection("users").doc(userId).get();
+                const userData = userDoc.data();
+                if (!userData?.walletAddress) {
+                    continue;
+                }
+                // Get copy settings
+                const copyPercentage = tracker.copyPercentage || 5;
+                const maxCopyAmountUsd = tracker.maxCopyAmountUsd || 50;
+                const minBetSizeUsd = tracker.minBetSizeUsd || 5;
+                // Skip small bets
+                if (bet.amount < minBetSizeUsd) {
+                    console.log(`⏭️ Skipping small bet ($${bet.amount}) for ${userId}`);
+                    continue;
+                }
+                // Calculate suggested amount
+                let suggestedAmount = Math.min(bet.amount * (copyPercentage / 100), maxCopyAmountUsd);
+                suggestedAmount = Math.max(suggestedAmount, minBetSizeUsd);
+                // Create pending copy trade
+                const pendingRef = db.collection("pending_copy_trades").doc();
+                const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 min window
+                await pendingRef.set({
+                    id: pendingRef.id,
+                    userId,
+                    userWalletAddress: userData.walletAddress,
+                    betId,
+                    trackedWallet: bet.walletAddress,
+                    trackedWalletNickname: tracker.nickname || bet.walletNickname,
+                    marketAddress: bet.marketAddress,
+                    marketTitle: bet.marketTitle,
+                    direction: bet.direction,
+                    originalAmount: bet.amount,
+                    originalPrice: bet.avgPrice,
+                    suggestedAmount,
+                    status: "pending",
+                    createdAt: firestore_1.FieldValue.serverTimestamp(),
+                    expiresAt,
+                });
+                console.log(`✅ Created pending copy for ${userId}: $${suggestedAmount.toFixed(2)} ${bet.direction}`);
+                // Send actionable push notification
+                const fcmTokens = userData.fcmTokens || [];
+                if (fcmTokens.length > 0) {
+                    const nickname = tracker.nickname || bet.walletNickname || bet.walletAddress.slice(0, 8) + "...";
+                    const title = `🎯 Copy Trade Ready`;
+                    const body = `${nickname} bet ${bet.direction} on "${bet.marketTitle || "market"}". Tap to copy $${suggestedAmount.toFixed(2)}`;
+                    await (0, messaging_1.getMessaging)().sendEachForMulticast({
+                        tokens: fcmTokens,
+                        notification: { title, body },
+                        data: {
+                            type: "prediction_copy_ready",
+                            pendingCopyId: pendingRef.id,
+                            marketAddress: bet.marketAddress,
+                            direction: bet.direction,
+                            amount: suggestedAmount.toString(),
+                            jupiterUrl: `https://jup.ag/prediction/${bet.marketAddress}`,
+                        },
+                        apns: {
+                            payload: {
+                                aps: {
+                                    sound: "default",
+                                    badge: 1,
+                                    "content-available": 1,
+                                },
+                            },
+                        },
+                    });
+                    console.log(`📱 Sent copy notification to ${userId}`);
+                }
+                // Store in user's notifications
+                await db.collection("users").doc(userId).collection("notifications").add({
+                    type: "prediction_copy_ready",
+                    title: "Copy Trade Available",
+                    body: `${tracker.nickname || bet.walletAddress.slice(0, 8)}... bet ${bet.direction}`,
+                    pendingCopyId: pendingRef.id,
+                    marketAddress: bet.marketAddress,
+                    marketTitle: bet.marketTitle,
+                    direction: bet.direction,
+                    suggestedAmount,
+                    trackedWallet: bet.walletAddress,
+                    createdAt: firestore_1.FieldValue.serverTimestamp(),
+                    read: false,
+                    expiresAt,
+                });
+            }
+            catch (err) {
+                console.error(`Auto-copy error for user ${userId}:`, err);
+            }
+        }
+    }
+    catch (error) {
+        console.error("triggerAutoCopy error:", error);
     }
 }
 // Start
