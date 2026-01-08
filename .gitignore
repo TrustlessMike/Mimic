@@ -218,3 +218,4 @@ android/app/google-services.json
 admin/node_modules/
 admin/dist/
 admin/.env.local
+api/.next/

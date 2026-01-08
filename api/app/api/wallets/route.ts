@@ -9,7 +9,6 @@ export async function GET() {
     const snapshot = await db
       .collection('smart_money_wallets')
       .where('isActive', '==', true)
-      .orderBy('stats.totalPnl', 'desc')
       .limit(100)
       .get();
 

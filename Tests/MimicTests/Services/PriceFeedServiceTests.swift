@@ -40,7 +40,7 @@ final class PriceFeedServiceTests: XCTestCase {
 
     // MARK: - Integration Tests (require network)
 
-    func testRefreshPricesFetchesData() async {
+    func testRefreshPricesFetchesData() async throws {
         // This test requires network access and configured API keys
         // Skip in CI environments without proper setup
         guard ProcessInfo.processInfo.environment["CI"] == nil else {

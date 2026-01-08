@@ -39,6 +39,16 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "6A13C54A8F0EF90DB2AA4C40"
+               BuildableName = "MimicTests.xctest"
+               BlueprintName = "MimicTests"
+               ReferencedContainer = "container:Mimic.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

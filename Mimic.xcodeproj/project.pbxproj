@@ -60,12 +60,14 @@
 		92914867EC45CD338BCBBFB1 /* DelegationConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B8FA70277B2706FF02002E /* DelegationConfig.swift */; };
 		94401BFF689670A114EA9E21 /* CoinbaseOnrampViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9CBD3DAD2D0597EF72C5AB3 /* CoinbaseOnrampViewModel.swift */; };
 		954E3B328F256D910EE60934 /* BrandColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = F148DF1A2A2DC1B241C99AEA /* BrandColors.swift */; };
+		99783AE0AE98C64AB2A3CB58 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5A2FEC1BA7AA39F38A941068 /* Foundation.framework */; };
 		99CF05A80C24A14B082DE3DF /* PreferencesSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDBAD5DE8C72036330822DDB /* PreferencesSetupView.swift */; };
 		A1E960421FDE075F721895AC /* BetCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6524AE9113FFA8F42AB81B2 /* BetCardView.swift */; };
 		A32B93DE3C7FED2F2ABACB2B /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAAC63E4AAD33652FC5A3DA3 /* ViewModifiers.swift */; };
 		A6251700B767174DF34F38EB /* CoinbaseSafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8482816D8F3F20DD5EEE81CB /* CoinbaseSafariView.swift */; };
 		ABF50FD9FC39DAA3EBF36B68 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 9BA24BF7E69469D9B434F203 /* FirebaseRemoteConfig */; };
 		AC756DD65884E5F68790307A /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 100E97BCB0763D4A32BED804 /* FirebaseFirestore */; };
+		B3426C725078EE8D1E241AC6 /* HeliusServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD947ECBA81907508A2E4FFB /* HeliusServiceTests.swift */; };
 		B6023EC180D73B88FF6E7BE7 /* FirebaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3995E608C98687002B311E3B /* FirebaseManager.swift */; };
 		B897C0E13BC741C115AE4B77 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A99296BE2DB5B8ABCB3F0EA /* ThemeManager.swift */; };
 		B90D9485E4F389AF0FA546D0 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6C4AC4C8FAC9D1F023F84138 /* GoogleService-Info.plist */; };
@@ -82,6 +84,8 @@
 		DB92FB7FA4B93CDC9DBCE414 /* PriceFeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CB4E83701B5AC4F0D566B5B /* PriceFeedService.swift */; };
 		E02C428E4B63354CBFBDD55D /* HeliusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDC1F371B68D3C0A51D46A65 /* HeliusService.swift */; };
 		E160F02501F3752AC2352AD7 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71CFBEF338F4454C07A57CF7 /* ConfettiView.swift */; };
+		E36F8CFADDDF28D82FCF5D06 /* PriceFeedServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048D55DAA3D440190F21ACD9 /* PriceFeedServiceTests.swift */; };
+		E7BB912C142C00C25A17D73C /* MimicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3BBD9F448BFD4E174016AE /* MimicTests.swift */; };
 		E8E30A2B8647273226F4ED01 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD144F7416BC00DF177E2F0 /* NotificationManager.swift */; };
 		EB21C496D8F89C6DE177AE21 /* FirebaseCallableClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630DD0BD3E4F4D69782ED918 /* FirebaseCallableClient.swift */; };
 		EE002D1CDEF4368E4D0045EB /* SolanaSigningService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92EE34E0CE0FED0D3A334CE8 /* SolanaSigningService.swift */; };
@@ -92,8 +96,19 @@
 		FF5C7DFA6F343A1817AA4A78 /* LoadingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 949B0C290D90961E4FEE8845 /* LoadingOverlay.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		97EFBAEF3D36B401D36B2A45 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8F5C6FC34238B01DE6029F1F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 602DB8F8DDD76460B012FA04;
+			remoteInfo = Mimic;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		0289BE17E9DB0139507D291F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		048D55DAA3D440190F21ACD9 /* PriceFeedServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PriceFeedServiceTests.swift; path = Services/PriceFeedServiceTests.swift; sourceTree = "<group>"; };
 		11D50CA2744A57F413BEB75E /* WalkthroughSlide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkthroughSlide.swift; sourceTree = "<group>"; };
 		156A9C262ABCC1ADCF352C34 /* OnboardingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingManager.swift; sourceTree = "<group>"; };
 		1AC7413147D08868F2EF658D /* TokenBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenBalance.swift; sourceTree = "<group>"; };
@@ -115,6 +130,7 @@
 		3B52DEDF175FE74397336BDC /* LeaderboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardView.swift; sourceTree = "<group>"; };
 		3C42D4EA1E011B10C273C118 /* ButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonStyles.swift; sourceTree = "<group>"; };
 		450E783AB536A4557647A408 /* TokenDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenDetailView.swift; sourceTree = "<group>"; };
+		45CD095D3854D42D71761426 /* MimicTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MimicTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4621B6F75EF329C8A41E5EC5 /* MimicApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MimicApp.swift; sourceTree = "<group>"; };
 		485B68DC198AF6D586C92C0A /* DisplayNameSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameSetupView.swift; sourceTree = "<group>"; };
 		49A96CC7A65DB65896B6F21B /* PushNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationService.swift; sourceTree = "<group>"; };
@@ -122,6 +138,7 @@
 		512DC9F2BCDB5B74F500D2B3 /* AuthenticationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationService.swift; sourceTree = "<group>"; };
 		53800D5297C748238108123D /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		56D02E03E9B7AECBAC94C990 /* TermsAcceptanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermsAcceptanceView.swift; sourceTree = "<group>"; };
+		5A2FEC1BA7AA39F38A941068 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		5CB396B2D1325A8015A05B8B /* PredictionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionService.swift; sourceTree = "<group>"; };
 		623E9FB99A59F72BD055D07B /* TransactionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionState.swift; sourceTree = "<group>"; };
 		630DD0BD3E4F4D69782ED918 /* FirebaseCallableClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseCallableClient.swift; sourceTree = "<group>"; };
@@ -146,6 +163,7 @@
 		A6367F6AFD28415CECC32C0A /* AuthCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCoordinator.swift; sourceTree = "<group>"; };
 		A6B8FA70277B2706FF02002E /* DelegationConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DelegationConfig.swift; sourceTree = "<group>"; };
 		A93AEC2CDA86140AEED151DF /* TokenMetadataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenMetadataService.swift; sourceTree = "<group>"; };
+		AD947ECBA81907508A2E4FFB /* HeliusServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeliusServiceTests.swift; path = Services/HeliusServiceTests.swift; sourceTree = "<group>"; };
 		AE785C93092E936B9863348A /* CoinbaseApplePayOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseApplePayOrder.swift; sourceTree = "<group>"; };
 		AEB27051ADC7891A0054CA93 /* ProfileSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupView.swift; sourceTree = "<group>"; };
 		B60E62C0594B928BE190871F /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
@@ -155,6 +173,7 @@
 		BE23870903BCBF4D71946443 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		C514AF4DC4E7DF499809804B /* CoinbaseOnrampSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseOnrampSession.swift; sourceTree = "<group>"; };
 		C6524AE9113FFA8F42AB81B2 /* BetCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BetCardView.swift; sourceTree = "<group>"; };
+		CB3BBD9F448BFD4E174016AE /* MimicTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MimicTests.swift; sourceTree = "<group>"; };
 		DC3120CECB8528F63B654391 /* TrackedWalletsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackedWalletsView.swift; sourceTree = "<group>"; };
 		E8FF8100B262563CCAB54CAF /* JupiterPredictionAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JupiterPredictionAPI.swift; sourceTree = "<group>"; };
 		E964EDB49B2B856F93A84AE8 /* NotificationsSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsSetupView.swift; sourceTree = "<group>"; };
@@ -184,6 +203,14 @@
 				44C5C5FA0D0D00A2CF1F032B /* FirebaseMessaging in Frameworks */,
 				6E1082D8A4EB0B548E0F70FA /* SolanaSwift in Frameworks */,
 				FC3F092E5C367CB2932FCE44 /* Lottie in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A476C276245E668B9E934916 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				99783AE0AE98C64AB2A3CB58 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -290,6 +317,14 @@
 			path = User;
 			sourceTree = "<group>";
 		};
+		32219E59EAB4F7346E6F4C54 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7A62A3EA118C112B2D400C1A /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		371D8ABA436CC88CCFEED924 /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -317,6 +352,17 @@
 				FB5ED80B8CD9E74A634D494D /* Services */,
 			);
 			path = Coinbase;
+			sourceTree = "<group>";
+		};
+		4DD77751403D01387DAFF365 /* MimicTests */ = {
+			isa = PBXGroup;
+			children = (
+				CB3BBD9F448BFD4E174016AE /* MimicTests.swift */,
+				AD947ECBA81907508A2E4FFB /* HeliusServiceTests.swift */,
+				048D55DAA3D440190F21ACD9 /* PriceFeedServiceTests.swift */,
+			);
+			name = MimicTests;
+			path = Tests/MimicTests;
 			sourceTree = "<group>";
 		};
 		535FEA6383EE3B63D42AEFDE /* Models */ = {
@@ -426,6 +472,14 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
+		7A62A3EA118C112B2D400C1A /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				5A2FEC1BA7AA39F38A941068 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
 		8812D0B53660DF9CEAF1A2E8 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
@@ -459,6 +513,7 @@
 			isa = PBXGroup;
 			children = (
 				36A3BA0A0BE4551C487C8CC6 /* Mimic.app */,
+				45CD095D3854D42D71761426 /* MimicTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -563,6 +618,8 @@
 				418BE8E58811B9F342B73984 /* Mimic */,
 				5E3306E6A2F08A9439CAB1FE /* Resources */,
 				988FBC3BA121AF2FCCD15986 /* Products */,
+				32219E59EAB4F7346E6F4C54 /* Frameworks */,
+				4DD77751403D01387DAFF365 /* MimicTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -671,6 +728,24 @@
 			productReference = 36A3BA0A0BE4551C487C8CC6 /* Mimic.app */;
 			productType = "com.apple.product-type.application";
 		};
+		6A13C54A8F0EF90DB2AA4C40 /* MimicTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AB678351BE30D6687FC9476D /* Build configuration list for PBXNativeTarget "MimicTests" */;
+			buildPhases = (
+				444A2540AD70ECABA5CEC65D /* Sources */,
+				A476C276245E668B9E934916 /* Frameworks */,
+				6C6D9BF5A5B80D17AB77E662 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8A71C01C48CB2FF49B6CE6B2 /* PBXTargetDependency */,
+			);
+			name = MimicTests;
+			productName = MimicTests;
+			productReference = 45CD095D3854D42D71761426 /* MimicTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -695,15 +770,24 @@
 				E4F117EA2C015464714D5E73 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 				FFDA2025852C1E852C296035 /* XCRemoteSwiftPackageReference "privy-ios" */,
 			);
+			productRefGroup = 988FBC3BA121AF2FCCD15986 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				602DB8F8DDD76460B012FA04 /* Mimic */,
+				6A13C54A8F0EF90DB2AA4C40 /* MimicTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		6C6D9BF5A5B80D17AB77E662 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		87C1B149D9DD1E41F4642C2B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -717,6 +801,16 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		444A2540AD70ECABA5CEC65D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E7BB912C142C00C25A17D73C /* MimicTests.swift in Sources */,
+				B3426C725078EE8D1E241AC6 /* HeliusServiceTests.swift in Sources */,
+				E36F8CFADDDF28D82FCF5D06 /* PriceFeedServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BC5389148A41BF5A54700695 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -797,6 +891,15 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8A71C01C48CB2FF49B6CE6B2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Mimic;
+			target = 602DB8F8DDD76460B012FA04 /* Mimic */;
+			targetProxy = 97EFBAEF3D36B401D36B2A45 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1945349CBEF496CF7247F0E5 /* Debug */ = {
@@ -958,6 +1061,39 @@
 			};
 			name = Release;
 		};
+		E1751D24B971DF7B8A280885 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.syndicatemike.MimicTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mimic.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Mimic";
+			};
+			name = Debug;
+		};
+		F48DB641134D6BA1A30B13A4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.syndicatemike.MimicTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mimic.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Mimic";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -969,6 +1105,15 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
+		};
+		AB678351BE30D6687FC9476D /* Build configuration list for PBXNativeTarget "MimicTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F48DB641134D6BA1A30B13A4 /* Release */,
+				E1751D24B971DF7B8A280885 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		E746F4E9F072835EA456955C /* Build configuration list for PBXNativeTarget "Mimic" */ = {
 			isa = XCConfigurationList;
