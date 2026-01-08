@@ -322,76 +322,9 @@ class PortfolioHistoryManager: ObservableObject {
         saveHistory()
     }
     
-    /// Rebuild history based on current holdings (Proxy Method)
-    /// This simulates what the portfolio was worth over the last 7 days
+    /// Backfill history - disabled since we focus on copy trading, not portfolio charts
     func backfillHistory(balances: [TokenBalance]) async {
-        // Only backfill if history is empty or very short
-        guard history.count < 10 else { return }
-        guard !balances.isEmpty else { return }
-        
-        isBackfilling = true
-        
-        // 1. Fetch history for each token
-        var tokenHistories: [String: [(Date, Decimal)]] = [:]
-        
-        for balance in balances {
-            // Only fetch for significant holdings (> $1) to save API calls
-            if balance.usdValue > 1.0 {
-                do {
-                    let prices = try await PriceFeedService.shared.fetchHistoricalPrices(for: balance.token.symbol)
-                    tokenHistories[balance.token.symbol] = prices
-                } catch {
-                    // Skip tokens where historical data fetch fails
-                }
-            }
-        }
-        
-        // 2. Combine histories
-        // We need to align timestamps. CoinGecko returns hourly points roughly.
-        // We'll iterate through the timestamps of the first token (usually SOL)
-        // and sum up values of all other tokens at that approximate time.
-        
-        guard let baseHistory = tokenHistories.first?.value else {
-            isBackfilling = false
-            return
-        }
-        
-        var newHistory: [PortfolioDataPoint] = []
-        
-        for (timestamp, _) in baseHistory {
-            var totalValue: Decimal = 0
-            
-            for balance in balances {
-                let symbol = balance.token.symbol
-                let amount = balance.amount // Current amount (Assumed constant)
-                
-                if let history = tokenHistories[symbol] {
-                    // Find price closest to this timestamp
-                    // (Simple optimization: just finding first match since arrays are sorted)
-                    if let pricePoint = history.first(where: { abs($0.0.timeIntervalSince(timestamp)) < 3600 }) {
-                        totalValue += amount * pricePoint.1
-                    } else {
-                        // Fallback to current price if missing (shouldn't happen often)
-                        totalValue += balance.usdValue
-                    }
-                } else {
-                    // If we didn't fetch history (small holding), just add constant current value
-                    totalValue += balance.usdValue
-                }
-            }
-            
-            if totalValue > 0 {
-                newHistory.append(PortfolioDataPoint(value: totalValue, timestamp: timestamp))
-            }
-        }
-        
-        // 3. Save
-        await MainActor.run {
-            // Sort by date just in case
-            self.history = newHistory.sorted(by: { $0.timestamp < $1.timestamp })
-            self.isBackfilling = false
-            self.saveHistory()
-        }
+        // No-op: Historical portfolio data not needed for copy trading focus
     }
     
     // MARK: - Private Helpers

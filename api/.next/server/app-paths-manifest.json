@@ -1,0 +1,10 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/polymarket/route": "app/api/polymarket/route.js",
+  "/api/markets/route": "app/api/markets/route.js",
+  "/api/bets/route": "app/api/bets/route.js",
+  "/page": "app/page.js",
+  "/api/wallets/route": "app/api/wallets/route.js",
+  "/api/stats/route": "app/api/stats/route.js",
+  "/api/health/route": "app/api/health/route.js"
+}

@@ -176,8 +176,8 @@ async function processTransaction(signature) {
         if (!bet || bet.amount === 0)
             return;
         bet.walletNickname = walletInfo.nickname;
-        // Get market info
-        const market = await getMarketInfo(bet.marketAddress);
+        // Get market info (pass wallet to look up positions if needed)
+        const market = await getMarketInfo(bet.marketAddress, bet.walletAddress);
         if (market) {
             bet.marketTitle = market.title;
             bet.marketCategory = market.category;
@@ -235,9 +235,9 @@ function parseBet(tx) {
     };
 }
 /**
- * Get market info from cache (in-memory first, then Firestore)
+ * Get market info from cache or fetch from API
  */
-async function getMarketInfo(address) {
+async function getMarketInfo(address, walletAddress) {
     try {
         // Check in-memory cache first (fastest)
         const memCached = marketCache.get(address);
@@ -248,17 +248,115 @@ async function getMarketInfo(address) {
         const cached = await db.collection("prediction_markets").doc(address).get();
         if (cached.exists) {
             const data = cached.data();
-            // Update in-memory cache
             if (data?.title) {
                 marketCache.set(address, {
                     title: data.title,
                     category: data.category || "Unknown",
                     cachedAt: Date.now(),
                 });
+                return data;
             }
-            return data;
+        }
+        // Not cached - try to fetch from Jupiter positions API
+        if (walletAddress) {
+            const marketInfo = await fetchMarketFromPositions(walletAddress, address);
+            if (marketInfo) {
+                return marketInfo;
+            }
+        }
+        // Try to fetch from active events
+        const eventMarket = await fetchMarketFromEvents(address);
+        if (eventMarket) {
+            return eventMarket;
         }
         return null;
+    }
+    catch {
+        return null;
+    }
+}
+/**
+ * Fetch market info by looking up wallet's positions
+ */
+async function fetchMarketFromPositions(walletAddress, marketAddress) {
+    try {
+        const res = await fetch(`${JUPITER_PREDICTION_API}/positions?ownerPubkey=${walletAddress}&limit=50`);
+        if (!res.ok)
+            return null;
+        const data = await res.json();
+        const positions = data.data || [];
+        // Find position that matches this market (by checking accounts)
+        for (const pos of positions) {
+            const eventMeta = pos.eventMetadata;
+            const marketMeta = pos.marketMetadata;
+            if (!eventMeta?.title)
+                continue;
+            // Cache all markets we find
+            const marketId = pos.marketId || pos.market;
+            if (marketId) {
+                const info = {
+                    title: `${eventMeta.title}${marketMeta?.title ? ' - ' + marketMeta.title : ''}`,
+                    category: eventMeta.category || "Unknown",
+                    cachedAt: Date.now(),
+                };
+                marketCache.set(marketId, info);
+                // Also save to Firestore
+                await db.collection("prediction_markets").doc(marketId).set({
+                    title: info.title,
+                    category: info.category,
+                    eventTitle: eventMeta.title,
+                    marketTitle: marketMeta?.title,
+                    isActive: eventMeta.isActive,
+                    cachedAt: firestore_1.FieldValue.serverTimestamp(),
+                }, { merge: true });
+            }
+        }
+        // Return the most recent position's market info as best guess
+        if (positions.length > 0 && positions[0].eventMetadata) {
+            const pos = positions[0];
+            return {
+                title: `${pos.eventMetadata.title}${pos.marketMetadata?.title ? ' - ' + pos.marketMetadata.title : ''}`,
+                category: pos.eventMetadata.category || "Unknown",
+            };
+        }
+        return null;
+    }
+    catch {
+        return null;
+    }
+}
+/**
+ * Fetch market info from active events
+ */
+async function fetchMarketFromEvents(marketAddress) {
+    try {
+        const res = await fetch(`${JUPITER_PREDICTION_API}/events?status=active&limit=20`);
+        if (!res.ok)
+            return null;
+        const data = await res.json();
+        const events = data.data || [];
+        for (const event of events) {
+            const eventTitle = event.metadata?.title || event.eventId;
+            const category = event.category || "Unknown";
+            for (const market of event.markets || []) {
+                const marketId = market.marketId;
+                const fullTitle = `${eventTitle}${market.metadata?.title ? ' - ' + market.metadata.title : ''}`;
+                // Cache it
+                const info = { title: fullTitle, category, cachedAt: Date.now() };
+                marketCache.set(marketId, info);
+                // Save to Firestore
+                await db.collection("prediction_markets").doc(marketId).set({
+                    title: fullTitle,
+                    eventTitle,
+                    marketTitle: market.metadata?.title,
+                    category,
+                    status: market.status,
+                    cachedAt: firestore_1.FieldValue.serverTimestamp(),
+                }, { merge: true });
+            }
+        }
+        stats.marketsKnown = marketCache.size;
+        return null; // Address matching not implemented yet
     }
     catch {
         return null;

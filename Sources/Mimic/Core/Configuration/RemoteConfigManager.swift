@@ -17,20 +17,16 @@ class RemoteConfigManager: ObservableObject {
 
     private enum ConfigKey: String {
         case heliusRpcUrl = "helius_rpc_url"
-        case birdeyeApiKey = "birdeye_api_key"
         case privyAppId = "privy_app_id"
         case privyAppClientId = "privy_app_client_id"
-        case maxTransactionRetries = "max_transaction_retries"
     }
 
     // MARK: - Default Values
 
     private let defaults: [String: NSObject] = [
         ConfigKey.heliusRpcUrl.rawValue: "" as NSObject,
-        ConfigKey.birdeyeApiKey.rawValue: "" as NSObject,
         ConfigKey.privyAppId.rawValue: "" as NSObject,
         ConfigKey.privyAppClientId.rawValue: "" as NSObject,
-        ConfigKey.maxTransactionRetries.rawValue: 3 as NSObject,
     ]
 
     private init() {
@@ -79,11 +75,6 @@ class RemoteConfigManager: ObservableObject {
         remoteConfig.configValue(forKey: ConfigKey.heliusRpcUrl.rawValue).stringValue ?? ""
     }
 
-    /// Get Birdeye API key for price charts
-    var birdeyeApiKey: String {
-        remoteConfig.configValue(forKey: ConfigKey.birdeyeApiKey.rawValue).stringValue ?? ""
-    }
-
     /// Get Privy App ID
     var privyAppId: String {
         remoteConfig.configValue(forKey: ConfigKey.privyAppId.rawValue).stringValue ?? ""
@@ -92,11 +83,6 @@ class RemoteConfigManager: ObservableObject {
     /// Get Privy App Client ID
     var privyAppClientId: String {
         remoteConfig.configValue(forKey: ConfigKey.privyAppClientId.rawValue).stringValue ?? ""
-    }
-
-    /// Get maximum transaction retries
-    var maxTransactionRetries: Int {
-        remoteConfig.configValue(forKey: ConfigKey.maxTransactionRetries.rawValue).numberValue.intValue
     }
 }
 

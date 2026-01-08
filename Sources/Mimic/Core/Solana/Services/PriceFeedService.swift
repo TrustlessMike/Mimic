@@ -34,29 +34,6 @@ class PriceFeedService: ObservableObject {
         )
     }
 
-    // All tokens with mint addresses for Birdeye chart data
-    private var symbolToMint: [String: String] {
-        Dictionary(uniqueKeysWithValues:
-            TokenRegistry.allTokens.compactMap { token -> (String, String)? in
-                // SOL uses native address, others use mint
-                if token.symbol == "SOL" {
-                    return ("SOL", "So11111111111111111111111111111111111111112")
-                }
-                guard let mint = token.mint else { return nil }
-                return (token.symbol, mint)
-            }
-        )
-    }
-
-    // Birdeye API key - fetched from Remote Config
-    // TODO: SECURITY - This fallback key was exposed in git history and should be rotated.
-    // After adding new key to Firebase Remote Config (birdeye_api_key), rotate the old key in Birdeye dashboard.
-    private var birdeyeApiKey: String {
-        let key = RemoteConfigManager.shared.birdeyeApiKey
-        // Fallback for initial app launch before Remote Config is fetched
-        return key.isEmpty ? "44b8682eb9fa415e913ef198ae2e6e03" : key
-    }
-
     private init() {}
 
     // MARK: - Public API
@@ -98,78 +75,6 @@ class PriceFeedService: ObservableObject {
         }
     }
     
-    /// Fetch historical prices for a token using Birdeye OHLCV API
-    /// Returns array of [Timestamp: Price]
-    func fetchHistoricalPrices(for symbol: String, days: Int = 7) async throws -> [(Date, Decimal)] {
-        guard let mintAddress = symbolToMint[symbol] else {
-            return []
-        }
-
-        // Calculate time range
-        let now = Int(Date().timeIntervalSince1970)
-        let timeFrom = now - (days * 24 * 60 * 60)
-
-        // Determine interval based on days
-        // 1D = 15m intervals, 1W = 1H intervals, 1M+ = 4H intervals
-        let interval: String
-        switch days {
-        case 1: interval = "15m"
-        case 7: interval = "1H"
-        case 30: interval = "4H"
-        default: interval = "1D"
-        }
-
-        // Birdeye OHLCV API
-        let urlString = "https://public-api.birdeye.so/defi/ohlcv?address=\(mintAddress)&type=\(interval)&time_from=\(timeFrom)&time_to=\(now)"
-
-        guard let url = URL(string: urlString) else {
-            throw PriceFeedError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.setValue(birdeyeApiKey, forHTTPHeaderField: "X-API-KEY")
-        request.setValue("solana", forHTTPHeaderField: "x-chain")
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            logger.error("Invalid response for \(symbol) chart")
-            throw PriceFeedError.invalidResponse
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            logger.error("Birdeye chart API error: \(httpResponse.statusCode) for \(symbol)")
-            throw PriceFeedError.httpError(statusCode: httpResponse.statusCode)
-        }
-
-        // Parse Birdeye OHLCV response
-        struct BirdeyeResponse: Decodable {
-            let success: Bool
-            let data: OHLCVData?
-        }
-
-        struct OHLCVData: Decodable {
-            let items: [OHLCVItem]
-        }
-
-        struct OHLCVItem: Decodable {
-            let unixTime: Int
-            let c: Double  // close price
-        }
-
-        let birdeyeResponse = try JSONDecoder().decode(BirdeyeResponse.self, from: data)
-
-        guard birdeyeResponse.success, let items = birdeyeResponse.data?.items else {
-            return []
-        }
-
-        return items.map { item in
-            let timestamp = Date(timeIntervalSince1970: TimeInterval(item.unixTime))
-            let price = Decimal(item.c)
-            return (timestamp, price)
-        }
-    }
-
     /// Start automatic price updates (every 60s)
     func startAutomaticUpdates() {
         stopAutomaticUpdates()
