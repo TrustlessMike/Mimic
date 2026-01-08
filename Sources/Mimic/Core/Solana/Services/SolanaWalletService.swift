@@ -48,6 +48,7 @@ class SolanaWalletService: ObservableObject {
                 try await remoteConfig.fetchAndActivate()
             } catch {
                 logger.error("Failed to fetch remote config: \(error.localizedDescription)")
+                error.report(context: "Remote config fetch")
                 await MainActor.run {
                     self.error = .configurationError
                 }
@@ -143,6 +144,7 @@ class SolanaWalletService: ObservableObject {
             isLoading = false
         } catch {
             logger.error("Failed to refresh balances: \(error.localizedDescription)")
+            error.report(context: "Balance refresh")
             self.error = .fetchError(error.localizedDescription)
             isLoading = false
         }

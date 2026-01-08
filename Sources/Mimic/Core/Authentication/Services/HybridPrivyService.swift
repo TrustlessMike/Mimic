@@ -82,7 +82,7 @@ class HybridPrivyService: ObservableObject {
             try await handleSuccessfulAuth(privyUser: privyUser)
         } catch {
             logger.error("Privy OAuth login failed: \(error.localizedDescription)")
-
+            error.report(context: "Privy OAuth login")
             throw error
         }
     }
@@ -180,6 +180,7 @@ class HybridPrivyService: ObservableObject {
 
         } catch {
             logger.error("Firebase bridge failed: \(error.localizedDescription)")
+            error.report(context: "Firebase bridge")
             throw HybridPrivyError.authenticationFailed("Firebase bridge failed: \(error.localizedDescription)")
         }
     }
@@ -224,6 +225,7 @@ class HybridPrivyService: ObservableObject {
                 }
             } catch {
                 logger.error("Failed to create server wallet: \(error.localizedDescription)")
+                error.report(context: "Server wallet creation")
                 // Fallback to client-side creation (won't have auth key for auto-convert)
                 do {
                     logger.debug("Falling back to client-side wallet creation...")
@@ -232,6 +234,7 @@ class HybridPrivyService: ObservableObject {
                     logger.debug("Created client-side wallet")
                 } catch {
                     logger.error("Client-side wallet creation failed: \(error.localizedDescription)")
+                    error.report(context: "Client-side wallet creation")
                 }
             }
         }
@@ -259,6 +262,7 @@ class HybridPrivyService: ObservableObject {
                 logger.debug("Updated Firestore with wallet")
             } catch {
                 logger.error("Failed to update wallet in Firestore: \(error.localizedDescription)")
+                error.report(context: "Firestore wallet update")
                 // Don't throw - this is not a fatal error, continue with auth
             }
         }
@@ -416,6 +420,7 @@ class HybridPrivyService: ObservableObject {
                                 await fetchUserData(privyUser: privyUser, firebaseUid: firebaseUid)
                             } catch {
                                 logger.error("Failed to re-authenticate with Firebase")
+                                error.report(context: "Firebase re-authentication")
                                 return false
                             }
                         }

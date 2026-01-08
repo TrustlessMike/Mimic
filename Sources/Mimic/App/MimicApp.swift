@@ -2,6 +2,7 @@ import SwiftUI
 import FirebaseCore
 import FirebaseAuth
 import FirebaseMessaging
+import FirebaseCrashlytics
 import UIKit
 
 @main
@@ -16,6 +17,29 @@ struct MimicApp: App {
         // Configure Firebase Auth for persistent sessions
         // This enables automatic token refresh for up to 400 days (matching Privy)
         Auth.auth().useAppLanguage()
+
+        // Configure Crashlytics
+        configureCrashlytics()
+    }
+
+    private func configureCrashlytics() {
+        // Enable Crashlytics collection (can be disabled via user settings)
+        Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(true)
+
+        // Set app version info
+        Crashlytics.crashlytics().setCustomValue(
+            Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
+            forKey: "app_version"
+        )
+        Crashlytics.crashlytics().setCustomValue(
+            Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown",
+            forKey: "build_number"
+        )
+
+        #if DEBUG
+        // Disable Crashlytics in debug builds to avoid noise
+        Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(false)
+        #endif
     }
 
     var body: some Scene {
@@ -77,6 +101,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNot
         #if DEBUG
         print("Failed to register for remote notifications: \(error)")
         #endif
+        error.report(context: "Push notification registration")
     }
 
     // MARK: - Firebase Messaging Delegate

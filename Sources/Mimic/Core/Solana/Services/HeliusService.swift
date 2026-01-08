@@ -127,7 +127,9 @@ class HeliusService {
 
         guard httpResponse.statusCode == 200 else {
             logger.error("❌ RPC error: HTTP \(httpResponse.statusCode)")
-            throw HeliusError.httpError(statusCode: httpResponse.statusCode)
+            let httpError = HeliusError.httpError(statusCode: httpResponse.statusCode)
+            httpError.report(context: "Helius RPC request")
+            throw httpError
         }
 
         let decoder = JSONDecoder()
@@ -135,6 +137,7 @@ class HeliusService {
             return try decoder.decode(T.self, from: data)
         } catch {
             logger.error("❌ Failed to decode response: \(error.localizedDescription)")
+            error.report(context: "Helius response decoding")
             throw HeliusError.decodingError(error)
         }
     }

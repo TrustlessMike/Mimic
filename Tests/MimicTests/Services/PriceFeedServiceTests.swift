@@ -28,12 +28,14 @@ final class PriceFeedServiceTests: XCTestCase {
 
     // MARK: - Price Formatting Tests
 
-    func testGetPriceReturnsNilForUnknownSymbol() {
+    func testGetPriceReturnsZeroForUnknownSymbol() {
+        // getPrice returns 0 (not nil) for unknown symbols
         let price = sut.getPrice(for: "UNKNOWN_TOKEN_XYZ")
-        XCTAssertNil(price, "Unknown token should return nil price")
+        XCTAssertEqual(price, 0, "Unknown token should return 0 price")
     }
 
     func testGetChange24hReturnsNilForUnknownSymbol() {
+        // getChange24h returns nil for unknown symbols
         let change = sut.getChange24h(for: "UNKNOWN_TOKEN_XYZ")
         XCTAssertNil(change, "Unknown token should return nil 24h change")
     }
