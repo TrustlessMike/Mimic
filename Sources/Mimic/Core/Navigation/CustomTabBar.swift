@@ -21,12 +21,12 @@ struct CustomTabBar: View {
                     selectedTab: $selectedTab
                 )
 
-                // Leaderboard - Ranked smart money wallets
+                // Positions - Your active bets
                 TabBarButton(
-                    icon: "trophy",
-                    selectedIcon: "trophy.fill",
-                    title: "Leaderboard",
-                    tab: .leaderboard,
+                    icon: "list.bullet.clipboard",
+                    selectedIcon: "list.bullet.clipboard.fill",
+                    title: "Positions",
+                    tab: .portfolio,
                     selectedTab: $selectedTab
                 )
 
@@ -51,12 +51,12 @@ struct CustomTabBar: View {
                 }
                 .offset(y: -Spacing.lg)
 
-                // Portfolio - Your wallet
+                // Leaderboard - Ranked smart money wallets
                 TabBarButton(
-                    icon: "wallet.pass",
-                    selectedIcon: "wallet.pass.fill",
-                    title: "Wallet",
-                    tab: .portfolio,
+                    icon: "trophy",
+                    selectedIcon: "trophy.fill",
+                    title: "Leaderboard",
+                    tab: .leaderboard,
                     selectedTab: $selectedTab
                 )
 

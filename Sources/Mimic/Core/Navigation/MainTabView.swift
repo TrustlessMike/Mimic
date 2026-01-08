@@ -20,9 +20,7 @@ struct MainTabView: View {
                 case .leaderboard:
                     LeaderboardView()
                 case .portfolio:
-                    if let user = user {
-                        WalletView(user: user)
-                    }
+                    PositionsView()
                 case .settings:
                     if let user = user {
                         SettingsView(

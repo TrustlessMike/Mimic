@@ -222,3 +222,5 @@ api/.next/
 api/.next/
 TestResults/
 TestResults.xcresult/
+.vercel
+.env*.local
