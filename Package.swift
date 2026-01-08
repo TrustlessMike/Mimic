@@ -2,25 +2,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "Wickett",
+    name: "Mimic",
     platforms: [
-        .iOS(.v16)
+        .iOS(.v17)
     ],
     products: [
-        .iOSApplication(
-            name: "Wickett",
-            targets: ["Wickett"],
-            bundleIdentifier: "com.syndicatemike.Wickett",
-            displayVersion: "1.0",
-            bundleVersion: "1",
-            supportedDeviceFamilies: [.pad, .phone],
-            supportedInterfaceOrientations: [
-                .portrait,
-                .landscapeLeft,
-                .landscapeRight,
-                .portraitUpsideDown(.pad)
-            ],
-            infoPlist: .file("Resources/Info.plist")
+        .library(
+            name: "Mimic",
+            targets: ["Mimic"]
         ),
     ],
     dependencies: [
@@ -29,7 +18,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "Wickett",
+            name: "Mimic",
             dependencies: [
                 .product(name: "FirebaseAuth", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
@@ -38,10 +27,15 @@ let package = Package(
                 .product(name: "FirebaseRemoteConfig", package: "firebase-ios-sdk"),
                 .product(name: "Solana", package: "Solana.Swift")
             ],
-            path: "Sources/Wickett",
+            path: "Sources/Mimic",
             resources: [
                 .process("Resources")
             ]
+        ),
+        .testTarget(
+            name: "MimicTests",
+            dependencies: ["Mimic"],
+            path: "Tests/MimicTests"
         ),
     ]
 )

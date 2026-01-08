@@ -28,7 +28,7 @@ export function LoginPage() {
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center mx-auto mb-6 shadow-glow">
               <Zap className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-white">Wickett Admin</h1>
+            <h1 className="text-3xl font-bold text-white">Mimic Admin</h1>
             <p className="mt-2 text-dark-400">
               Sign in to access the dashboard
             </p>

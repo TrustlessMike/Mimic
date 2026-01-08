@@ -8,35 +8,35 @@
 <h1 align="center">Mimic</h1>
 
 <p align="center">
-  <strong>Track smart money. Copy their trades. Trade like the best.</strong>
+  <strong>Follow top traders. Copy their moves.</strong>
 </p>
 
 <p align="center">
-  A mobile-first Solana wallet tracker and copy trading app.<br>
-  Follow elite traders, see their moves in real-time, and execute with one tap.
+  See what successful traders are buying—and copy them with one tap.<br>
+  No charts. No research. Just follow the smart money.
 </p>
 
 ---
 
 ## Overview
 
-Mimic is an iOS app that lets you track any Solana wallet and copy their trades instantly. Built for traders who want to follow smart money without the complexity.
+Mimic lets you follow successful traders and copy their moves with one tap. No experience needed—just pick who to follow and let the app do the rest.
 
 **Key Features:**
-- **Wallet Tracking** - Add any Solana address to monitor their trades
-- **Real-Time Feed** - See swaps as they happen via Helius webhooks
-- **One-Tap Copy** - Execute the same trade with a single button
-- **Safe by Default** - Only major tokens allowed (SOL, USDC, ETH, etc.)
-- **Degen Mode** - Opt-in to copy memecoin/pumpfun trades
+- **Follow Anyone** - Add traders to see what they're buying
+- **Real-Time Feed** - See trades as they happen
+- **One-Tap Copy** - Execute the same trade instantly
+- **Safe by Default** - Only established assets allowed
+- **Degen Mode** - Opt-in for higher-risk opportunities
 
 ## Safety Model
 
-Most copy traders lose money chasing memecoins. Mimic protects you by default.
+Copy trading can be risky. Mimic protects you by default.
 
-| Mode | Tokens | Description |
-|------|--------|-------------|
-| **Safe Mode** | SOL, USDC, USDT, ETH, wBTC, JUP, BONK, WIF | Default for all users |
-| **Degen Mode** | All tokens | Opt-in for experienced traders |
+| Mode | What's Allowed | Description |
+|------|----------------|-------------|
+| **Safe Mode** | Major established assets | Default for all users |
+| **Degen Mode** | Everything | Opt-in for experienced users |
 
 ## Architecture
 
@@ -86,7 +86,7 @@ Most copy traders lose money chasing memecoins. Mimic protects you by default.
 ```
 Mimic/
 ├── Sources/
-│   └── Wickett/
+│   └── Mimic/
 │       ├── App/                    # App entry point
 │       ├── Core/
 │       │   ├── Authentication/     # Privy integration
@@ -123,7 +123,7 @@ Mimic/
 ### iOS Setup
 
 1. Clone the repository
-2. Open `Wickett.xcodeproj` in Xcode
+2. Open `Mimic.xcodeproj` in Xcode
 3. Resolve Swift Package Manager dependencies
 4. Build and run
 

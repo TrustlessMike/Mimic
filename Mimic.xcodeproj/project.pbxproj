@@ -1,0 +1,1063 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		02B72813515ECDDBE3861C64 /* WalletActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4A9D2C9460E12AA10C53C93 /* WalletActivity.swift */; };
+		090AF1AB99991C1054A253A6 /* PredictionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CB396B2D1325A8015A05B8B /* PredictionService.swift */; };
+		0C0AFCD8BD3E8D64ABA58ECC /* CustomTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68920012DE247A18267C39A7 /* CustomTabBar.swift */; };
+		0E55D291D95228EE5BD65271 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76BD08866E10E4C5AC858543 /* WelcomeView.swift */; };
+		1E598BC458636E4E2291FD1A /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7ACE0EBBC28C5233525FE52 /* DesignSystem.swift */; };
+		23065A45A53FB01E0B599C34 /* CoinbaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3945AECC680D77F425BBC30C /* CoinbaseService.swift */; };
+		29786604B253F0FAC6A518AB /* OnboardingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73C8D435DC48BCAFFE01BD76 /* OnboardingState.swift */; };
+		299DDFDD03B2B6D1DDFDF749 /* SmartMoneyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6991ADB8D49CA2F22446E86F /* SmartMoneyView.swift */; };
+		2C4FF6F9A7416DD80182930C /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22510C7A123BBFF5973E0AE8 /* User.swift */; };
+		2DA4534243253FC463310E02 /* CoinbaseOnrampSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C514AF4DC4E7DF499809804B /* CoinbaseOnrampSession.swift */; };
+		2FB962EC39933C4A8AB1E730 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60E62C0594B928BE190871F /* AppConfiguration.swift */; };
+		2FCB6EBC2BD25751F2CCDA7E /* JupiterQuote.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0B47E60EC847748F807F62 /* JupiterQuote.swift */; };
+		30383425EBAE8043B8FDB9F2 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 53800D5297C748238108123D /* LaunchScreen.storyboard */; };
+		329992B5AB2B0B80E9B95839 /* TokenDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 450E783AB536A4557647A408 /* TokenDetailView.swift */; };
+		32ECD7F846D425BAAE38888E /* JupiterClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20951C5690A49921F874D139 /* JupiterClient.swift */; };
+		32EE300610763025DEF2370A /* SolanaWalletService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DFB66B59A15652804904F93 /* SolanaWalletService.swift */; };
+		32FC89D464D8DE37485D9632 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 8AD3CAA3C4C7F40A3AFD03B5 /* FirebaseAuth */; };
+		34AFE5C5818E5E3ADFFFFF5E /* PredictionBet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA66F00E8AB96A56874370A /* PredictionBet.swift */; };
+		3B04CFB171260D0F96CDD69B /* SkeletonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A805B59F4AA5DB3C2444567 /* SkeletonView.swift */; };
+		3C174E5DC757E51C0F31154A /* OnboardingCoordinatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFF7ED46606485ADC089E4DA /* OnboardingCoordinatorView.swift */; };
+		41194F3522A81AEA0940A6A5 /* TestingInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 215AD20171E65AF7FD2F6B97 /* TestingInfoView.swift */; };
+		4215558C10F4EB64C9C47C21 /* NotificationsSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E964EDB49B2B856F93A84AE8 /* NotificationsSetupView.swift */; };
+		43A881E83FD52546FEC8EFCE /* TermsAcceptanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D02E03E9B7AECBAC94C990 /* TermsAcceptanceView.swift */; };
+		44C5C5FA0D0D00A2CF1F032B /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 5AF3B60BE6D165015207980B /* FirebaseMessaging */; };
+		45C31460D259D17B7AAE10BA /* RemoteConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4A53ADC051D6E51929E4AB /* RemoteConfigManager.swift */; };
+		4B22BC3572952F7BE49537A2 /* PredictionFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0ADAC15A700B686D95AC2E /* PredictionFeedView.swift */; };
+		4E049567A28FF2ADAC614CAB /* WalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6004526206B8EDE74AC3C3 /* WalletView.swift */; };
+		4E72E64A7225ABAB26E81654 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 975937DCE6FC462AE5D7E41A /* FirebaseFunctions */; };
+		52A5940F8EBAEE5F4A3C8387 /* CoinbaseApplePayOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE785C93092E936B9863348A /* CoinbaseApplePayOrder.swift */; };
+		54B4234756F67339B04C286C /* TransactionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 623E9FB99A59F72BD055D07B /* TransactionState.swift */; };
+		5B2624F53A6B85DC8949A738 /* WalkthroughSlide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D50CA2744A57F413BEB75E /* WalkthroughSlide.swift */; };
+		634E4143B125368EF333A257 /* ButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C42D4EA1E011B10C273C118 /* ButtonStyles.swift */; };
+		69179386508917F15F03470A /* UserPreferencesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7875AF2E9E8214706B1C6256 /* UserPreferencesService.swift */; };
+		6E1082D8A4EB0B548E0F70FA /* SolanaSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 1FB8A4F217877EF34A1AF6D6 /* SolanaSwift */; };
+		6F8789B8AF9528BA5F7A488C /* GameUIComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E05DB5267450B179C5B4CB8 /* GameUIComponents.swift */; };
+		70976A032C5F2209081E2A59 /* SolanaToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3AF6D9E6DD55FD47E4BF31 /* SolanaToken.swift */; };
+		72D28EE68025BC787CA2EA55 /* JupiterPredictionAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8FF8100B262563CCAB54CAF /* JupiterPredictionAPI.swift */; };
+		75D766D739FFE55059918060 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2B958EF636C35D58CDD242B1 /* Assets.xcassets */; };
+		79F761A7F23A317CA34F208C /* DisplayNameSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 485B68DC198AF6D586C92C0A /* DisplayNameSetupView.swift */; };
+		7AD008864042791F47C6FE47 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39B3C61C3FF6F14CCD810022 /* LoginView.swift */; };
+		7E4EC60EBDC4EBCAF5724164 /* AuthError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24435B1A0431B3468C5F2F25 /* AuthError.swift */; };
+		8109380F1485D8B0C8D1C10D /* LeaderboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B52DEDF175FE74397336BDC /* LeaderboardView.swift */; };
+		814C0EA97C1A732685346CA7 /* OnboardingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156A9C262ABCC1ADCF352C34 /* OnboardingManager.swift */; };
+		827FE530CD6566F499504C95 /* TokenBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AC7413147D08868F2EF658D /* TokenBalance.swift */; };
+		83666C719A09F0F9EC214140 /* HybridPrivyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2614BAB8DF13951BFCFAA399 /* HybridPrivyService.swift */; };
+		85F6E79D125AF119099C2ADD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3285D2F8173CD0B1FC48B22F /* SettingsView.swift */; };
+		8841E3118BB254CFF6673B91 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE23870903BCBF4D71946443 /* LoadingView.swift */; };
+		8BA3A0D7B6E08F5C89341A4A /* TokenImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81A56AE5D397802A5C28463F /* TokenImageView.swift */; };
+		8D822AEEE8586120C598FAD0 /* TrackedWalletsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC3120CECB8528F63B654391 /* TrackedWalletsView.swift */; };
+		919A4025143ED0CC13BA87D9 /* UserPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 233BEEA98D0457D3B4AA905C /* UserPreferences.swift */; };
+		92914867EC45CD338BCBBFB1 /* DelegationConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B8FA70277B2706FF02002E /* DelegationConfig.swift */; };
+		94401BFF689670A114EA9E21 /* CoinbaseOnrampViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9CBD3DAD2D0597EF72C5AB3 /* CoinbaseOnrampViewModel.swift */; };
+		954E3B328F256D910EE60934 /* BrandColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = F148DF1A2A2DC1B241C99AEA /* BrandColors.swift */; };
+		99CF05A80C24A14B082DE3DF /* PreferencesSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDBAD5DE8C72036330822DDB /* PreferencesSetupView.swift */; };
+		A1E960421FDE075F721895AC /* BetCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6524AE9113FFA8F42AB81B2 /* BetCardView.swift */; };
+		A32B93DE3C7FED2F2ABACB2B /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAAC63E4AAD33652FC5A3DA3 /* ViewModifiers.swift */; };
+		A6251700B767174DF34F38EB /* CoinbaseSafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8482816D8F3F20DD5EEE81CB /* CoinbaseSafariView.swift */; };
+		ABF50FD9FC39DAA3EBF36B68 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 9BA24BF7E69469D9B434F203 /* FirebaseRemoteConfig */; };
+		AC756DD65884E5F68790307A /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 100E97BCB0763D4A32BED804 /* FirebaseFirestore */; };
+		B6023EC180D73B88FF6E7BE7 /* FirebaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3995E608C98687002B311E3B /* FirebaseManager.swift */; };
+		B897C0E13BC741C115AE4B77 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A99296BE2DB5B8ABCB3F0EA /* ThemeManager.swift */; };
+		B90D9485E4F389AF0FA546D0 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6C4AC4C8FAC9D1F023F84138 /* GoogleService-Info.plist */; };
+		C02FC72D6118C8F18C86DAB5 /* PaymentMethodSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B91C2D000453AAE5A0F16FA3 /* PaymentMethodSelectorView.swift */; };
+		C19906A9BCB84666C29D85AF /* PushNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49A96CC7A65DB65896B6F21B /* PushNotificationService.swift */; };
+		C214D6ED8136E06ABA0ABDE4 /* CopyTradingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 873DDC96363BCD3A37E1CD1C /* CopyTradingService.swift */; };
+		C79DCA665CE6BB15987B045F /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653F295B169182459BEA6FF1 /* MainTabView.swift */; };
+		C7D10D7C998DC2C4C07ABC2A /* MimicApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4621B6F75EF329C8A41E5EC5 /* MimicApp.swift */; };
+		CD6A784FDBEFB11583BCEF12 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0289BE17E9DB0139507D291F /* ContentView.swift */; };
+		CD87E3813395A4C0304FB6EF /* AuthCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6367F6AFD28415CECC32C0A /* AuthCoordinator.swift */; };
+		CDE09349A5A0ABC026201148 /* TokenMetadataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A93AEC2CDA86140AEED151DF /* TokenMetadataService.swift */; };
+		CDF90CB8CF173C2FD37DAA87 /* WalkthroughView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE840B2A1FFE4141A8F1365A /* WalkthroughView.swift */; };
+		D0FCCA9FDA13E4AE6942495C /* CoinbaseOnrampView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65A96A2091E6BA39E91A402B /* CoinbaseOnrampView.swift */; };
+		DB92FB7FA4B93CDC9DBCE414 /* PriceFeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CB4E83701B5AC4F0D566B5B /* PriceFeedService.swift */; };
+		E02C428E4B63354CBFBDD55D /* HeliusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDC1F371B68D3C0A51D46A65 /* HeliusService.swift */; };
+		E160F02501F3752AC2352AD7 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71CFBEF338F4454C07A57CF7 /* ConfettiView.swift */; };
+		E8E30A2B8647273226F4ED01 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD144F7416BC00DF177E2F0 /* NotificationManager.swift */; };
+		EB21C496D8F89C6DE177AE21 /* FirebaseCallableClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630DD0BD3E4F4D69782ED918 /* FirebaseCallableClient.swift */; };
+		EE002D1CDEF4368E4D0045EB /* SolanaSigningService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92EE34E0CE0FED0D3A334CE8 /* SolanaSigningService.swift */; };
+		EF0C1D94A099FA4B6BA56546 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB27051ADC7891A0054CA93 /* ProfileSetupView.swift */; };
+		F1CD68E452902124080D1FDF /* Privy in Frameworks */ = {isa = PBXBuildFile; productRef = 0E2F5BD1331441A1CAA1AA9C /* Privy */; };
+		F9F65239B3CEC180A0646616 /* AuthenticationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 512DC9F2BCDB5B74F500D2B3 /* AuthenticationService.swift */; };
+		FC3F092E5C367CB2932FCE44 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 9BAE89A08E8BF2ADB1FF7E41 /* Lottie */; };
+		FF5C7DFA6F343A1817AA4A78 /* LoadingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 949B0C290D90961E4FEE8845 /* LoadingOverlay.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0289BE17E9DB0139507D291F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		11D50CA2744A57F413BEB75E /* WalkthroughSlide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkthroughSlide.swift; sourceTree = "<group>"; };
+		156A9C262ABCC1ADCF352C34 /* OnboardingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingManager.swift; sourceTree = "<group>"; };
+		1AC7413147D08868F2EF658D /* TokenBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenBalance.swift; sourceTree = "<group>"; };
+		20951C5690A49921F874D139 /* JupiterClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JupiterClient.swift; sourceTree = "<group>"; };
+		215AD20171E65AF7FD2F6B97 /* TestingInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestingInfoView.swift; sourceTree = "<group>"; };
+		22510C7A123BBFF5973E0AE8 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
+		233BEEA98D0457D3B4AA905C /* UserPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferences.swift; sourceTree = "<group>"; };
+		24435B1A0431B3468C5F2F25 /* AuthError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthError.swift; sourceTree = "<group>"; };
+		2614BAB8DF13951BFCFAA399 /* HybridPrivyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HybridPrivyService.swift; sourceTree = "<group>"; };
+		2B958EF636C35D58CDD242B1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2CB4E83701B5AC4F0D566B5B /* PriceFeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceFeedService.swift; sourceTree = "<group>"; };
+		2DFB66B59A15652804904F93 /* SolanaWalletService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolanaWalletService.swift; sourceTree = "<group>"; };
+		2E05DB5267450B179C5B4CB8 /* GameUIComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameUIComponents.swift; sourceTree = "<group>"; };
+		3285D2F8173CD0B1FC48B22F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		36A3BA0A0BE4551C487C8CC6 /* Mimic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mimic.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3945AECC680D77F425BBC30C /* CoinbaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseService.swift; sourceTree = "<group>"; };
+		3995E608C98687002B311E3B /* FirebaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseManager.swift; sourceTree = "<group>"; };
+		39B3C61C3FF6F14CCD810022 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		3B52DEDF175FE74397336BDC /* LeaderboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardView.swift; sourceTree = "<group>"; };
+		3C42D4EA1E011B10C273C118 /* ButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonStyles.swift; sourceTree = "<group>"; };
+		450E783AB536A4557647A408 /* TokenDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenDetailView.swift; sourceTree = "<group>"; };
+		4621B6F75EF329C8A41E5EC5 /* MimicApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MimicApp.swift; sourceTree = "<group>"; };
+		485B68DC198AF6D586C92C0A /* DisplayNameSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameSetupView.swift; sourceTree = "<group>"; };
+		49A96CC7A65DB65896B6F21B /* PushNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationService.swift; sourceTree = "<group>"; };
+		4A805B59F4AA5DB3C2444567 /* SkeletonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonView.swift; sourceTree = "<group>"; };
+		512DC9F2BCDB5B74F500D2B3 /* AuthenticationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationService.swift; sourceTree = "<group>"; };
+		53800D5297C748238108123D /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		56D02E03E9B7AECBAC94C990 /* TermsAcceptanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermsAcceptanceView.swift; sourceTree = "<group>"; };
+		5CB396B2D1325A8015A05B8B /* PredictionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionService.swift; sourceTree = "<group>"; };
+		623E9FB99A59F72BD055D07B /* TransactionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionState.swift; sourceTree = "<group>"; };
+		630DD0BD3E4F4D69782ED918 /* FirebaseCallableClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseCallableClient.swift; sourceTree = "<group>"; };
+		653F295B169182459BEA6FF1 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		65A96A2091E6BA39E91A402B /* CoinbaseOnrampView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseOnrampView.swift; sourceTree = "<group>"; };
+		68920012DE247A18267C39A7 /* CustomTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTabBar.swift; sourceTree = "<group>"; };
+		6991ADB8D49CA2F22446E86F /* SmartMoneyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartMoneyView.swift; sourceTree = "<group>"; };
+		6A99296BE2DB5B8ABCB3F0EA /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		6C4AC4C8FAC9D1F023F84138 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		6E6004526206B8EDE74AC3C3 /* WalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletView.swift; sourceTree = "<group>"; };
+		71CFBEF338F4454C07A57CF7 /* ConfettiView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfettiView.swift; sourceTree = "<group>"; };
+		73C8D435DC48BCAFFE01BD76 /* OnboardingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingState.swift; sourceTree = "<group>"; };
+		76BD08866E10E4C5AC858543 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		7875AF2E9E8214706B1C6256 /* UserPreferencesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferencesService.swift; sourceTree = "<group>"; };
+		81A56AE5D397802A5C28463F /* TokenImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenImageView.swift; sourceTree = "<group>"; };
+		8482816D8F3F20DD5EEE81CB /* CoinbaseSafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseSafariView.swift; sourceTree = "<group>"; };
+		873DDC96363BCD3A37E1CD1C /* CopyTradingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyTradingService.swift; sourceTree = "<group>"; };
+		92EE34E0CE0FED0D3A334CE8 /* SolanaSigningService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolanaSigningService.swift; sourceTree = "<group>"; };
+		949B0C290D90961E4FEE8845 /* LoadingOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingOverlay.swift; sourceTree = "<group>"; };
+		9FD144F7416BC00DF177E2F0 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		A4A9D2C9460E12AA10C53C93 /* WalletActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletActivity.swift; sourceTree = "<group>"; };
+		A6367F6AFD28415CECC32C0A /* AuthCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCoordinator.swift; sourceTree = "<group>"; };
+		A6B8FA70277B2706FF02002E /* DelegationConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DelegationConfig.swift; sourceTree = "<group>"; };
+		A93AEC2CDA86140AEED151DF /* TokenMetadataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenMetadataService.swift; sourceTree = "<group>"; };
+		AE785C93092E936B9863348A /* CoinbaseApplePayOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseApplePayOrder.swift; sourceTree = "<group>"; };
+		AEB27051ADC7891A0054CA93 /* ProfileSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupView.swift; sourceTree = "<group>"; };
+		B60E62C0594B928BE190871F /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
+		B7ACE0EBBC28C5233525FE52 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		B91C2D000453AAE5A0F16FA3 /* PaymentMethodSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentMethodSelectorView.swift; sourceTree = "<group>"; };
+		BDBAD5DE8C72036330822DDB /* PreferencesSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesSetupView.swift; sourceTree = "<group>"; };
+		BE23870903BCBF4D71946443 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		C514AF4DC4E7DF499809804B /* CoinbaseOnrampSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseOnrampSession.swift; sourceTree = "<group>"; };
+		C6524AE9113FFA8F42AB81B2 /* BetCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BetCardView.swift; sourceTree = "<group>"; };
+		DC3120CECB8528F63B654391 /* TrackedWalletsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackedWalletsView.swift; sourceTree = "<group>"; };
+		E8FF8100B262563CCAB54CAF /* JupiterPredictionAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JupiterPredictionAPI.swift; sourceTree = "<group>"; };
+		E964EDB49B2B856F93A84AE8 /* NotificationsSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsSetupView.swift; sourceTree = "<group>"; };
+		EC0ADAC15A700B686D95AC2E /* PredictionFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionFeedView.swift; sourceTree = "<group>"; };
+		EC0B47E60EC847748F807F62 /* JupiterQuote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JupiterQuote.swift; sourceTree = "<group>"; };
+		EDC1F371B68D3C0A51D46A65 /* HeliusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeliusService.swift; sourceTree = "<group>"; };
+		EE3AF6D9E6DD55FD47E4BF31 /* SolanaToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolanaToken.swift; sourceTree = "<group>"; };
+		EE840B2A1FFE4141A8F1365A /* WalkthroughView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkthroughView.swift; sourceTree = "<group>"; };
+		EFF7ED46606485ADC089E4DA /* OnboardingCoordinatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCoordinatorView.swift; sourceTree = "<group>"; };
+		F148DF1A2A2DC1B241C99AEA /* BrandColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandColors.swift; sourceTree = "<group>"; };
+		F9CBD3DAD2D0597EF72C5AB3 /* CoinbaseOnrampViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseOnrampViewModel.swift; sourceTree = "<group>"; };
+		FAAC63E4AAD33652FC5A3DA3 /* ViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModifiers.swift; sourceTree = "<group>"; };
+		FDA66F00E8AB96A56874370A /* PredictionBet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionBet.swift; sourceTree = "<group>"; };
+		FF4A53ADC051D6E51929E4AB /* RemoteConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteConfigManager.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5937CDE6A201617107F1913D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F1CD68E452902124080D1FDF /* Privy in Frameworks */,
+				32FC89D464D8DE37485D9632 /* FirebaseAuth in Frameworks */,
+				AC756DD65884E5F68790307A /* FirebaseFirestore in Frameworks */,
+				4E72E64A7225ABAB26E81654 /* FirebaseFunctions in Frameworks */,
+				ABF50FD9FC39DAA3EBF36B68 /* FirebaseRemoteConfig in Frameworks */,
+				44C5C5FA0D0D00A2CF1F032B /* FirebaseMessaging in Frameworks */,
+				6E1082D8A4EB0B548E0F70FA /* SolanaSwift in Frameworks */,
+				FC3F092E5C367CB2932FCE44 /* Lottie in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		001026908D681B87DF409953 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				11D50CA2744A57F413BEB75E /* WalkthroughSlide.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		048EF8D048EA9827B9177EC7 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				2CC0794565650AAE269B72FC /* Views */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		05670EE98D05BB138CF8FB3B /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				65A96A2091E6BA39E91A402B /* CoinbaseOnrampView.swift */,
+				B91C2D000453AAE5A0F16FA3 /* PaymentMethodSelectorView.swift */,
+				724A775869EB1A5C37178082 /* Components */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		0BE8C28B04FA676725D588E6 /* Authentication */ = {
+			isa = PBXGroup;
+			children = (
+				A6367F6AFD28415CECC32C0A /* AuthCoordinator.swift */,
+				6362868E32C4115178D104CB /* Services */,
+			);
+			path = Authentication;
+			sourceTree = "<group>";
+		};
+		0EC8ACAE973BA109A1907B7A /* Prediction */ = {
+			isa = PBXGroup;
+			children = (
+				535FEA6383EE3B63D42AEFDE /* Models */,
+				79A36EC745D6EADECB87222F /* Services */,
+				9439A10F0D97CF2DFD7F346E /* Views */,
+			);
+			path = Prediction;
+			sourceTree = "<group>";
+		};
+		1637E633FEE01D7CC256644E /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				F66F087AD87939F63B179023 /* Views */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		1D71DD1D8A5FA46089F70EB0 /* CopyTrading */ = {
+			isa = PBXGroup;
+			children = (
+				6BDE158D69B183A6C5BDCC80 /* Services */,
+				371D8ABA436CC88CCFEED924 /* Views */,
+			);
+			path = CopyTrading;
+			sourceTree = "<group>";
+		};
+		24DDD6AC6132E380150A78FC /* Coinbase */ = {
+			isa = PBXGroup;
+			children = (
+				F7BBDFA94F64D0EA080588B8 /* ViewModels */,
+				05670EE98D05BB138CF8FB3B /* Views */,
+			);
+			path = Coinbase;
+			sourceTree = "<group>";
+		};
+		2AAB6C380C2F64CD8BB32458 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				71CFBEF338F4454C07A57CF7 /* ConfettiView.swift */,
+				2E05DB5267450B179C5B4CB8 /* GameUIComponents.swift */,
+				949B0C290D90961E4FEE8845 /* LoadingOverlay.swift */,
+				BE23870903BCBF4D71946443 /* LoadingView.swift */,
+				4A805B59F4AA5DB3C2444567 /* SkeletonView.swift */,
+				81A56AE5D397802A5C28463F /* TokenImageView.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		2CC0794565650AAE269B72FC /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				3285D2F8173CD0B1FC48B22F /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		30D431513F5C7EFFD68389B2 /* User */ = {
+			isa = PBXGroup;
+			children = (
+				6CCF6BC2DBAEA180D0221E4A /* Services */,
+			);
+			path = User;
+			sourceTree = "<group>";
+		};
+		371D8ABA436CC88CCFEED924 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				DC3120CECB8528F63B654391 /* TrackedWalletsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		418BE8E58811B9F342B73984 /* Mimic */ = {
+			isa = PBXGroup;
+			children = (
+				92C992BED77AD12D41821D4A /* App */,
+				BA855D919453C626ADDA14D1 /* Core */,
+				57FC93A8368E52132E82A606 /* Features */,
+				8812D0B53660DF9CEAF1A2E8 /* Shared */,
+			);
+			name = Mimic;
+			path = Sources/Mimic;
+			sourceTree = "<group>";
+		};
+		4DD4186369E952DA25A34B16 /* Coinbase */ = {
+			isa = PBXGroup;
+			children = (
+				58DF92030AD72D13495E143D /* Models */,
+				FB5ED80B8CD9E74A634D494D /* Services */,
+			);
+			path = Coinbase;
+			sourceTree = "<group>";
+		};
+		535FEA6383EE3B63D42AEFDE /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				FDA66F00E8AB96A56874370A /* PredictionBet.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		57FC93A8368E52132E82A606 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				1637E633FEE01D7CC256644E /* Auth */,
+				24DDD6AC6132E380150A78FC /* Coinbase */,
+				1D71DD1D8A5FA46089F70EB0 /* CopyTrading */,
+				D25DC357E7495C3CC1CF937B /* Onboarding */,
+				0EC8ACAE973BA109A1907B7A /* Prediction */,
+				048EF8D048EA9827B9177EC7 /* Settings */,
+				9CB6F4D0D1AB0218B5B29028 /* Wallet */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		58A4E59820FC92529FB91BB1 /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				49A96CC7A65DB65896B6F21B /* PushNotificationService.swift */,
+			);
+			path = Notifications;
+			sourceTree = "<group>";
+		};
+		58DF92030AD72D13495E143D /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AE785C93092E936B9863348A /* CoinbaseApplePayOrder.swift */,
+				C514AF4DC4E7DF499809804B /* CoinbaseOnrampSession.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		5BCF288CCDDBA18A329C7D1A /* Navigation */ = {
+			isa = PBXGroup;
+			children = (
+				68920012DE247A18267C39A7 /* CustomTabBar.swift */,
+				653F295B169182459BEA6FF1 /* MainTabView.swift */,
+			);
+			path = Navigation;
+			sourceTree = "<group>";
+		};
+		5E3306E6A2F08A9439CAB1FE /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				2B958EF636C35D58CDD242B1 /* Assets.xcassets */,
+				6C4AC4C8FAC9D1F023F84138 /* GoogleService-Info.plist */,
+				53800D5297C748238108123D /* LaunchScreen.storyboard */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		6362868E32C4115178D104CB /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				512DC9F2BCDB5B74F500D2B3 /* AuthenticationService.swift */,
+				2614BAB8DF13951BFCFAA399 /* HybridPrivyService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		6BDE158D69B183A6C5BDCC80 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				873DDC96363BCD3A37E1CD1C /* CopyTradingService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		6CCF6BC2DBAEA180D0221E4A /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				7875AF2E9E8214706B1C6256 /* UserPreferencesService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		724A775869EB1A5C37178082 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				8482816D8F3F20DD5EEE81CB /* CoinbaseSafariView.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		734B6D0DF8EA6EF63736199A /* Jupiter */ = {
+			isa = PBXGroup;
+			children = (
+				E8FF8100B262563CCAB54CAF /* JupiterPredictionAPI.swift */,
+			);
+			path = Jupiter;
+			sourceTree = "<group>";
+		};
+		79A36EC745D6EADECB87222F /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				5CB396B2D1325A8015A05B8B /* PredictionService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		8812D0B53660DF9CEAF1A2E8 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				2AAB6C380C2F64CD8BB32458 /* Components */,
+				99272364231EFC9504609230 /* Models */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		92C992BED77AD12D41821D4A /* App */ = {
+			isa = PBXGroup;
+			children = (
+				0289BE17E9DB0139507D291F /* ContentView.swift */,
+				4621B6F75EF329C8A41E5EC5 /* MimicApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		9439A10F0D97CF2DFD7F346E /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				C6524AE9113FFA8F42AB81B2 /* BetCardView.swift */,
+				3B52DEDF175FE74397336BDC /* LeaderboardView.swift */,
+				EC0ADAC15A700B686D95AC2E /* PredictionFeedView.swift */,
+				6991ADB8D49CA2F22446E86F /* SmartMoneyView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		988FBC3BA121AF2FCCD15986 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				36A3BA0A0BE4551C487C8CC6 /* Mimic.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		99272364231EFC9504609230 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				24435B1A0431B3468C5F2F25 /* AuthError.swift */,
+				A6B8FA70277B2706FF02002E /* DelegationConfig.swift */,
+				73C8D435DC48BCAFFE01BD76 /* OnboardingState.swift */,
+				623E9FB99A59F72BD055D07B /* TransactionState.swift */,
+				22510C7A123BBFF5973E0AE8 /* User.swift */,
+				233BEEA98D0457D3B4AA905C /* UserPreferences.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		9A07F2EC2F84A622CC811897 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				485B68DC198AF6D586C92C0A /* DisplayNameSetupView.swift */,
+				E964EDB49B2B856F93A84AE8 /* NotificationsSetupView.swift */,
+				EFF7ED46606485ADC089E4DA /* OnboardingCoordinatorView.swift */,
+				BDBAD5DE8C72036330822DDB /* PreferencesSetupView.swift */,
+				AEB27051ADC7891A0054CA93 /* ProfileSetupView.swift */,
+				56D02E03E9B7AECBAC94C990 /* TermsAcceptanceView.swift */,
+				215AD20171E65AF7FD2F6B97 /* TestingInfoView.swift */,
+				EE840B2A1FFE4141A8F1365A /* WalkthroughView.swift */,
+				76BD08866E10E4C5AC858543 /* WelcomeView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		9CB6F4D0D1AB0218B5B29028 /* Wallet */ = {
+			isa = PBXGroup;
+			children = (
+				AFB4B023AA0168DBF61F38FA /* Views */,
+			);
+			path = Wallet;
+			sourceTree = "<group>";
+		};
+		9E5BFF25532C9D56E471D4D5 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				9FD144F7416BC00DF177E2F0 /* NotificationManager.swift */,
+				156A9C262ABCC1ADCF352C34 /* OnboardingManager.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		AFB4B023AA0168DBF61F38FA /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				450E783AB536A4557647A408 /* TokenDetailView.swift */,
+				6E6004526206B8EDE74AC3C3 /* WalletView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		B0192CF62279C68E7B7B8FAC /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				F148DF1A2A2DC1B241C99AEA /* BrandColors.swift */,
+				3C42D4EA1E011B10C273C118 /* ButtonStyles.swift */,
+				B7ACE0EBBC28C5233525FE52 /* DesignSystem.swift */,
+				6A99296BE2DB5B8ABCB3F0EA /* ThemeManager.swift */,
+				FAAC63E4AAD33652FC5A3DA3 /* ViewModifiers.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		BA855D919453C626ADDA14D1 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				0BE8C28B04FA676725D588E6 /* Authentication */,
+				4DD4186369E952DA25A34B16 /* Coinbase */,
+				EE1E4510229B2FFD0313DDF2 /* Configuration */,
+				E09019E552161D4E4CD7380E /* Firebase */,
+				734B6D0DF8EA6EF63736199A /* Jupiter */,
+				5BCF288CCDDBA18A329C7D1A /* Navigation */,
+				58A4E59820FC92529FB91BB1 /* Notifications */,
+				9E5BFF25532C9D56E471D4D5 /* Onboarding */,
+				BE6FA2E255817109783D5C6D /* Solana */,
+				B0192CF62279C68E7B7B8FAC /* Theme */,
+				30D431513F5C7EFFD68389B2 /* User */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		BE6FA2E255817109783D5C6D /* Solana */ = {
+			isa = PBXGroup;
+			children = (
+				DCC1B5BAAC03E951319BA4C0 /* Models */,
+				F103CA9E983EEB7869CAE9DC /* Services */,
+			);
+			path = Solana;
+			sourceTree = "<group>";
+		};
+		C1014189877EB40BA7EC0DF6 = {
+			isa = PBXGroup;
+			children = (
+				418BE8E58811B9F342B73984 /* Mimic */,
+				5E3306E6A2F08A9439CAB1FE /* Resources */,
+				988FBC3BA121AF2FCCD15986 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D25DC357E7495C3CC1CF937B /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				001026908D681B87DF409953 /* Components */,
+				9A07F2EC2F84A622CC811897 /* Views */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		DCC1B5BAAC03E951319BA4C0 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				EC0B47E60EC847748F807F62 /* JupiterQuote.swift */,
+				EE3AF6D9E6DD55FD47E4BF31 /* SolanaToken.swift */,
+				1AC7413147D08868F2EF658D /* TokenBalance.swift */,
+				A4A9D2C9460E12AA10C53C93 /* WalletActivity.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		E09019E552161D4E4CD7380E /* Firebase */ = {
+			isa = PBXGroup;
+			children = (
+				630DD0BD3E4F4D69782ED918 /* FirebaseCallableClient.swift */,
+				3995E608C98687002B311E3B /* FirebaseManager.swift */,
+			);
+			path = Firebase;
+			sourceTree = "<group>";
+		};
+		EE1E4510229B2FFD0313DDF2 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				B60E62C0594B928BE190871F /* AppConfiguration.swift */,
+				FF4A53ADC051D6E51929E4AB /* RemoteConfigManager.swift */,
+			);
+			path = Configuration;
+			sourceTree = "<group>";
+		};
+		F103CA9E983EEB7869CAE9DC /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				EDC1F371B68D3C0A51D46A65 /* HeliusService.swift */,
+				20951C5690A49921F874D139 /* JupiterClient.swift */,
+				2CB4E83701B5AC4F0D566B5B /* PriceFeedService.swift */,
+				92EE34E0CE0FED0D3A334CE8 /* SolanaSigningService.swift */,
+				2DFB66B59A15652804904F93 /* SolanaWalletService.swift */,
+				A93AEC2CDA86140AEED151DF /* TokenMetadataService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		F66F087AD87939F63B179023 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				39B3C61C3FF6F14CCD810022 /* LoginView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		F7BBDFA94F64D0EA080588B8 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				F9CBD3DAD2D0597EF72C5AB3 /* CoinbaseOnrampViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		FB5ED80B8CD9E74A634D494D /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				3945AECC680D77F425BBC30C /* CoinbaseService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		602DB8F8DDD76460B012FA04 /* Mimic */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E746F4E9F072835EA456955C /* Build configuration list for PBXNativeTarget "Mimic" */;
+			buildPhases = (
+				BC5389148A41BF5A54700695 /* Sources */,
+				87C1B149D9DD1E41F4642C2B /* Resources */,
+				5937CDE6A201617107F1913D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Mimic;
+			packageProductDependencies = (
+				0E2F5BD1331441A1CAA1AA9C /* Privy */,
+				8AD3CAA3C4C7F40A3AFD03B5 /* FirebaseAuth */,
+				100E97BCB0763D4A32BED804 /* FirebaseFirestore */,
+				975937DCE6FC462AE5D7E41A /* FirebaseFunctions */,
+				9BA24BF7E69469D9B434F203 /* FirebaseRemoteConfig */,
+				5AF3B60BE6D165015207980B /* FirebaseMessaging */,
+				1FB8A4F217877EF34A1AF6D6 /* SolanaSwift */,
+				9BAE89A08E8BF2ADB1FF7E41 /* Lottie */,
+			);
+			productName = Mimic;
+			productReference = 36A3BA0A0BE4551C487C8CC6 /* Mimic.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8F5C6FC34238B01DE6029F1F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+			};
+			buildConfigurationList = 882A9BF5007CAB6281D803ED /* Build configuration list for PBXProject "Mimic" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = C1014189877EB40BA7EC0DF6;
+			packageReferences = (
+				F1A26D32E735BA1AF7DB1FC3 /* XCRemoteSwiftPackageReference "solana-swift" */,
+				EF05DEC9CEB8FE708CFFED9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				E4F117EA2C015464714D5E73 /* XCRemoteSwiftPackageReference "lottie-ios" */,
+				FFDA2025852C1E852C296035 /* XCRemoteSwiftPackageReference "privy-ios" */,
+			);
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				602DB8F8DDD76460B012FA04 /* Mimic */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		87C1B149D9DD1E41F4642C2B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				75D766D739FFE55059918060 /* Assets.xcassets in Resources */,
+				B90D9485E4F389AF0FA546D0 /* GoogleService-Info.plist in Resources */,
+				30383425EBAE8043B8FDB9F2 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BC5389148A41BF5A54700695 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2FB962EC39933C4A8AB1E730 /* AppConfiguration.swift in Sources */,
+				CD87E3813395A4C0304FB6EF /* AuthCoordinator.swift in Sources */,
+				7E4EC60EBDC4EBCAF5724164 /* AuthError.swift in Sources */,
+				F9F65239B3CEC180A0646616 /* AuthenticationService.swift in Sources */,
+				A1E960421FDE075F721895AC /* BetCardView.swift in Sources */,
+				954E3B328F256D910EE60934 /* BrandColors.swift in Sources */,
+				634E4143B125368EF333A257 /* ButtonStyles.swift in Sources */,
+				52A5940F8EBAEE5F4A3C8387 /* CoinbaseApplePayOrder.swift in Sources */,
+				2DA4534243253FC463310E02 /* CoinbaseOnrampSession.swift in Sources */,
+				D0FCCA9FDA13E4AE6942495C /* CoinbaseOnrampView.swift in Sources */,
+				94401BFF689670A114EA9E21 /* CoinbaseOnrampViewModel.swift in Sources */,
+				A6251700B767174DF34F38EB /* CoinbaseSafariView.swift in Sources */,
+				23065A45A53FB01E0B599C34 /* CoinbaseService.swift in Sources */,
+				E160F02501F3752AC2352AD7 /* ConfettiView.swift in Sources */,
+				CD6A784FDBEFB11583BCEF12 /* ContentView.swift in Sources */,
+				C214D6ED8136E06ABA0ABDE4 /* CopyTradingService.swift in Sources */,
+				0C0AFCD8BD3E8D64ABA58ECC /* CustomTabBar.swift in Sources */,
+				92914867EC45CD338BCBBFB1 /* DelegationConfig.swift in Sources */,
+				1E598BC458636E4E2291FD1A /* DesignSystem.swift in Sources */,
+				79F761A7F23A317CA34F208C /* DisplayNameSetupView.swift in Sources */,
+				EB21C496D8F89C6DE177AE21 /* FirebaseCallableClient.swift in Sources */,
+				B6023EC180D73B88FF6E7BE7 /* FirebaseManager.swift in Sources */,
+				6F8789B8AF9528BA5F7A488C /* GameUIComponents.swift in Sources */,
+				E02C428E4B63354CBFBDD55D /* HeliusService.swift in Sources */,
+				83666C719A09F0F9EC214140 /* HybridPrivyService.swift in Sources */,
+				32ECD7F846D425BAAE38888E /* JupiterClient.swift in Sources */,
+				72D28EE68025BC787CA2EA55 /* JupiterPredictionAPI.swift in Sources */,
+				2FCB6EBC2BD25751F2CCDA7E /* JupiterQuote.swift in Sources */,
+				8109380F1485D8B0C8D1C10D /* LeaderboardView.swift in Sources */,
+				FF5C7DFA6F343A1817AA4A78 /* LoadingOverlay.swift in Sources */,
+				8841E3118BB254CFF6673B91 /* LoadingView.swift in Sources */,
+				7AD008864042791F47C6FE47 /* LoginView.swift in Sources */,
+				C79DCA665CE6BB15987B045F /* MainTabView.swift in Sources */,
+				C7D10D7C998DC2C4C07ABC2A /* MimicApp.swift in Sources */,
+				E8E30A2B8647273226F4ED01 /* NotificationManager.swift in Sources */,
+				4215558C10F4EB64C9C47C21 /* NotificationsSetupView.swift in Sources */,
+				3C174E5DC757E51C0F31154A /* OnboardingCoordinatorView.swift in Sources */,
+				814C0EA97C1A732685346CA7 /* OnboardingManager.swift in Sources */,
+				29786604B253F0FAC6A518AB /* OnboardingState.swift in Sources */,
+				C02FC72D6118C8F18C86DAB5 /* PaymentMethodSelectorView.swift in Sources */,
+				34AFE5C5818E5E3ADFFFFF5E /* PredictionBet.swift in Sources */,
+				4B22BC3572952F7BE49537A2 /* PredictionFeedView.swift in Sources */,
+				090AF1AB99991C1054A253A6 /* PredictionService.swift in Sources */,
+				99CF05A80C24A14B082DE3DF /* PreferencesSetupView.swift in Sources */,
+				DB92FB7FA4B93CDC9DBCE414 /* PriceFeedService.swift in Sources */,
+				EF0C1D94A099FA4B6BA56546 /* ProfileSetupView.swift in Sources */,
+				C19906A9BCB84666C29D85AF /* PushNotificationService.swift in Sources */,
+				45C31460D259D17B7AAE10BA /* RemoteConfigManager.swift in Sources */,
+				85F6E79D125AF119099C2ADD /* SettingsView.swift in Sources */,
+				3B04CFB171260D0F96CDD69B /* SkeletonView.swift in Sources */,
+				299DDFDD03B2B6D1DDFDF749 /* SmartMoneyView.swift in Sources */,
+				EE002D1CDEF4368E4D0045EB /* SolanaSigningService.swift in Sources */,
+				70976A032C5F2209081E2A59 /* SolanaToken.swift in Sources */,
+				32EE300610763025DEF2370A /* SolanaWalletService.swift in Sources */,
+				43A881E83FD52546FEC8EFCE /* TermsAcceptanceView.swift in Sources */,
+				41194F3522A81AEA0940A6A5 /* TestingInfoView.swift in Sources */,
+				B897C0E13BC741C115AE4B77 /* ThemeManager.swift in Sources */,
+				827FE530CD6566F499504C95 /* TokenBalance.swift in Sources */,
+				329992B5AB2B0B80E9B95839 /* TokenDetailView.swift in Sources */,
+				8BA3A0D7B6E08F5C89341A4A /* TokenImageView.swift in Sources */,
+				CDE09349A5A0ABC026201148 /* TokenMetadataService.swift in Sources */,
+				8D822AEEE8586120C598FAD0 /* TrackedWalletsView.swift in Sources */,
+				54B4234756F67339B04C286C /* TransactionState.swift in Sources */,
+				2C4FF6F9A7416DD80182930C /* User.swift in Sources */,
+				919A4025143ED0CC13BA87D9 /* UserPreferences.swift in Sources */,
+				69179386508917F15F03470A /* UserPreferencesService.swift in Sources */,
+				A32B93DE3C7FED2F2ABACB2B /* ViewModifiers.swift in Sources */,
+				5B2624F53A6B85DC8949A738 /* WalkthroughSlide.swift in Sources */,
+				CDF90CB8CF173C2FD37DAA87 /* WalkthroughView.swift in Sources */,
+				02B72813515ECDDBE3861C64 /* WalletActivity.swift in Sources */,
+				4E049567A28FF2ADAC614CAB /* WalletView.swift in Sources */,
+				0E55D291D95228EE5BD65271 /* WelcomeView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1945349CBEF496CF7247F0E5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/Mimic.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3ZNP9JGQ38;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_CODE_SIGN_FLAGS = "--deep";
+				PRODUCT_BUNDLE_IDENTIFIER = com.syndicatemike.Mimic;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AE5793897D356265C8ACC247 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		BD230F92A7A08C9FC198E07C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		D88E2BE7750408122E10C0A8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/Mimic.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 3ZNP9JGQ38;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.syndicatemike.Mimic;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		882A9BF5007CAB6281D803ED /* Build configuration list for PBXProject "Mimic" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AE5793897D356265C8ACC247 /* Debug */,
+				BD230F92A7A08C9FC198E07C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E746F4E9F072835EA456955C /* Build configuration list for PBXNativeTarget "Mimic" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1945349CBEF496CF7247F0E5 /* Debug */,
+				D88E2BE7750408122E10C0A8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E4F117EA2C015464714D5E73 /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.0;
+			};
+		};
+		EF05DEC9CEB8FE708CFFED9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 10.20.0;
+			};
+		};
+		F1A26D32E735BA1AF7DB1FC3 /* XCRemoteSwiftPackageReference "solana-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TrustlessMike/solana-swift.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		FFDA2025852C1E852C296035 /* XCRemoteSwiftPackageReference "privy-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/privy-io/privy-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0E2F5BD1331441A1CAA1AA9C /* Privy */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FFDA2025852C1E852C296035 /* XCRemoteSwiftPackageReference "privy-ios" */;
+			productName = Privy;
+		};
+		100E97BCB0763D4A32BED804 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EF05DEC9CEB8FE708CFFED9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		1FB8A4F217877EF34A1AF6D6 /* SolanaSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F1A26D32E735BA1AF7DB1FC3 /* XCRemoteSwiftPackageReference "solana-swift" */;
+			productName = SolanaSwift;
+		};
+		5AF3B60BE6D165015207980B /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EF05DEC9CEB8FE708CFFED9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		8AD3CAA3C4C7F40A3AFD03B5 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EF05DEC9CEB8FE708CFFED9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		975937DCE6FC462AE5D7E41A /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EF05DEC9CEB8FE708CFFED9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		9BA24BF7E69469D9B434F203 /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EF05DEC9CEB8FE708CFFED9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
+		};
+		9BAE89A08E8BF2ADB1FF7E41 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E4F117EA2C015464714D5E73 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 8F5C6FC34238B01DE6029F1F /* Project object */;
+}
