@@ -16,6 +16,11 @@ class SolanaWalletService: ObservableObject {
     @Published var error: WalletError?
     @Published var lastUpdated: Date?
 
+    /// Cached filtered balances to avoid repeated filtering in views
+    var filteredBalances: [TokenBalance] {
+        balances.filter { $0.hasBalance }
+    }
+
     // MARK: - Dependencies
 
     private let heliusService = HeliusService.shared

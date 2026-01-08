@@ -43,12 +43,12 @@ struct WalletView: View {
                         if walletService.isLoading && walletService.balances.isEmpty {
                             SkeletonTokenList(count: 5)
                                 .padding(.horizontal, Spacing.lg)
-                        } else if walletService.balances.filter({ $0.hasBalance }).isEmpty {
+                        } else if !walletService.balances.contains(where: { $0.hasBalance }) {
                             EmptyBalancesView()
                                 .padding(.horizontal, Spacing.lg)
                         } else {
                             VStack(spacing: Spacing.sm) {
-                                ForEach(walletService.balances.filter { $0.hasBalance }) { balance in
+                                ForEach(walletService.filteredBalances) { balance in
                                     NavigationLink(destination: TokenDetailView(balance: balance)) {
                                         TokenBalanceRow(balance: balance)
                                     }
@@ -92,22 +92,31 @@ struct TotalBalanceCard: View {
     let change24h: Decimal?
     let lastUpdated: Date?
 
-    private var formattedTotal: String {
+    // Cached formatters for performance
+    private static let currencyFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = "USD"
         formatter.maximumFractionDigits = 2
-        return formatter.string(from: totalUSD as NSDecimalNumber) ?? "$0.00"
-    }
+        return formatter
+    }()
 
-    private var formattedChange: String? {
-        guard let change = change24h else { return nil }
+    private static let percentFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .percent
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
         formatter.positivePrefix = "+"
-        return formatter.string(from: (change / 100) as NSDecimalNumber)
+        return formatter
+    }()
+
+    private var formattedTotal: String {
+        Self.currencyFormatter.string(from: totalUSD as NSDecimalNumber) ?? "$0.00"
+    }
+
+    private var formattedChange: String? {
+        guard let change = change24h else { return nil }
+        return Self.percentFormatter.string(from: (change / 100) as NSDecimalNumber)
     }
 
     private var changeColor: Color {

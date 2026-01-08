@@ -122,10 +122,8 @@ struct PredictionFeedView: View {
                             if bet.id == predictionService.betFeed.last?.id && !isLoadingMore {
                                 Task {
                                     isLoadingMore = true
+                                    defer { isLoadingMore = false }
                                     await predictionService.loadMoreBets(filter: selectedFilter)
-                                    // Small delay to prevent rapid re-triggering
-                                    try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
-                                    isLoadingMore = false
                                 }
                             }
                         }

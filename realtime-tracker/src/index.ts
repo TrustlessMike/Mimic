@@ -338,6 +338,7 @@ function parseBet(tx: any): any | null {
 
 /**
  * Get market info from cache or fetch from API
+ * Optimized: Uses parallel fetching for API fallbacks
  */
 async function getMarketInfo(address: string, walletAddress?: string): Promise<any | null> {
   try {
@@ -361,22 +362,28 @@ async function getMarketInfo(address: string, walletAddress?: string): Promise<a
       }
     }
 
-    // Not cached - try to fetch from Jupiter positions API
+    // Not cached - fetch from APIs in parallel for better latency
+    const fetchPromises: Promise<any | null>[] = [
+      fetchMarketFromEvents(address),
+    ];
+
+    // Add positions fetch if wallet address provided
     if (walletAddress) {
-      const marketInfo = await fetchMarketFromPositions(walletAddress, address);
-      if (marketInfo) {
-        return marketInfo;
+      fetchPromises.unshift(fetchMarketFromPositions(walletAddress, address));
+    }
+
+    const results = await Promise.allSettled(fetchPromises);
+
+    // Return first successful result
+    for (const result of results) {
+      if (result.status === "fulfilled" && result.value) {
+        return result.value;
       }
     }
 
-    // Try to fetch from active events
-    const eventMarket = await fetchMarketFromEvents(address);
-    if (eventMarket) {
-      return eventMarket;
-    }
-
     return null;
-  } catch {
+  } catch (error) {
+    console.error(`Failed to get market info for ${address}:`, error);
     return null;
   }
 }
@@ -675,6 +682,8 @@ async function sendNotification(bet: any) {
  * Creates pending copy trades and either:
  * - Auto-executes via Cloud Function (if user has delegation)
  * - Sends notification for manual execution (if no delegation)
+ *
+ * Optimized: Batch fetches user documents to reduce N+1 DB calls
  */
 async function triggerAutoCopy(bet: any, betId: string) {
   try {
@@ -695,14 +704,26 @@ async function triggerAutoCopy(bet: any, betId: string) {
 
     console.log(`🎯 Auto-copy: ${trackersSnapshot.size} users tracking ${bet.walletAddress.slice(0, 8)}...`);
 
+    // Batch fetch all user documents upfront to avoid N+1 queries
+    const userIds = [...new Set(trackersSnapshot.docs.map((d) => d.data().userId))];
+    const userRefs = userIds.map((id) => db.collection("users").doc(id));
+    const userDocs = await db.getAll(...userRefs);
+
+    // Build userId -> userData map for O(1) lookups
+    const userDataMap = new Map<string, FirebaseFirestore.DocumentData>();
+    userDocs.forEach((doc) => {
+      if (doc.exists) {
+        userDataMap.set(doc.id, doc.data()!);
+      }
+    });
+
     for (const trackerDoc of trackersSnapshot.docs) {
       const tracker = trackerDoc.data();
       const userId = tracker.userId;
 
       try {
-        // Get user data
-        const userDoc = await db.collection("users").doc(userId).get();
-        const userData = userDoc.data();
+        // Get user data from pre-fetched map
+        const userData = userDataMap.get(userId);
 
         if (!userData?.walletAddress) {
           continue;

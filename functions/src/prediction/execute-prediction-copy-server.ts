@@ -29,6 +29,26 @@ import {
 const PREDICTION_PROGRAM_ID = new PublicKey("3ZZuTbwC6aJbvteyVxXUS7gtFYdf7AuXeitx6VyvjvUp");
 const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
+// Connection pooling: Reuse connection across warm function invocations
+let cachedConnection: Connection | null = null;
+let cachedRpcUrl: string | null = null;
+
+function getConnection(): Connection {
+  const rpcUrl = HELIUS_RPC_URL.value().trim();
+
+  // Return cached connection if RPC URL hasn't changed
+  if (cachedConnection && cachedRpcUrl === rpcUrl) {
+    return cachedConnection;
+  }
+
+  // Create new connection and cache it
+  cachedConnection = new Connection(rpcUrl, "confirmed");
+  cachedRpcUrl = rpcUrl;
+  logger.info("Created new Solana connection (will be reused for warm invocations)");
+
+  return cachedConnection;
+}
+
 interface ExecutePredictionCopyRequest {
   pendingCopyId: string;  // ID of pending_copy_trade document
 }
@@ -151,9 +171,8 @@ export const executePredictionCopyServer = onCall(
     }
 
     try {
-      // Initialize Solana connection
-      const rpcUrl = HELIUS_RPC_URL.value().trim();
-      const connection = new Connection(rpcUrl, "confirmed");
+      // Get pooled Solana connection (reused across warm invocations)
+      const connection = getConnection();
 
       // Get wallet ID for Privy signing
       const appId = PRIVY_APP_ID.value().trim();

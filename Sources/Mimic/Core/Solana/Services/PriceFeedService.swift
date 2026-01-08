@@ -14,25 +14,26 @@ class PriceFeedService: ObservableObject {
     private var lastUpdate: Date?
     private let cacheExpiration: TimeInterval = 30 // 30 seconds
     private var refreshTask: Task<Void, Never>?
-    
-    // CoinGecko ID Mapping - computed from TokenRegistry (single source of truth)
-    private var symbolToCoingeckoId: [String: String] {
+
+    // CoinGecko ID Mapping - cached from TokenRegistry (single source of truth)
+    // Using lazy to avoid rebuilding dictionary on every access
+    private lazy var symbolToCoingeckoId: [String: String] = {
         Dictionary(uniqueKeysWithValues:
             TokenRegistry.allTokens.compactMap { token in
                 token.coingeckoId.map { (token.symbol, $0) }
             }
         )
-    }
+    }()
 
-    // DexScreener tokens - tokens without CoinGecko IDs, computed from TokenRegistry
-    private var symbolToMintAddress: [String: String] {
+    // DexScreener tokens - tokens without CoinGecko IDs, cached from TokenRegistry
+    private lazy var symbolToMintAddress: [String: String] = {
         Dictionary(uniqueKeysWithValues:
             TokenRegistry.allTokens.compactMap { token -> (String, String)? in
                 guard token.coingeckoId == nil, let mint = token.mint else { return nil }
                 return (token.symbol, mint)
             }
         )
-    }
+    }()
 
     private init() {}
 
@@ -64,12 +65,10 @@ class PriceFeedService: ObservableObject {
             // Fetch from DexScreener (xStock tokens not on CoinGecko)
             let dexScreenerPrices = await fetchPricesFromDexScreener()
 
-            await MainActor.run {
-                // Merge prices from both sources
-                self.prices = coingeckoPrices.prices.merging(dexScreenerPrices.prices) { _, new in new }
-                self.changes24h = coingeckoPrices.changes.merging(dexScreenerPrices.changes) { _, new in new }
-                self.lastUpdate = Date()
-            }
+            // Already on MainActor - no need for additional dispatch
+            self.prices = coingeckoPrices.prices.merging(dexScreenerPrices.prices) { _, new in new }
+            self.changes24h = coingeckoPrices.changes.merging(dexScreenerPrices.changes) { _, new in new }
+            self.lastUpdate = Date()
         } catch {
             logger.error("Failed to fetch prices: \(error.localizedDescription)")
         }
