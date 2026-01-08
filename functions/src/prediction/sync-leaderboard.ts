@@ -105,8 +105,8 @@ async function runLeaderboardSync(heliusApiKey: string): Promise<{
     let skipped = 0;
 
     for (const [address, trader] of allTraders) {
-      // Skip if win rate < 50% or less than 10 bets
-      if (trader.winRatePct < 50 || trader.predictionsCount < 10) {
+      // Skip if win rate < 55% or less than 25 bets (ensure quality sharp traders)
+      if (trader.winRatePct < 55 || trader.predictionsCount < 25) {
         skipped++;
         continue;
       }

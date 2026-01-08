@@ -1,9 +1,9 @@
 import SwiftUI
 import FirebaseAuth
+import UIKit
 
 /// Clean, X-inspired feed showing prediction bets from smart money wallets
 struct PredictionFeedView: View {
-    @Environment(\.openURL) private var openURL
     @StateObject private var predictionService = PredictionService.shared
     @StateObject private var copyTradingService = CopyTradingService.shared
     @State private var selectedFilter: BetFeedFilter = .all
@@ -194,11 +194,15 @@ struct PredictionFeedView: View {
     }
 
     private func copyBet(_ bet: PredictionBet) {
-        // Build Jupiter prediction URL
-        let urlString = "https://jup.ag/prediction/\(bet.marketAddress)"
-        if let url = URL(string: urlString) {
-            openURL(url)
-        }
+        // Copy bet details to clipboard
+        let details = """
+        \(bet.direction.displayName) on \(bet.marketTitle ?? "Unknown Market")
+        Amount: \(bet.formattedAmount)
+        Price: \(Int(bet.avgPrice * 100))¢
+        Shares: \(Int(bet.shares))
+        Market: \(bet.marketAddress)
+        """
+        UIPasteboard.general.string = details
     }
 
     private func trackWallet(address: String, nickname: String?) {
@@ -212,21 +216,13 @@ struct PredictionFeedView: View {
 
         Task {
             do {
-                // Ensure Firebase Auth is ready
-                guard let user = Auth.auth().currentUser else {
+                guard Auth.auth().currentUser != nil else {
                     print("❌ No Firebase user - cannot track wallet")
                     trackingWalletAddress = nil
                     return
                 }
 
-                // Force refresh Firebase token and wait for completion
-                print("🔑 Refreshing Firebase token...")
-                let tokenResult = try await user.getIDTokenResult(forcingRefresh: true)
-                print("✅ Token refreshed, expires: \(tokenResult.expirationDate)")
-
-                // Small delay to ensure Firebase SDK internal state is updated
-                try await Task.sleep(nanoseconds: 100_000_000) // 100ms
-
+                // FirebaseCallableClient handles token refresh and retries
                 try await copyTradingService.addTrackedWallet(address: address, nickname: nickname)
                 print("✅ Wallet tracked successfully")
             } catch {
