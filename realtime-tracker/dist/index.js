@@ -299,6 +299,7 @@ function parseBet(tx) {
 }
 /**
  * Get market info from cache or fetch from API
+ * Optimized: Uses parallel fetching for API fallbacks
  */
 async function getMarketInfo(address, walletAddress) {
     try {
@@ -320,21 +321,25 @@ async function getMarketInfo(address, walletAddress) {
                 return data;
             }
         }
-        // Not cached - try to fetch from Jupiter positions API
+        // Not cached - fetch from APIs in parallel for better latency
+        const fetchPromises = [
+            fetchMarketFromEvents(address),
+        ];
+        // Add positions fetch if wallet address provided
         if (walletAddress) {
-            const marketInfo = await fetchMarketFromPositions(walletAddress, address);
-            if (marketInfo) {
-                return marketInfo;
-            }
+            fetchPromises.unshift(fetchMarketFromPositions(walletAddress, address));
         }
-        // Try to fetch from active events
-        const eventMarket = await fetchMarketFromEvents(address);
-        if (eventMarket) {
-            return eventMarket;
+        const results = await Promise.allSettled(fetchPromises);
+        // Return first successful result
+        for (const result of results) {
+            if (result.status === "fulfilled" && result.value) {
+                return result.value;
+            }
         }
         return null;
     }
-    catch {
+    catch (error) {
+        console.error(`Failed to get market info for ${address}:`, error);
         return null;
     }
 }
@@ -589,7 +594,11 @@ async function sendNotification(bet) {
 }
 /**
  * Trigger auto-copy for users following this wallet
- * Creates pending copy trades and sends actionable notifications
+ * Creates pending copy trades and either:
+ * - Auto-executes via Cloud Function (if user has delegation)
+ * - Sends notification for manual execution (if no delegation)
+ *
+ * Optimized: Batch fetches user documents to reduce N+1 DB calls
  */
 async function triggerAutoCopy(bet, betId) {
     try {
@@ -606,13 +615,23 @@ async function triggerAutoCopy(bet, betId) {
             return;
         }
         console.log(`🎯 Auto-copy: ${trackersSnapshot.size} users tracking ${bet.walletAddress.slice(0, 8)}...`);
+        // Batch fetch all user documents upfront to avoid N+1 queries
+        const userIds = [...new Set(trackersSnapshot.docs.map((d) => d.data().userId))];
+        const userRefs = userIds.map((id) => db.collection("users").doc(id));
+        const userDocs = await db.getAll(...userRefs);
+        // Build userId -> userData map for O(1) lookups
+        const userDataMap = new Map();
+        userDocs.forEach((doc) => {
+            if (doc.exists) {
+                userDataMap.set(doc.id, doc.data());
+            }
+        });
         for (const trackerDoc of trackersSnapshot.docs) {
             const tracker = trackerDoc.data();
             const userId = tracker.userId;
             try {
-                // Get user data
-                const userDoc = await db.collection("users").doc(userId).get();
-                const userData = userDoc.data();
+                // Get user data from pre-fetched map
+                const userData = userDataMap.get(userId);
                 if (!userData?.walletAddress) {
                     continue;
                 }
@@ -647,9 +666,47 @@ async function triggerAutoCopy(bet, betId) {
                     status: "pending",
                     createdAt: firestore_1.FieldValue.serverTimestamp(),
                     expiresAt,
+                    originalSignature: betId, // Store for transaction rebuilding
                 });
                 console.log(`✅ Created pending copy for ${userId}: $${suggestedAmount.toFixed(2)} ${bet.direction}`);
-                // Send actionable push notification
+                // Check if user has delegation enabled for auto-execution
+                const hasDelegation = userData.predictionDelegationActive === true;
+                if (hasDelegation) {
+                    // Trigger server-side execution via Cloud Function
+                    console.log(`🤖 User ${userId} has delegation - triggering auto-execution`);
+                    try {
+                        await triggerServerSideExecution(pendingRef.id, userId);
+                        console.log(`✅ Auto-execution triggered for ${userId}`);
+                        // Send success notification
+                        const fcmTokens = userData.fcmTokens || [];
+                        if (fcmTokens.length > 0) {
+                            const nickname = tracker.nickname || bet.walletNickname || bet.walletAddress.slice(0, 8) + "...";
+                            await (0, messaging_1.getMessaging)().sendEachForMulticast({
+                                tokens: fcmTokens,
+                                notification: {
+                                    title: `✅ Copy Trade Executed`,
+                                    body: `Auto-copied ${nickname}'s ${bet.direction} bet for $${suggestedAmount.toFixed(2)}`,
+                                },
+                                data: {
+                                    type: "prediction_copy_executed",
+                                    pendingCopyId: pendingRef.id,
+                                    marketAddress: bet.marketAddress,
+                                    direction: bet.direction,
+                                    amount: suggestedAmount.toString(),
+                                },
+                                apns: {
+                                    payload: { aps: { sound: "default" } },
+                                },
+                            });
+                        }
+                        continue; // Skip manual notification flow
+                    }
+                    catch (execError) {
+                        console.error(`Auto-execution failed for ${userId}:`, execError);
+                        // Fall through to manual notification flow
+                    }
+                }
+                // Manual flow: Send actionable push notification
                 const fcmTokens = userData.fcmTokens || [];
                 if (fcmTokens.length > 0) {
                     const nickname = tracker.nickname || bet.walletNickname || bet.walletAddress.slice(0, 8) + "...";
@@ -702,6 +759,43 @@ async function triggerAutoCopy(bet, betId) {
     catch (error) {
         console.error("triggerAutoCopy error:", error);
     }
+}
+/**
+ * Trigger server-side copy execution via Cloud Function
+ * Called for users with active prediction delegation
+ */
+async function triggerServerSideExecution(pendingCopyId, userId) {
+    const projectId = process.env.GCLOUD_PROJECT || "mimic-442700";
+    const region = "us-central1";
+    const functionName = "executePredictionCopyServer";
+    // Get a service account token to call the Cloud Function
+    // The Cloud Run service has the same service account, so we can use the metadata server
+    const tokenResponse = await fetch("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", { headers: { "Metadata-Flavor": "Google" } });
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+    // Call the Cloud Function
+    const functionUrl = `https://${region}-${projectId}.cloudfunctions.net/${functionName}`;
+    const response = await fetch(functionUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+            data: { pendingCopyId },
+            // Simulate authenticated request with userId
+            auth: { uid: userId },
+        }),
+    });
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Cloud Function error: ${error}`);
+    }
+    const result = await response.json();
+    if (!result.result?.success) {
+        throw new Error(result.result?.message || "Execution failed");
+    }
+    return result.result;
 }
 // Start
 start().catch(console.error);
