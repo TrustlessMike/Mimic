@@ -245,6 +245,12 @@ function parseBet(tx) {
             }
         }
     }
+    // If no shares found from outcomeToken match, use the largest non-USDC token change
+    // This handles cases where the outcome token account index varies
+    if (shares === 0 && tokenChanges.length > 0) {
+        const largestChange = tokenChanges.reduce((max, tc) => Math.abs(tc.amount) > Math.abs(max.amount) ? tc : max);
+        shares = Math.abs(largestChange.amount);
+    }
     const isBuy = usdcChange < 0;
     const amount = Math.abs(usdcChange);
     // Determine direction from instruction data
