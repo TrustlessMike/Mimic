@@ -1,10 +1,14 @@
 import { db } from '@/lib/firebase';
+import { validateApiKey } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const authError = validateApiKey(request);
+  if (authError) return authError;
+
   try {
     const snapshot = await db
       .collection('prediction_markets')
