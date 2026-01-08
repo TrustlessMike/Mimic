@@ -92,7 +92,7 @@ struct BetDetailView: View {
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(SemanticColors.textSecondary)
 
-                    Text("\(Int(bet.avgPrice * 100))¢")
+                    Text("\(bet.sharesEstimated == true ? "~" : "")\(Int(bet.avgPrice * 100))¢")
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(SemanticColors.textPrimary)
                 }
@@ -150,11 +150,11 @@ struct BetDetailView: View {
 
             Divider().padding(.leading, 16)
 
-            detailRow(label: "Shares", value: String(format: "%.2f", bet.shares))
+            detailRow(label: "Shares", value: "\(bet.sharesEstimated == true ? "~" : "")\(String(format: "%.2f", bet.shares))")
 
             Divider().padding(.leading, 16)
 
-            detailRow(label: "Avg Price", value: String(format: "%.0f¢", bet.avgPrice * 100))
+            detailRow(label: "Avg Price", value: "\(bet.sharesEstimated == true ? "~" : "")\(String(format: "%.0f¢", bet.avgPrice * 100))")
 
             Divider().padding(.leading, 16)
 

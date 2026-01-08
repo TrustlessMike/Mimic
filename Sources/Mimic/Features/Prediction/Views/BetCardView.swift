@@ -49,8 +49,8 @@ struct BetCardView: View {
                 }
                 .directionBadge(isYes: bet.direction == .yes)
 
-                // Price
-                Text("@ \(String(format: "%.0f", bet.avgPrice * 100))¢")
+                // Price (with ~ if estimated)
+                Text("@ \(bet.sharesEstimated == true ? "~" : "")\(String(format: "%.0f", bet.avgPrice * 100))¢")
                     .font(Typography.labelSmall)
                     .fontWeight(.medium)
                     .foregroundColor(SemanticColors.textSecondary)
@@ -86,7 +86,7 @@ struct BetCardView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                    Text(String(format: "%.1f", bet.shares))
+                    Text("\(bet.sharesEstimated == true ? "~" : "")\(String(format: "%.1f", bet.shares))")
                         .font(Typography.headlineSmall)
                         .fontWeight(.bold)
                         .foregroundColor(SemanticColors.textPrimary)

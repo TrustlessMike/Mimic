@@ -18,6 +18,7 @@ struct PredictionBet: Identifiable, Codable {
     let amount: Double // USDC amount
     let shares: Double
     let avgPrice: Double
+    var sharesEstimated: Bool? // True if shares/price were estimated (fallback when instruction decoding fails)
 
     // Status
     let status: BetStatus
