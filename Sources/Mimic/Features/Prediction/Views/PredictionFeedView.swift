@@ -1,7 +1,9 @@
 import SwiftUI
+import FirebaseAuth
 
 /// Clean, X-inspired feed showing prediction bets from smart money wallets
 struct PredictionFeedView: View {
+    @Environment(\.openURL) private var openURL
     @StateObject private var predictionService = PredictionService.shared
     @StateObject private var copyTradingService = CopyTradingService.shared
     @State private var selectedFilter: BetFeedFilter = .all
@@ -155,6 +157,9 @@ struct PredictionFeedView: View {
                     },
                     onTrackTapped: {
                         trackWallet(address: bet.walletAddress, nickname: bet.walletNickname)
+                    },
+                    onCopyTapped: {
+                        copyBet(bet)
                     }
                 )
                 .onAppear {
@@ -188,14 +193,44 @@ struct PredictionFeedView: View {
         copyTradingService.trackedWallets.contains { $0.walletAddress == address }
     }
 
+    private func copyBet(_ bet: PredictionBet) {
+        // Build Jupiter prediction URL
+        let urlString = "https://jup.ag/prediction/\(bet.marketAddress)"
+        if let url = URL(string: urlString) {
+            openURL(url)
+        }
+    }
+
     private func trackWallet(address: String, nickname: String?) {
+        // Prevent double-taps
+        guard trackingWalletAddress == nil else {
+            print("⚠️ Track already in progress, ignoring tap")
+            return
+        }
         trackingWalletAddress = address
+        print("📡 Starting track for wallet: \(address)")
 
         Task {
             do {
+                // Ensure Firebase Auth is ready
+                guard let user = Auth.auth().currentUser else {
+                    print("❌ No Firebase user - cannot track wallet")
+                    trackingWalletAddress = nil
+                    return
+                }
+
+                // Force refresh Firebase token and wait for completion
+                print("🔑 Refreshing Firebase token...")
+                let tokenResult = try await user.getIDTokenResult(forcingRefresh: true)
+                print("✅ Token refreshed, expires: \(tokenResult.expirationDate)")
+
+                // Small delay to ensure Firebase SDK internal state is updated
+                try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+
                 try await copyTradingService.addTrackedWallet(address: address, nickname: nickname)
+                print("✅ Wallet tracked successfully")
             } catch {
-                // Error is handled by the service
+                print("❌ Track failed: \(error.localizedDescription)")
             }
             trackingWalletAddress = nil
         }
@@ -285,6 +320,7 @@ private struct FeedBetCard: View {
     let isWalletTracked: Bool
     var onViewTapped: (() -> Void)?
     var onTrackTapped: (() -> Void)?
+    var onCopyTapped: (() -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -370,7 +406,7 @@ private struct FeedBetCard: View {
 
                     if bet.canCopy {
                         ActionButton(icon: "doc.on.doc", label: "Copy") {
-                            // TODO: Copy action
+                            onCopyTapped?()
                         }
                     }
 

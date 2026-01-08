@@ -279,7 +279,14 @@ struct LeaderboardRow: View {
 
     private func formatPnL(_ value: Double) -> String {
         let prefix = value >= 0 ? "+" : ""
-        return "\(prefix)\(String(format: "%.1f", value)) SOL"
+        // Format as USD with appropriate precision
+        if abs(value) >= 1000 {
+            return "\(prefix)$\(String(format: "%.0f", value))"
+        } else if abs(value) >= 100 {
+            return "\(prefix)$\(String(format: "%.0f", value))"
+        } else {
+            return "\(prefix)$\(String(format: "%.2f", value))"
+        }
     }
 }
 
