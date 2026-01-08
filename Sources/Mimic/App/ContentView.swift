@@ -123,13 +123,7 @@ struct ContentView: View {
 
     private func checkAuthenticationStatus() {
         Task {
-            // Start metadata fetch in background - don't block UI
-            Task.detached(priority: .background) {
-                await TokenMetadataService.shared.initialize()
-                await TokenMetadataService.shared.preloadCommonTokens()
-            }
-
-            // Check authentication quickly
+            // Check authentication quickly - this is the critical path
             await authCoordinator.checkAuthenticationStatus()
 
             // If we have a user, show the app IMMEDIATELY

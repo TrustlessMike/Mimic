@@ -169,16 +169,23 @@ actor TokenMetadataService {
         }
     }
 
-    /// Initialize by fetching the token list
+    /// Initialize - now just marks as ready since we have fallback data
+    /// Jupiter API is only fetched lazily when needed for unknown tokens
     func initialize() async {
-        guard !isInitialized else { return }
+        // Fallback metadata is already loaded in init()
+        // No need to block on Jupiter API - it will be fetched lazily if needed
+        isInitialized = true
+    }
 
+    /// Fetch full token list from Jupiter (called lazily, not on startup)
+    private func fetchJupiterTokenList() async {
         do {
-            guard let url = URL(string: jupiterTokenListURL) else {
-                return
-            }
+            guard let url = URL(string: jupiterTokenListURL) else { return }
 
-            let (data, _) = try await URLSession.shared.data(from: url)
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10 // Don't wait forever
+
+            let (data, _) = try await URLSession.shared.data(for: request)
 
             // Try to decode with wrapper first (newer Jupiter API format)
             let tokens: [TokenMetadata]
@@ -189,16 +196,13 @@ actor TokenMetadataService {
                 tokens = try JSONDecoder().decode([TokenMetadata].self, from: data)
             }
 
-            // Build lookup dictionary by mint address (overwrites fallback metadata with fresh data)
+            // Build lookup dictionary by mint address
             for token in tokens {
                 tokenMetadata[token.address] = token
             }
-
-            isInitialized = true
-
         } catch {
-            // Network errors are expected when offline - use fallback silently
-            isInitialized = true
+            // Network errors are fine - we have fallback data
+            logger.debug("Jupiter API unavailable, using fallback metadata")
         }
     }
 

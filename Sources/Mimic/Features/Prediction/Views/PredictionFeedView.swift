@@ -11,7 +11,7 @@ struct PredictionFeedView: View {
     @State private var headerOffset: CGFloat = 0
     @State private var lastScrollOffset: CGFloat = 0
 
-    private let headerHeight: CGFloat = 52
+    private let headerHeight: CGFloat = 100 // Header + filters
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -28,15 +28,8 @@ struct PredictionFeedView: View {
                     }
                     .frame(height: 0)
 
-                    // Spacer for header
+                    // Spacer for sticky header + filters
                     Color.clear.frame(height: headerHeight)
-
-                    // Filter Pills
-                    filterRow
-                        .padding(.vertical, 12)
-
-                    // Divider
-                    Divider()
 
                     // Content
                     if predictionService.betFeed.isEmpty && predictionService.isLoadingFeed {
@@ -95,6 +88,7 @@ struct PredictionFeedView: View {
 
     private var stickyHeader: some View {
         VStack(spacing: 0) {
+            // Title row
             HStack {
                 Text("Feed")
                     .font(.system(size: 20, weight: .bold))
@@ -112,7 +106,10 @@ struct PredictionFeedView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .frame(height: headerHeight)
+
+            // Filter pills
+            filterRow
+                .padding(.vertical, 8)
 
             Divider()
         }
@@ -281,17 +278,13 @@ private struct FeedBetCard: View {
                         .foregroundColor(SemanticColors.textSecondary)
                 }
 
-                // Direction + Price
+                // Direction + Status Badge + Price
                 HStack(spacing: 8) {
-                    DirectionBadge(direction: bet.direction)
+                    BetStatusBadge(direction: bet.direction, status: bet.status)
 
                     Text("@ \(Int(bet.avgPrice * 100))¢")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(SemanticColors.textSecondary)
-
-                    if bet.status != .open {
-                        StatusIndicator(status: bet.status)
-                    }
                 }
 
                 // Market Title
@@ -390,49 +383,17 @@ private struct FeedBetCard: View {
     }
 }
 
-// MARK: - Direction Badge
+// MARK: - Combined Bet Status Badge
 
-private struct DirectionBadge: View {
+private struct BetStatusBadge: View {
     let direction: PredictionBet.BetDirection
-
-    var body: some View {
-        Text(direction.displayName)
-            .font(.system(size: 13, weight: .bold))
-            .foregroundColor(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(
-                Capsule()
-                    .fill(direction == .yes ? SemanticColors.success : SemanticColors.error)
-            )
-    }
-}
-
-// MARK: - Status Indicator
-
-private struct StatusIndicator: View {
     let status: PredictionBet.BetStatus
 
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
-            Text(label)
-                .font(.system(size: 12, weight: .semibold))
-        }
-        .foregroundColor(color)
+    private var directionColor: Color {
+        direction == .yes ? SemanticColors.success : SemanticColors.error
     }
 
-    private var icon: String {
-        switch status {
-        case .open: return "clock"
-        case .won: return "checkmark.circle.fill"
-        case .lost: return "xmark.circle.fill"
-        case .claimed: return "checkmark.seal.fill"
-        }
-    }
-
-    private var label: String {
+    private var statusLabel: String {
         switch status {
         case .open: return "Open"
         case .won: return "Won"
@@ -441,13 +402,42 @@ private struct StatusIndicator: View {
         }
     }
 
-    private var color: Color {
+    private var statusIcon: String {
         switch status {
-        case .open: return SemanticColors.textSecondary
-        case .won: return SemanticColors.success
-        case .lost: return SemanticColors.error
-        case .claimed: return .purple
+        case .open: return "clock"
+        case .won: return "checkmark.circle.fill"
+        case .lost: return "xmark.circle.fill"
+        case .claimed: return "checkmark.seal.fill"
         }
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            // Direction part (YES/NO)
+            Text(direction.displayName)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(directionColor)
+
+            // Status part (Open/Won/Lost)
+            HStack(spacing: 4) {
+                Image(systemName: statusIcon)
+                    .font(.system(size: 10, weight: .semibold))
+                Text(statusLabel)
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .foregroundColor(directionColor)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(directionColor.opacity(0.15))
+        }
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(directionColor.opacity(0.3), lineWidth: 1)
+        )
     }
 }
 

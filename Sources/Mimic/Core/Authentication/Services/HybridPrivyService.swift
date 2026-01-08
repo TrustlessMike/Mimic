@@ -22,6 +22,10 @@ class HybridPrivyService: ObservableObject {
 
     private var authenticatedEmail: String?
 
+    // MARK: - Cached Auth State (for fast startup)
+    private let cachedUserKey = "cachedUser"
+    private let cachedAuthKey = "cachedAuthState"
+
     /// Public accessor for Privy client (used by DelegationManager for session approvals)
     var client: (any Privy)? {
         return privyClient
@@ -286,6 +290,9 @@ class HybridPrivyService: ObservableObject {
     func signOut() async throws {
         logger.debug("Signing out...")
 
+        // Clear cached state first
+        clearCachedState()
+
         // Get current user and sign out from Privy
         if let user = await privyClient?.getUser() {
             await user.logout()
@@ -374,63 +381,98 @@ class HybridPrivyService: ObservableObject {
         return (signature: signature, walletAddress: wallet.address)
     }
 
+    // MARK: - Cached Auth Helpers
+
+    /// Cache user data for fast startup
+    private func cacheUserState() {
+        guard let user = currentUser else { return }
+        let userData: [String: Any] = [
+            "id": user.id,
+            "email": user.email ?? "",
+            "name": user.name ?? "",
+            "walletAddress": user.walletAddress ?? ""
+        ]
+        UserDefaults.standard.set(userData, forKey: cachedUserKey)
+        UserDefaults.standard.set(true, forKey: cachedAuthKey)
+    }
+
+    /// Restore cached user for instant UI
+    private func restoreCachedUser() -> User? {
+        guard UserDefaults.standard.bool(forKey: cachedAuthKey),
+              let userData = UserDefaults.standard.dictionary(forKey: cachedUserKey),
+              let id = userData["id"] as? String else {
+            return nil
+        }
+        return User(
+            id: id,
+            email: (userData["email"] as? String)?.isEmpty == false ? userData["email"] as? String : nil,
+            name: (userData["name"] as? String)?.isEmpty == false ? userData["name"] as? String : nil,
+            walletAddress: (userData["walletAddress"] as? String)?.isEmpty == false ? userData["walletAddress"] as? String : nil
+        )
+    }
+
+    /// Clear cached state on sign out
+    private func clearCachedState() {
+        UserDefaults.standard.removeObject(forKey: cachedUserKey)
+        UserDefaults.standard.removeObject(forKey: cachedAuthKey)
+    }
+
     // MARK: - Helpers
 
     func isUserAuthenticated() async -> Bool {
-        // Check both Privy and Firebase authentication status
+        // FAST PATH: Check Firebase session first (no network call needed)
+        // This is the common case for returning users
+        if let firebaseUser = Auth.auth().currentUser {
+            logger.debug("Firebase session exists - using cached auth")
+
+            // Restore cached user immediately for instant UI
+            if let cachedUser = restoreCachedUser() {
+                await MainActor.run {
+                    self.isAuthenticated = true
+                    self.currentUser = cachedUser
+                    self.walletAddress = cachedUser.walletAddress
+                }
+                logger.debug("Restored cached user - UI ready")
+
+                // Validate session in background (don't block UI)
+                Task.detached(priority: .background) {
+                    await self.validateAndRefreshSession(firebaseUser: firebaseUser)
+                }
+
+                return true
+            }
+        }
+
+        // SLOW PATH: No cached state, need to check Privy
+        logger.debug("No cached state - checking Privy...")
         let authState = await privyClient?.getAuthState()
         if case .authenticated = authState {
-            // Restore user data from Privy if session exists
             if let privyUser = await privyClient?.getUser() {
-                // Check Firebase authentication status
-                if let currentUser = Auth.auth().currentUser {
+                if let firebaseUser = Auth.auth().currentUser {
                     logger.debug("Firebase session exists - validating...")
                     do {
-                        // First try to get token WITHOUT forcing refresh
-                        // Firebase SDK will auto-refresh if needed (much faster)
-                        let tokenResult = try await currentUser.getIDTokenResult(forcingRefresh: false)
-                        logger.debug("Firebase session is valid")
-                        
-                        // Check token expiration - refresh proactively if expiring soon (within 5 minutes)
-                        let expirationTime = tokenResult.expirationDate.timeIntervalSinceNow
-                        if expirationTime < 300 { // Less than 5 minutes remaining
-                            logger.debug("Token expiring soon, refreshing...")
-                            _ = try await currentUser.getIDTokenResult(forcingRefresh: true)
-                            logger.debug("Firebase token refreshed")
-                        }
-
-                        // Get Firebase UID for Firestore queries
-                        let firebaseUid = currentUser.uid
+                        _ = try await firebaseUser.getIDTokenResult(forcingRefresh: false)
+                        let firebaseUid = firebaseUser.uid
                         await fetchUserData(privyUser: privyUser, firebaseUid: firebaseUid)
+                        cacheUserState()
                     } catch {
-                        // Token refresh failed, try forcing a refresh
-                        logger.debug("Auto-refresh failed, attempting manual refresh...")
+                        logger.debug("Token refresh needed...")
                         do {
-                            _ = try await currentUser.getIDTokenResult(forcingRefresh: true)
-                            logger.debug("Firebase token manually refreshed")
-
-                            // Get Firebase UID for Firestore queries
-                            let firebaseUid = currentUser.uid
+                            let firebaseUid = try await bridgeToFirebase(privyUser: privyUser)
                             await fetchUserData(privyUser: privyUser, firebaseUid: firebaseUid)
+                            cacheUserState()
                         } catch {
-                            // Both auto and manual refresh failed, re-authenticate
-                            logger.debug("Token refresh failed - re-authenticating...")
-                            do {
-                                let firebaseUid = try await bridgeToFirebase(privyUser: privyUser)
-                                await fetchUserData(privyUser: privyUser, firebaseUid: firebaseUid)
-                            } catch {
-                                logger.error("Failed to re-authenticate with Firebase")
-                                error.report(context: "Firebase re-authentication")
-                                return false
-                            }
+                            logger.error("Failed to re-authenticate with Firebase")
+                            error.report(context: "Firebase re-authentication")
+                            return false
                         }
                     }
                 } else {
-                    // No Firebase session, need to authenticate
                     logger.debug("No Firebase session - authenticating...")
                     do {
                         let firebaseUid = try await bridgeToFirebase(privyUser: privyUser)
                         await fetchUserData(privyUser: privyUser, firebaseUid: firebaseUid)
+                        cacheUserState()
                     } catch {
                         logger.error("Failed to authenticate with Firebase")
                         return false
@@ -440,6 +482,30 @@ class HybridPrivyService: ObservableObject {
             return Auth.auth().currentUser != nil
         }
         return false
+    }
+
+    /// Background validation of session (doesn't block UI)
+    private func validateAndRefreshSession(firebaseUser: FirebaseAuth.User) async {
+        do {
+            let tokenResult = try await firebaseUser.getIDTokenResult(forcingRefresh: false)
+
+            // Proactively refresh if expiring soon (within 5 minutes)
+            if tokenResult.expirationDate.timeIntervalSinceNow < 300 {
+                logger.debug("Token expiring soon, refreshing in background...")
+                _ = try await firebaseUser.getIDTokenResult(forcingRefresh: true)
+            }
+
+            // Update user data from Privy in background
+            if let privyUser = await privyClient?.getUser() {
+                await fetchUserData(privyUser: privyUser, firebaseUid: firebaseUser.uid)
+                await MainActor.run {
+                    self.cacheUserState()
+                }
+            }
+        } catch {
+            logger.error("Background session validation failed: \(error.localizedDescription)")
+            // Don't log out - the cached session is still valid for now
+        }
     }
 }
 
