@@ -17,6 +17,52 @@ const db = getFirestore();
 const HELIUS_API_KEY = defineSecret("HELIUS_API_KEY");
 const JUPITER_MARKETS_API = "https://markets-api.jup.ag";
 
+/**
+ * Base58 decode helper
+ */
+function base58Decode(str: string): Uint8Array {
+  const base58Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  let result = BigInt(0);
+  for (let i = 0; i < str.length; i++) {
+    result = result * BigInt(58) + BigInt(base58Chars.indexOf(str[i]));
+  }
+  const bytes: number[] = [];
+  while (result > BigInt(0)) {
+    bytes.unshift(Number(result % BigInt(256)));
+    result = result / BigInt(256);
+  }
+  for (let i = 0; i < str.length && str[i] === "1"; i++) {
+    bytes.unshift(0);
+  }
+  return new Uint8Array(bytes);
+}
+
+const BET_PLACEMENT_DISCRIMINATOR = "8d3625cfedd2fad7";
+
+function decodeBetInstruction(instructionData: string): {
+  amount: number;
+  price: number;
+  shares: number;
+} | null {
+  try {
+    const decoded = base58Decode(instructionData);
+    const discriminator = Buffer.from(decoded.slice(0, 8)).toString("hex");
+    if (discriminator !== BET_PLACEMENT_DISCRIMINATOR || decoded.length < 24) {
+      return null;
+    }
+    const view = new DataView(decoded.buffer, decoded.byteOffset);
+    const len = decoded.length;
+    const amountRaw = Number(view.getBigUint64(len - 8, true));
+    const priceRaw = Number(view.getBigUint64(len - 16, true));
+    const amount = amountRaw / 1e6;
+    const price = priceRaw / 1e6;
+    if (price <= 0 || price > 1 || amount <= 0) return null;
+    return { amount, price, shares: amount / price };
+  } catch {
+    return null;
+  }
+}
+
 interface HeliusTransaction {
   signature: string;
   timestamp: number;
@@ -218,15 +264,18 @@ async function parsePredictionTransaction(
       return null;
     }
 
-    // Calculate average price
+    // Try to decode price from instruction data
     let avgPrice = 0.5;
     let sharesEstimated = false;
+    const decodedBet = decodeBetInstruction(predictionInstruction.data);
 
-    if (sharesReceived > 0 && usdcSpent > 0) {
+    if (decodedBet) {
+      avgPrice = decodedBet.price;
+      sharesReceived = decodedBet.shares;
+    } else if (sharesReceived > 0 && usdcSpent > 0) {
       avgPrice = usdcSpent / sharesReceived;
       if (avgPrice > 1) avgPrice = 1;
     } else if (usdcSpent > 0 && sharesReceived === 0) {
-      // Shares were minted (not transferred), estimate based on default price
       sharesReceived = usdcSpent / avgPrice;
       sharesEstimated = true;
     }

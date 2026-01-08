@@ -437,6 +437,79 @@ function shortenAddress(address: string): string {
 }
 
 /**
+ * Base58 decode helper
+ */
+function base58Decode(str: string): Uint8Array {
+  const base58Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  let result = BigInt(0);
+  for (let i = 0; i < str.length; i++) {
+    result = result * BigInt(58) + BigInt(base58Chars.indexOf(str[i]));
+  }
+  const bytes: number[] = [];
+  while (result > BigInt(0)) {
+    bytes.unshift(Number(result % BigInt(256)));
+    result = result / BigInt(256);
+  }
+  // Add leading zeros
+  for (let i = 0; i < str.length && str[i] === "1"; i++) {
+    bytes.unshift(0);
+  }
+  return new Uint8Array(bytes);
+}
+
+/**
+ * Bet placement instruction discriminator
+ */
+const BET_PLACEMENT_DISCRIMINATOR = "8d3625cfedd2fad7";
+
+/**
+ * Extract price and amount from bet placement instruction data
+ * Returns null if not a bet placement or can't decode
+ */
+function decodeBetInstruction(instructionData: string): {
+  amount: number;
+  price: number;
+  shares: number;
+} | null {
+  try {
+    const decoded = base58Decode(instructionData);
+    const discriminator = Buffer.from(decoded.slice(0, 8)).toString("hex");
+
+    // Only decode bet placements
+    if (discriminator !== BET_PLACEMENT_DISCRIMINATOR) {
+      return null;
+    }
+
+    // Need at least 16 bytes after discriminator for amount and price
+    if (decoded.length < 24) {
+      return null;
+    }
+
+    const view = new DataView(decoded.buffer, decoded.byteOffset);
+    const len = decoded.length;
+
+    // Last 8 bytes = amount in micro-USDC
+    const amountRaw = Number(view.getBigUint64(len - 8, true));
+    // Second-to-last 8 bytes = price in micro-dollars
+    const priceRaw = Number(view.getBigUint64(len - 16, true));
+
+    const amount = amountRaw / 1e6;
+    const price = priceRaw / 1e6;
+
+    // Sanity check
+    if (price <= 0 || price > 1 || amount <= 0) {
+      return null;
+    }
+
+    const shares = amount / price;
+
+    return { amount, price, shares };
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
  * Parse a prediction bet from a Helius transaction
  */
 async function parsePredictionBet(
@@ -533,26 +606,28 @@ async function parsePredictionBet(
       return null;
     }
 
-    // Calculate average price if we have shares
-    // Price = USDC spent / shares received (should be between 0 and 1)
+    // Try to decode price directly from instruction data (most accurate)
     let avgPrice = 0.5; // Default fallback
     let sharesEstimated = false;
+    const decodedBet = decodeBetInstruction(instruction.data);
 
-    if (sharesReceived > 0 && usdcSpent > 0) {
+    if (decodedBet) {
+      // Got real price from instruction data
+      avgPrice = decodedBet.price;
+      sharesReceived = decodedBet.shares;
+      logger.info(`Decoded bet from instruction: $${decodedBet.amount.toFixed(2)} at ${(decodedBet.price * 100).toFixed(2)}¢ = ${decodedBet.shares.toFixed(4)} shares`);
+    } else if (sharesReceived > 0 && usdcSpent > 0) {
+      // Calculate from token transfers
       avgPrice = usdcSpent / sharesReceived;
-      // Sanity check: price should be between 0 and 1 for prediction markets
       if (avgPrice > 1) {
-        logger.warn(`Unusual avgPrice ${avgPrice} for tx ${tx.signature.slice(0, 8)}, shares might need adjustment`);
-        // Shares might be in wrong units, try adjusting
+        logger.warn(`Unusual avgPrice ${avgPrice} for tx ${tx.signature.slice(0, 8)}, capping at 1`);
         avgPrice = Math.min(avgPrice, 1);
       }
     } else if (usdcSpent > 0 && sharesReceived === 0) {
-      // Shares were minted (not transferred), so they don't appear in Helius data
-      // Estimate shares using default price assumption (50¢ per share)
-      // This will be refined later if we have market price data
+      // Fallback: estimate using default price
       sharesReceived = usdcSpent / avgPrice;
       sharesEstimated = true;
-      logger.info(`Estimated ${sharesReceived.toFixed(2)} shares for tx ${tx.signature.slice(0, 8)} (minted, not transferred)`);
+      logger.info(`Estimated ${sharesReceived.toFixed(2)} shares for tx ${tx.signature.slice(0, 8)} (fallback)`);
     }
 
     // Determine YES/NO direction
