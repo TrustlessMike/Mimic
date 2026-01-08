@@ -1,102 +1,65 @@
 import SwiftUI
 import PrivySDK
 
-/// View for managing tracked predictors and prediction copy trading
+/// Clean, modern copy trading management view
 struct TrackedWalletsView: View {
     @Environment(\.dismiss) var dismiss
-    @Environment(\.openURL) var openURL
     @StateObject private var copyService = PredictionCopyService.shared
 
-    @State private var showingAddPredictor = false
-    @State private var newWalletAddress = ""
-    @State private var newWalletNickname = ""
-    @State private var enableAutoCopyOnAdd = true
-    @State private var isAdding = false
-    @State private var showingError = false
+    @State private var showAddWallet = false
+    @State private var showDelegationSettings = false
+    @State private var showError = false
     @State private var errorMessage = ""
-
-    // Delegation state
-    @State private var showingDelegationSettings = false
-    @State private var isExecutingCopy = false
 
     var body: some View {
         NavigationStack {
-            List {
-                // Auto-Execute Delegation Section
-                delegationSection
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Auto-Execute Status Card
+                    autoExecuteCard
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
 
-                // Pending Copy Trades Section
-                if !copyService.pendingCopies.isEmpty {
-                    pendingCopiesSection
-                }
-
-                // Tracked Predictors Section
-                if copyService.trackedPredictors.isEmpty {
-                    emptyState
-                } else {
-                    predictorsSection
-                }
-
-                // Add Predictor Button
-                Section {
-                    Button(action: { showingAddPredictor = true }) {
-                        HStack {
-                            Image(systemName: "plus.circle.fill")
-                                .foregroundColor(BrandColors.primary)
-                            Text("Track Smart Money Wallet")
-                                .foregroundColor(SemanticColors.textPrimary)
-                        }
+                    // Pending Copies (if any)
+                    if !copyService.pendingCopies.isEmpty {
+                        pendingSection
+                            .padding(.top, 24)
                     }
-                }
 
-                // Info Section
-                Section {
-                    infoRow(
-                        icon: "bolt.fill",
-                        title: "Auto-Copy",
-                        description: "Get notified instantly when tracked wallets place bets"
-                    )
-                    infoRow(
-                        icon: "clock.fill",
-                        title: "5 Minute Window",
-                        description: "Copy trades within 5 minutes to get similar prices"
-                    )
-                    infoRow(
-                        icon: "chart.line.uptrend.xyaxis",
-                        title: "Smart Money",
-                        description: "Track proven winners from the leaderboard"
-                    )
-                } header: {
-                    Text("How It Works")
+                    // Tracked Wallets
+                    walletsSection
+                        .padding(.top, 24)
+
+                    // How It Works
+                    infoSection
+                        .padding(.top, 32)
+                        .padding(.bottom, 100)
                 }
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Copy Trading")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .fontWeight(.medium)
                 }
             }
             .task {
-                await copyService.loadTrackedPredictors()
-                await copyService.loadPendingCopies()
-                await copyService.loadDelegationStatus()
-                copyService.startPredictorsListener()
-                copyService.startPendingListener()
-                copyService.startDelegationListener()
+                await loadData()
             }
             .onDisappear {
                 copyService.stopPredictorsListener()
                 copyService.stopPendingListener()
                 copyService.stopDelegationListener()
             }
-            .sheet(isPresented: $showingAddPredictor) {
-                addPredictorSheet
+            .sheet(isPresented: $showAddWallet) {
+                AddWalletSheet()
             }
-            .sheet(isPresented: $showingDelegationSettings) {
-                DelegationSettingsSheet()
+            .sheet(isPresented: $showDelegationSettings) {
+                DelegationSheet()
             }
-            .alert("Error", isPresented: $showingError) {
+            .alert("Error", isPresented: $showError) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(errorMessage)
@@ -104,411 +67,328 @@ struct TrackedWalletsView: View {
         }
     }
 
-    // MARK: - Delegation Section
+    // MARK: - Auto-Execute Card
 
-    private var delegationSection: some View {
-        Section {
-            if copyService.delegationActive, let delegation = copyService.delegation {
-                // Active delegation status
-                VStack(alignment: .leading, spacing: Spacing.md) {
-                    HStack {
-                        Image(systemName: "checkmark.shield.fill")
-                            .foregroundColor(SemanticColors.success)
-                            .font(.title2)
+    private var autoExecuteCard: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(copyService.delegationActive
+                              ? SemanticColors.success.opacity(0.15)
+                              : BrandColors.primary.opacity(0.15))
+                        .frame(width: 44, height: 44)
 
-                        VStack(alignment: .leading, spacing: Spacing.xxs) {
-                            Text("Auto-Execute Enabled")
-                                .font(Typography.bodyMedium)
-                                .fontWeight(.semibold)
-                                .foregroundColor(SemanticColors.textPrimary)
-
-                            Text("Trades will execute automatically")
-                                .font(Typography.labelSmall)
-                                .foregroundColor(SemanticColors.textSecondary)
-                        }
-
-                        Spacer()
-
-                        Button(action: { showingDelegationSettings = true }) {
-                            Image(systemName: "gearshape.fill")
-                                .foregroundColor(SemanticColors.textSecondary)
-                        }
-                    }
-
-                    // Stats row
-                    HStack(spacing: Spacing.lg) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Max per trade")
-                                .font(Typography.labelSmall)
-                                .foregroundColor(SemanticColors.textSecondary)
-                            Text("$\(Int(delegation.maxCopyAmountUsd))")
-                                .font(Typography.bodySmall)
-                                .fontWeight(.medium)
-                                .foregroundColor(SemanticColors.textPrimary)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Executed")
-                                .font(Typography.labelSmall)
-                                .foregroundColor(SemanticColors.textSecondary)
-                            Text("\(delegation.totalCopiesExecuted) trades")
-                                .font(Typography.bodySmall)
-                                .fontWeight(.medium)
-                                .foregroundColor(SemanticColors.textPrimary)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Volume")
-                                .font(Typography.labelSmall)
-                                .foregroundColor(SemanticColors.textSecondary)
-                            Text("$\(Int(delegation.totalVolumeUsd))")
-                                .font(Typography.bodySmall)
-                                .fontWeight(.medium)
-                                .foregroundColor(SemanticColors.textPrimary)
-                        }
-                    }
-
-                    // Expiry info
-                    if delegation.expiresAt > Date() {
-                        let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: delegation.expiresAt).day ?? 0
-                        Text("Expires in \(daysRemaining) days")
-                            .font(Typography.labelSmall)
-                            .foregroundColor(SemanticColors.textSecondary)
-                    }
+                    Image(systemName: copyService.delegationActive ? "bolt.fill" : "bolt")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(copyService.delegationActive
+                                         ? SemanticColors.success
+                                         : BrandColors.primary)
                 }
-                .padding(.vertical, Spacing.xs)
-            } else {
-                // Enable delegation prompt
-                VStack(alignment: .leading, spacing: Spacing.md) {
-                    HStack {
-                        Image(systemName: "bolt.shield")
-                            .foregroundColor(BrandColors.primary)
-                            .font(.title2)
 
-                        VStack(alignment: .leading, spacing: Spacing.xxs) {
-                            Text("Auto-Execute Copy Trades")
-                                .font(Typography.bodyMedium)
-                                .fontWeight(.semibold)
-                                .foregroundColor(SemanticColors.textPrimary)
-
-                            Text("Automatically copy trades without tapping")
-                                .font(Typography.labelSmall)
-                                .foregroundColor(SemanticColors.textSecondary)
-                        }
-                    }
-
-                    Button(action: { showingDelegationSettings = true }) {
-                        HStack {
-                            Image(systemName: "bolt.fill")
-                            Text("Enable Auto-Execute")
-                        }
-                        .font(Typography.bodySmall)
-                        .fontWeight(.semibold)
-                        .foregroundColor(SemanticColors.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Spacing.sm)
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.sm)
-                                .fill(BrandColors.primaryGradient)
-                        )
-                    }
-                    .disabled(copyService.isDelegationLoading)
-                }
-                .padding(.vertical, Spacing.xs)
-            }
-        } header: {
-            Text("Auto-Execute")
-        } footer: {
-            if copyService.delegationActive {
-                Text("Your trades are automatically executed when tracked wallets bet")
-            } else {
-                Text("Enable to have trades automatically execute without manual approval")
-            }
-        }
-    }
-
-    // MARK: - Pending Copies Section
-
-    private var pendingCopiesSection: some View {
-        Section {
-            ForEach(copyService.pendingCopies) { pending in
-                PendingCopyRow(pending: pending) { action in
-                    handlePendingAction(pending, action: action)
-                }
-            }
-        } header: {
-            HStack {
-                Text("Ready to Copy")
-                Spacer()
-                Text("\(copyService.pendingCopies.count)")
-                    .font(Typography.labelSmall)
-                    .foregroundColor(SemanticColors.textSecondary)
-            }
-        } footer: {
-            Text("Tap to copy these bets on Jupiter")
-        }
-    }
-
-    // MARK: - Predictors Section
-
-    private var predictorsSection: some View {
-        Section {
-            ForEach(copyService.trackedPredictors) { predictor in
-                TrackedPredictorRow(predictor: predictor)
-            }
-            .onDelete(perform: deletePredictors)
-        } header: {
-            Text("Tracked Predictors (\(copyService.trackedPredictors.count)/5)")
-        } footer: {
-            Text("Swipe left to remove")
-        }
-    }
-
-    // MARK: - Empty State
-
-    private var emptyState: some View {
-        Section {
-            VStack(spacing: Spacing.lg) {
-                Image(systemName: "person.2.badge.gearshape")
-                    .font(.system(size: IconSize.xxl))
-                    .foregroundColor(SemanticColors.textSecondary)
-
-                VStack(spacing: Spacing.sm) {
-                    Text("No Predictors Tracked")
-                        .font(Typography.headlineSmall)
+                // Text
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(copyService.delegationActive ? "Auto-Execute On" : "Auto-Execute Off")
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(SemanticColors.textPrimary)
 
-                    Text("Track smart money wallets from the leaderboard to copy their bets")
-                        .font(Typography.bodySmall)
+                    Text(copyService.delegationActive
+                         ? "Trades execute automatically"
+                         : "Tap to enable automatic trading")
+                        .font(.system(size: 14))
                         .foregroundColor(SemanticColors.textSecondary)
-                        .multilineTextAlignment(.center)
                 }
+
+                Spacer()
+
+                // Chevron
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color(.tertiaryLabel))
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.xl)
+            .padding(16)
+
+            // Stats row (when active)
+            if copyService.delegationActive, let delegation = copyService.delegation {
+                Divider()
+                    .padding(.leading, 74)
+
+                HStack(spacing: 0) {
+                    StatItem(label: "Max/Trade", value: "$\(Int(delegation.maxCopyAmountUsd))")
+                    StatItem(label: "Executed", value: "\(delegation.totalCopiesExecuted)")
+                    StatItem(label: "Volume", value: "$\(Int(delegation.totalVolumeUsd))")
+                }
+                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+            }
+        }
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .onTapGesture {
+            showDelegationSettings = true
         }
     }
 
-    // MARK: - Info Row
+    // MARK: - Pending Section
 
-    private func infoRow(icon: String, title: String, description: String) -> some View {
-        HStack(alignment: .top, spacing: Spacing.md) {
-            Image(systemName: icon)
-                .foregroundColor(BrandColors.primary)
-                .frame(width: 24)
+    private var pendingSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Ready to Copy")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(SemanticColors.textSecondary)
+                    .textCase(.uppercase)
 
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(title)
-                    .font(Typography.bodyMedium)
-                    .foregroundColor(SemanticColors.textPrimary)
-                Text(description)
-                    .font(Typography.labelSmall)
+                Spacer()
+
+                Text("\(copyService.pendingCopies.count)")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(BrandColors.primary)
+            }
+            .padding(.horizontal, 16)
+
+            VStack(spacing: 1) {
+                ForEach(copyService.pendingCopies) { pending in
+                    PendingTradeRow(pending: pending)
+                }
+            }
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+            .padding(.horizontal, 16)
+        }
+    }
+
+    // MARK: - Wallets Section
+
+    private var walletsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Tracked Wallets")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(SemanticColors.textSecondary)
+                    .textCase(.uppercase)
+
+                Spacer()
+
+                Text("\(copyService.trackedPredictors.count)/5")
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundColor(SemanticColors.textSecondary)
             }
-        }
-        .padding(.vertical, Spacing.xs)
-    }
+            .padding(.horizontal, 16)
 
-    // MARK: - Add Predictor Sheet
-
-    private var addPredictorSheet: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("Wallet Address", text: $newWalletAddress)
-                        .autocapitalization(.none)
-                        .autocorrectionDisabled()
-                        .font(.system(.body, design: .monospaced))
-
-                    TextField("Nickname (optional)", text: $newWalletNickname)
-
-                    Toggle("Enable Auto-Copy", isOn: $enableAutoCopyOnAdd)
-                } header: {
-                    Text("Wallet Details")
-                } footer: {
-                    Text("Copy a wallet address from the Feed or Leaderboard")
+            VStack(spacing: 1) {
+                // Wallet rows
+                ForEach(copyService.trackedPredictors) { predictor in
+                    TrackedWalletRow(predictor: predictor)
                 }
-            }
-            .navigationTitle("Track Predictor")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
-                        resetAddPredictor()
-                        showingAddPredictor = false
+
+                // Add button
+                Button(action: { showAddWallet = true }) {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .strokeBorder(Color(.separator), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                                .frame(width: 44, height: 44)
+
+                            Image(systemName: "plus")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(BrandColors.primary)
+                        }
+
+                        Text("Track a wallet")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(BrandColors.primary)
+
+                        Spacer()
                     }
+                    .padding(16)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Add") {
-                        Task { await addPredictor() }
-                    }
-                    .disabled(newWalletAddress.isEmpty || isAdding)
-                }
+                .disabled(copyService.trackedPredictors.count >= 5)
             }
-            .overlay {
-                if isAdding {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black.opacity(0.2))
-                }
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+            .padding(.horizontal, 16)
+
+            if copyService.trackedPredictors.isEmpty {
+                Text("Track smart money wallets to copy their bets")
+                    .font(.system(size: 14))
+                    .foregroundColor(SemanticColors.textSecondary)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
             }
         }
     }
 
-    // MARK: - Actions
+    // MARK: - Info Section
 
-    private func addPredictor() async {
-        isAdding = true
+    private var infoSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("How It Works")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(SemanticColors.textSecondary)
+                .textCase(.uppercase)
+                .padding(.horizontal, 16)
 
-        do {
-            try await copyService.addTrackedPredictor(
-                address: newWalletAddress.trimmingCharacters(in: .whitespaces),
-                nickname: newWalletNickname.isEmpty ? nil : newWalletNickname,
-                autoCopyEnabled: enableAutoCopyOnAdd
-            )
-            resetAddPredictor()
-            showingAddPredictor = false
-        } catch {
-            errorMessage = error.localizedDescription
-            showingError = true
-        }
+            VStack(spacing: 0) {
+                InfoRow(
+                    icon: "bolt.fill",
+                    title: "Instant Alerts",
+                    description: "Get notified when tracked wallets bet"
+                )
 
-        isAdding = false
-    }
+                Divider().padding(.leading, 56)
 
-    private func deletePredictors(at offsets: IndexSet) {
-        for index in offsets {
-            let predictor = copyService.trackedPredictors[index]
-            Task {
-                try? await copyService.removeTrackedPredictor(predictor)
+                InfoRow(
+                    icon: "clock.fill",
+                    title: "5 Minute Window",
+                    description: "Copy within 5 min for similar prices"
+                )
+
+                Divider().padding(.leading, 56)
+
+                InfoRow(
+                    icon: "shield.checkered",
+                    title: "Safe & Secure",
+                    description: "Only Jupiter Prediction trades allowed"
+                )
             }
-        }
-    }
-
-    private func handlePendingAction(_ pending: PendingCopyTrade, action: PendingCopyAction) {
-        switch action {
-        case .copy:
-            if let url = copyService.buildJupiterUrl(for: pending) {
-                openURL(url)
-            }
-        case .skip:
-            Task {
-                await copyService.skipPendingCopy(pending)
-            }
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+            .padding(.horizontal, 16)
         }
     }
 
-    private func resetAddPredictor() {
-        newWalletAddress = ""
-        newWalletNickname = ""
-        enableAutoCopyOnAdd = true
+    // MARK: - Data Loading
+
+    private func loadData() async {
+        await copyService.loadTrackedPredictors()
+        await copyService.loadPendingCopies()
+        await copyService.loadDelegationStatus()
+        copyService.startPredictorsListener()
+        copyService.startPendingListener()
+        copyService.startDelegationListener()
     }
 }
 
-// MARK: - Pending Copy Action
+// MARK: - Stat Item
 
-enum PendingCopyAction {
-    case copy
-    case skip
-}
-
-// MARK: - Pending Copy Row
-
-struct PendingCopyRow: View {
-    let pending: PendingCopyTrade
-    let onAction: (PendingCopyAction) -> Void
+private struct StatItem: View {
+    let label: String
+    let value: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            // Header
-            HStack {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(SemanticColors.textPrimary)
+
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundColor(SemanticColors.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Pending Trade Row
+
+private struct PendingTradeRow: View {
+    let pending: PendingCopyTrade
+    @Environment(\.openURL) var openURL
+    @StateObject private var copyService = PredictionCopyService.shared
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 // Direction badge
                 Text(pending.direction)
-                    .font(Typography.labelSmall)
-                    .fontWeight(.bold)
-                    .foregroundColor(SemanticColors.textInverse)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, Spacing.xxs)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
                     .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.xs)
+                        Capsule()
                             .fill(pending.direction == "YES" ? SemanticColors.success : SemanticColors.error)
                     )
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(pending.marketTitle ?? "Unknown Market")
-                        .font(Typography.bodySmall)
-                        .fontWeight(.medium)
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundColor(SemanticColors.textPrimary)
                         .lineLimit(2)
 
-                    Text("by \(pending.trackedWalletNickname ?? shortenAddress(pending.trackedWallet))")
-                        .font(Typography.labelSmall)
-                        .foregroundColor(SemanticColors.textSecondary)
+                    HStack(spacing: 8) {
+                        Text("by \(pending.trackedWalletNickname ?? shortenAddress(pending.trackedWallet))")
+                            .font(.system(size: 13))
+                            .foregroundColor(SemanticColors.textSecondary)
+
+                        TimeRemainingBadge(expiresAt: pending.expiresAt)
+                    }
                 }
 
                 Spacer()
-
-                // Time remaining
-                TimeRemainingBadge(expiresAt: pending.expiresAt)
             }
 
-            // Amount info
-            HStack {
+            HStack(spacing: 12) {
+                // Original bet
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Original Bet")
-                        .font(Typography.labelSmall)
+                    Text("Original")
+                        .font(.system(size: 12))
                         .foregroundColor(SemanticColors.textSecondary)
-                    Text("$\(pending.originalAmount, specifier: "%.2f")")
-                        .font(Typography.bodySmall)
+                    Text("$\(pending.originalAmount, specifier: "%.0f")")
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundColor(SemanticColors.textPrimary)
                 }
 
-                Spacer()
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(.tertiaryLabel))
 
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("Your Copy")
-                        .font(Typography.labelSmall)
+                // Your copy
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Your copy")
+                        .font(.system(size: 12))
                         .foregroundColor(SemanticColors.textSecondary)
-                    Text("$\(pending.suggestedAmount, specifier: "%.2f")")
-                        .font(Typography.bodyMedium)
-                        .fontWeight(.semibold)
+                    Text("$\(pending.suggestedAmount, specifier: "%.0f")")
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(BrandColors.primary)
                 }
-            }
 
-            // Action buttons
-            HStack(spacing: Spacing.md) {
-                Button(action: { onAction(.skip) }) {
-                    Text("Skip")
-                        .font(Typography.bodySmall)
-                        .foregroundColor(SemanticColors.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Spacing.sm)
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.sm)
-                                .stroke(SemanticColors.divider, lineWidth: 1)
-                        )
-                }
+                Spacer()
 
-                Button(action: { onAction(.copy) }) {
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: "doc.on.doc.fill")
-                        Text("Copy on Jupiter")
+                // Actions
+                HStack(spacing: 8) {
+                    Button("Skip") {
+                        Task {
+                            await copyService.skipPendingCopy(pending)
+                        }
                     }
-                    .font(Typography.bodySmall)
-                    .fontWeight(.semibold)
-                    .foregroundColor(SemanticColors.textInverse)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Spacing.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.sm)
-                            .fill(BrandColors.primaryGradient)
-                    )
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(SemanticColors.textSecondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(.tertiarySystemBackground))
+                    .cornerRadius(8)
+
+                    Button {
+                        if let url = copyService.buildJupiterUrl(for: pending) {
+                            openURL(url)
+                        }
+                    } label: {
+                        Text("Copy")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(BrandColors.primary)
+                            .cornerRadius(8)
+                    }
                 }
             }
         }
-        .padding(.vertical, Spacing.sm)
+        .padding(16)
+        .background(Color(.systemBackground))
     }
 
     private func shortenAddress(_ address: String) -> String {
@@ -517,137 +397,62 @@ struct PendingCopyRow: View {
     }
 }
 
-// MARK: - Time Remaining Badge
+// MARK: - Tracked Wallet Row
 
-struct TimeRemainingBadge: View {
-    let expiresAt: Date
-    @State private var timeRemaining: TimeInterval = 0
-
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
-    var body: some View {
-        Text(formatTimeRemaining())
-            .font(Typography.labelSmall)
-            .fontWeight(.medium)
-            .foregroundColor(timeRemaining < 60 ? SemanticColors.error : SemanticColors.textSecondary)
-            .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, Spacing.xxs)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.xs)
-                    .fill(SemanticColors.backgroundSecondary)
-            )
-            .onAppear {
-                timeRemaining = expiresAt.timeIntervalSinceNow
-            }
-            .onReceive(timer) { _ in
-                timeRemaining = expiresAt.timeIntervalSinceNow
-            }
-    }
-
-    private func formatTimeRemaining() -> String {
-        if timeRemaining <= 0 {
-            return "Expired"
-        }
-        let minutes = Int(timeRemaining) / 60
-        let seconds = Int(timeRemaining) % 60
-        if minutes > 0 {
-            return "\(minutes)m \(seconds)s"
-        }
-        return "\(seconds)s"
-    }
-}
-
-// MARK: - Tracked Predictor Row
-
-struct TrackedPredictorRow: View {
+private struct TrackedWalletRow: View {
     let predictor: TrackedPredictor
     @StateObject private var copyService = PredictionCopyService.shared
-    @State private var showingSettings = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            // Header
-            HStack {
-                // Avatar
-                Circle()
-                    .fill(avatarGradient)
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Text(String((predictor.nickname ?? predictor.walletAddress).prefix(1)).uppercased())
-                            .font(Typography.headlineSmall)
-                            .fontWeight(.bold)
-                            .foregroundColor(SemanticColors.textInverse)
-                    )
+        HStack(spacing: 12) {
+            // Avatar
+            Circle()
+                .fill(avatarGradient)
+                .frame(width: 44, height: 44)
+                .overlay(
+                    Text(String((predictor.nickname ?? predictor.walletAddress).prefix(1)).uppercased())
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                )
 
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(predictor.nickname ?? shortenAddress(predictor.walletAddress))
-                        .font(Typography.bodyMedium)
-                        .fontWeight(.semibold)
-                        .foregroundColor(SemanticColors.textPrimary)
+            // Info
+            VStack(alignment: .leading, spacing: 2) {
+                Text(predictor.nickname ?? shortenAddress(predictor.walletAddress))
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(SemanticColors.textPrimary)
 
-                    Text(shortenAddress(predictor.walletAddress))
-                        .font(Typography.labelSmall)
-                        .foregroundColor(SemanticColors.textSecondary)
-                }
-
-                Spacer()
-
-                // Stats
                 if let stats = predictor.stats, stats.totalBets > 0 {
-                    VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                    HStack(spacing: 8) {
                         Text("\(stats.totalBets) bets")
-                            .font(Typography.labelSmall)
                             .foregroundColor(SemanticColors.textSecondary)
 
                         Text("\(Int(stats.winRate * 100))% win")
-                            .font(Typography.labelSmall)
                             .foregroundColor(SemanticColors.success)
                     }
+                    .font(.system(size: 13))
+                } else {
+                    Text(shortenAddress(predictor.walletAddress))
+                        .font(.system(size: 13))
+                        .foregroundColor(SemanticColors.textSecondary)
                 }
             }
 
-            Divider()
+            Spacer()
 
-            // Auto-Copy Toggle
-            HStack {
-                Toggle(isOn: Binding(
-                    get: { predictor.autoCopyEnabled },
-                    set: { newValue in
-                        Task {
-                            await copyService.toggleAutoCopy(for: predictor, enabled: newValue)
-                        }
-                    }
-                )) {
-                    HStack(spacing: Spacing.sm) {
-                        Image(systemName: predictor.autoCopyEnabled ? "bolt.fill" : "bolt")
-                            .foregroundColor(predictor.autoCopyEnabled ? SemanticColors.success : SemanticColors.textSecondary)
-                        Text("Auto-Copy")
-                            .font(Typography.bodySmall)
-                            .foregroundColor(SemanticColors.textPrimary)
+            // Auto-copy toggle
+            Toggle("", isOn: Binding(
+                get: { predictor.autoCopyEnabled },
+                set: { newValue in
+                    Task {
+                        await copyService.toggleAutoCopy(for: predictor, enabled: newValue)
                     }
                 }
-                .tint(SemanticColors.success)
-            }
-
-            // Copy Settings (only show if auto-copy enabled)
-            if predictor.autoCopyEnabled {
-                Button(action: { showingSettings = true }) {
-                    HStack {
-                        Text("Copy up to $\(Int(predictor.maxCopyAmountUsd)) per bet")
-                            .font(Typography.labelSmall)
-                            .foregroundColor(SemanticColors.textSecondary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(SemanticColors.textSecondary)
-                    }
-                }
-                .sheet(isPresented: $showingSettings) {
-                    CopySettingsSheet(predictor: predictor)
-                }
-            }
+            ))
+            .labelsHidden()
+            .tint(SemanticColors.success)
         }
-        .padding(.vertical, Spacing.xs)
+        .padding(16)
+        .background(Color(.systemBackground))
     }
 
     private var avatarGradient: LinearGradient {
@@ -655,8 +460,8 @@ struct TrackedPredictorRow: View {
         let hue = Double(abs(hash) % 360) / 360.0
         return LinearGradient(
             colors: [
-                Color(hue: hue, saturation: 0.7, brightness: 0.8),
-                Color(hue: hue, saturation: 0.6, brightness: 0.6),
+                Color(hue: hue, saturation: 0.65, brightness: 0.75),
+                Color(hue: hue, saturation: 0.55, brightness: 0.55),
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -669,329 +474,350 @@ struct TrackedPredictorRow: View {
     }
 }
 
-// MARK: - Copy Settings Sheet
+// MARK: - Info Row
 
-struct CopySettingsSheet: View {
-    let predictor: TrackedPredictor
+private struct InfoRow: View {
+    let icon: String
+    let title: String
+    let description: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundColor(BrandColors.primary)
+                .frame(width: 32)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(SemanticColors.textPrimary)
+
+                Text(description)
+                    .font(.system(size: 13))
+                    .foregroundColor(SemanticColors.textSecondary)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+}
+
+// MARK: - Time Remaining Badge
+
+private struct TimeRemainingBadge: View {
+    let expiresAt: Date
+    @State private var timeRemaining: TimeInterval = 0
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        Text(formatTime())
+            .font(.system(size: 12, weight: .medium))
+            .foregroundColor(timeRemaining < 60 ? SemanticColors.error : SemanticColors.textSecondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color(.tertiarySystemBackground))
+            .cornerRadius(4)
+            .onAppear { timeRemaining = expiresAt.timeIntervalSinceNow }
+            .onReceive(timer) { _ in timeRemaining = expiresAt.timeIntervalSinceNow }
+    }
+
+    private func formatTime() -> String {
+        if timeRemaining <= 0 { return "Expired" }
+        let min = Int(timeRemaining) / 60
+        let sec = Int(timeRemaining) % 60
+        return min > 0 ? "\(min)m \(sec)s" : "\(sec)s"
+    }
+}
+
+// MARK: - Add Wallet Sheet
+
+private struct AddWalletSheet: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var copyService = PredictionCopyService.shared
 
-    @State private var copyPercentage: Double
-    @State private var maxCopyAmount: Double
-    @State private var minBetSize: Double
-
-    init(predictor: TrackedPredictor) {
-        self.predictor = predictor
-        _copyPercentage = State(initialValue: predictor.copyPercentage)
-        _maxCopyAmount = State(initialValue: predictor.maxCopyAmountUsd)
-        _minBetSize = State(initialValue: predictor.minBetSizeUsd)
-    }
+    @State private var address = ""
+    @State private var nickname = ""
+    @State private var autoCopy = true
+    @State private var isAdding = false
+    @State private var errorMessage = ""
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    VStack(alignment: .leading, spacing: Spacing.sm) {
-                        HStack {
-                            Text("Copy Percentage")
-                            Spacer()
-                            Text("\(Int(copyPercentage))%")
-                                .foregroundColor(BrandColors.primary)
-                        }
-                        Slider(value: $copyPercentage, in: 1...100, step: 1)
-                    }
+                    TextField("Wallet Address", text: $address)
+                        .autocapitalization(.none)
+                        .autocorrectionDisabled()
+                        .font(.system(.body, design: .monospaced))
+
+                    TextField("Nickname (optional)", text: $nickname)
+
+                    Toggle("Enable Auto-Copy", isOn: $autoCopy)
                 } footer: {
-                    Text("Percentage of the original bet amount to copy")
+                    Text("Paste a wallet address from the feed or leaderboard")
                 }
 
-                Section {
-                    VStack(alignment: .leading, spacing: Spacing.sm) {
-                        HStack {
-                            Text("Max Copy Amount")
-                            Spacer()
-                            Text("$\(Int(maxCopyAmount))")
-                                .foregroundColor(BrandColors.primary)
-                        }
-                        Slider(value: $maxCopyAmount, in: 5...500, step: 5)
+                if !errorMessage.isEmpty {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundColor(SemanticColors.error)
                     }
-                } footer: {
-                    Text("Maximum amount per copy bet")
-                }
-
-                Section {
-                    VStack(alignment: .leading, spacing: Spacing.sm) {
-                        HStack {
-                            Text("Min Bet to Copy")
-                            Spacer()
-                            Text("$\(Int(minBetSize))")
-                                .foregroundColor(BrandColors.primary)
-                        }
-                        Slider(value: $minBetSize, in: 1...100, step: 1)
-                    }
-                } footer: {
-                    Text("Only copy bets larger than this amount")
                 }
             }
-            .navigationTitle("Copy Settings")
+            .navigationTitle("Track Wallet")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
-                        Task {
-                            await copyService.updateCopySettings(
-                                for: predictor,
-                                copyPercentage: copyPercentage,
-                                maxCopyAmountUsd: maxCopyAmount,
-                                minBetSizeUsd: minBetSize
-                            )
-                            dismiss()
-                        }
+                    Button("Add") {
+                        Task { await addWallet() }
                     }
+                    .fontWeight(.semibold)
+                    .disabled(address.isEmpty || isAdding)
+                }
+            }
+            .disabled(isAdding)
+            .overlay {
+                if isAdding {
+                    Color.black.opacity(0.2)
+                        .ignoresSafeArea()
+                        .overlay(ProgressView())
                 }
             }
         }
     }
+
+    private func addWallet() async {
+        isAdding = true
+        errorMessage = ""
+
+        do {
+            try await copyService.addTrackedPredictor(
+                address: address.trimmingCharacters(in: .whitespaces),
+                nickname: nickname.isEmpty ? nil : nickname,
+                autoCopyEnabled: autoCopy
+            )
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isAdding = false
+    }
 }
 
-// MARK: - Delegation Settings Sheet
+// MARK: - Delegation Sheet
 
-struct DelegationSettingsSheet: View {
+private struct DelegationSheet: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var copyService = PredictionCopyService.shared
     @StateObject private var privyService = HybridPrivyService.shared
 
-    @State private var maxCopyAmount: Double = 50
-    @State private var copyPercentage: Double = 10
-    @State private var minBetSize: Double = 5
-    @State private var expirationDays: Int = 30
+    @State private var maxAmount: Double = 50
+    @State private var copyPercent: Double = 10
+    @State private var minBet: Double = 5
+    @State private var duration: Int = 30
     @State private var isLoading = false
-    @State private var showingError = false
     @State private var errorMessage = ""
-    @State private var showingRevokeConfirm = false
+    @State private var showRevokeConfirm = false
 
     var body: some View {
         NavigationStack {
             Form {
                 if copyService.delegationActive {
-                    // Active delegation - show status and revoke option
-                    Section {
-                        HStack {
-                            Image(systemName: "checkmark.shield.fill")
-                                .foregroundColor(SemanticColors.success)
-                            Text("Auto-Execute is Active")
-                                .font(Typography.bodyMedium)
-                                .foregroundColor(SemanticColors.textPrimary)
-                        }
-
-                        if let delegation = copyService.delegation {
-                            LabeledContent("Max per trade", value: "$\(Int(delegation.maxCopyAmountUsd))")
-                            LabeledContent("Copy percentage", value: "\(Int(delegation.copyPercentage))%")
-                            LabeledContent("Min bet size", value: "$\(Int(delegation.minBetSizeUsd))")
-                            LabeledContent("Trades executed", value: "\(delegation.totalCopiesExecuted)")
-                            LabeledContent("Total volume", value: "$\(Int(delegation.totalVolumeUsd))")
-
-                            if delegation.expiresAt > Date() {
-                                let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: delegation.expiresAt).day ?? 0
-                                LabeledContent("Expires in", value: "\(daysRemaining) days")
-                            }
-                        }
-                    } header: {
-                        Text("Current Settings")
-                    }
-
-                    Section {
-                        Button(role: .destructive, action: { showingRevokeConfirm = true }) {
-                            HStack {
-                                Spacer()
-                                if isLoading {
-                                    ProgressView()
-                                } else {
-                                    Text("Disable Auto-Execute")
-                                }
-                                Spacer()
-                            }
-                        }
-                        .disabled(isLoading)
-                    } footer: {
-                        Text("Disabling will require you to manually approve each copy trade")
-                    }
+                    activeSection
                 } else {
-                    // Setup new delegation
-                    Section {
-                        VStack(alignment: .leading, spacing: Spacing.sm) {
-                            HStack {
-                                Text("Max Copy Amount")
-                                Spacer()
-                                Text("$\(Int(maxCopyAmount))")
-                                    .foregroundColor(BrandColors.primary)
-                                    .fontWeight(.semibold)
-                            }
-                            Slider(value: $maxCopyAmount, in: 10...500, step: 10)
-                        }
-                    } header: {
-                        Text("Trade Limits")
-                    } footer: {
-                        Text("Maximum amount that will be used per copy trade")
-                    }
-
-                    Section {
-                        VStack(alignment: .leading, spacing: Spacing.sm) {
-                            HStack {
-                                Text("Copy Percentage")
-                                Spacer()
-                                Text("\(Int(copyPercentage))%")
-                                    .foregroundColor(BrandColors.primary)
-                                    .fontWeight(.semibold)
-                            }
-                            Slider(value: $copyPercentage, in: 1...100, step: 1)
-                        }
-                    } footer: {
-                        Text("Percentage of the original bet to copy")
-                    }
-
-                    Section {
-                        VStack(alignment: .leading, spacing: Spacing.sm) {
-                            HStack {
-                                Text("Min Bet to Copy")
-                                Spacer()
-                                Text("$\(Int(minBetSize))")
-                                    .foregroundColor(BrandColors.primary)
-                                    .fontWeight(.semibold)
-                            }
-                            Slider(value: $minBetSize, in: 1...100, step: 1)
-                        }
-                    } footer: {
-                        Text("Only copy bets larger than this amount")
-                    }
-
-                    Section {
-                        Picker("Duration", selection: $expirationDays) {
-                            Text("30 days").tag(30)
-                            Text("90 days").tag(90)
-                            Text("1 year").tag(365)
-                        }
-                        .pickerStyle(.segmented)
-                    } header: {
-                        Text("Expiration")
-                    } footer: {
-                        Text("Auto-execute will need to be re-enabled after this period")
-                    }
-
-                    Section {
-                        Button(action: enableDelegation) {
-                            HStack {
-                                Spacer()
-                                if isLoading {
-                                    ProgressView()
-                                        .tint(SemanticColors.textInverse)
-                                } else {
-                                    Image(systemName: "bolt.fill")
-                                    Text("Enable Auto-Execute")
-                                }
-                                Spacer()
-                            }
-                            .font(Typography.bodyMedium)
-                            .fontWeight(.semibold)
-                            .foregroundColor(SemanticColors.textInverse)
-                            .padding(.vertical, Spacing.sm)
-                        }
-                        .listRowBackground(
-                            RoundedRectangle(cornerRadius: CornerRadius.sm)
-                                .fill(BrandColors.primaryGradient)
-                        )
-                        .disabled(isLoading)
-                    } footer: {
-                        Text("You'll be asked to approve this in your wallet")
-                    }
+                    setupSection
                 }
 
-                // Security info
-                Section {
-                    Label {
-                        VStack(alignment: .leading, spacing: Spacing.xs) {
-                            Text("Secure Delegation")
-                                .font(Typography.bodySmall)
-                                .foregroundColor(SemanticColors.textPrimary)
-                            Text("Only Jupiter Prediction Market trades are allowed. Your funds remain in your wallet at all times.")
-                                .font(Typography.labelSmall)
-                                .foregroundColor(SemanticColors.textSecondary)
-                        }
-                    } icon: {
-                        Image(systemName: "lock.shield.fill")
-                            .foregroundColor(SemanticColors.success)
-                    }
-                } header: {
-                    Text("Security")
-                }
+                securitySection
             }
-            .navigationTitle(copyService.delegationActive ? "Auto-Execute Settings" : "Enable Auto-Execute")
+            .navigationTitle(copyService.delegationActive ? "Auto-Execute" : "Enable Auto-Execute")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .fontWeight(.medium)
                 }
             }
-            .alert("Error", isPresented: $showingError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(errorMessage)
-            }
-            .confirmationDialog(
-                "Disable Auto-Execute?",
-                isPresented: $showingRevokeConfirm,
-                titleVisibility: .visible
-            ) {
+            .disabled(isLoading)
+            .confirmationDialog("Disable Auto-Execute?", isPresented: $showRevokeConfirm, titleVisibility: .visible) {
                 Button("Disable", role: .destructive) {
-                    Task { await revokeDelegation() }
+                    Task { await revoke() }
                 }
                 Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("You will need to manually approve each copy trade after disabling.")
             }
         }
     }
 
-    private func enableDelegation() {
-        Task {
-            isLoading = true
-            defer { isLoading = false }
+    // Active delegation view
+    private var activeSection: some View {
+        Group {
+            Section {
+                if let delegation = copyService.delegation {
+                    LabeledContent("Max per trade", value: "$\(Int(delegation.maxCopyAmountUsd))")
+                    LabeledContent("Copy percentage", value: "\(Int(delegation.copyPercentage))%")
+                    LabeledContent("Trades executed", value: "\(delegation.totalCopiesExecuted)")
+                    LabeledContent("Total volume", value: "$\(Int(delegation.totalVolumeUsd))")
 
-            do {
-                // Get Privy access token
-                guard let accessToken = try await privyService.getAccessToken() else {
-                    throw PredictionCopyError.notAuthenticated
+                    if delegation.expiresAt > Date() {
+                        let days = Calendar.current.dateComponents([.day], from: Date(), to: delegation.expiresAt).day ?? 0
+                        LabeledContent("Expires in", value: "\(days) days")
+                    }
+                }
+            } header: {
+                Label("Active", systemImage: "checkmark.circle.fill")
+                    .foregroundColor(SemanticColors.success)
+            }
+
+            Section {
+                Button(role: .destructive) {
+                    showRevokeConfirm = true
+                } label: {
+                    HStack {
+                        Spacer()
+                        if isLoading {
+                            ProgressView()
+                        } else {
+                            Text("Disable Auto-Execute")
+                        }
+                        Spacer()
+                    }
+                }
+            }
+        }
+    }
+
+    // Setup new delegation
+    private var setupSection: some View {
+        Group {
+            Section("Trade Limits") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Max per trade")
+                        Spacer()
+                        Text("$\(Int(maxAmount))")
+                            .foregroundColor(BrandColors.primary)
+                            .fontWeight(.semibold)
+                    }
+                    Slider(value: $maxAmount, in: 10...500, step: 10)
                 }
 
-                try await copyService.approveDelegation(
-                    maxCopyAmountUsd: maxCopyAmount,
-                    copyPercentage: copyPercentage,
-                    minBetSizeUsd: minBetSize,
-                    expirationDays: expirationDays,
-                    privyAccessToken: accessToken
-                )
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Copy percentage")
+                        Spacer()
+                        Text("\(Int(copyPercent))%")
+                            .foregroundColor(BrandColors.primary)
+                            .fontWeight(.semibold)
+                    }
+                    Slider(value: $copyPercent, in: 1...100, step: 1)
+                }
 
-                dismiss()
-            } catch {
-                errorMessage = error.localizedDescription
-                showingError = true
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Min bet to copy")
+                        Spacer()
+                        Text("$\(Int(minBet))")
+                            .foregroundColor(BrandColors.primary)
+                            .fontWeight(.semibold)
+                    }
+                    Slider(value: $minBet, in: 1...100, step: 1)
+                }
+            }
+
+            Section("Duration") {
+                Picker("", selection: $duration) {
+                    Text("30 days").tag(30)
+                    Text("90 days").tag(90)
+                    Text("1 year").tag(365)
+                }
+                .pickerStyle(.segmented)
+            }
+
+            if !errorMessage.isEmpty {
+                Section {
+                    Text(errorMessage)
+                        .foregroundColor(SemanticColors.error)
+                }
+            }
+
+            Section {
+                Button {
+                    Task { await enable() }
+                } label: {
+                    HStack {
+                        Spacer()
+                        if isLoading {
+                            ProgressView().tint(.white)
+                        } else {
+                            Label("Enable Auto-Execute", systemImage: "bolt.fill")
+                        }
+                        Spacer()
+                    }
+                    .foregroundColor(.white)
+                    .padding(.vertical, 4)
+                }
+                .listRowBackground(BrandColors.primary)
             }
         }
     }
 
-    private func revokeDelegation() async {
-        isLoading = true
-        defer { isLoading = false }
+    private var securitySection: some View {
+        Section("Security") {
+            Label {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Secure Delegation")
+                        .font(.system(size: 15, weight: .medium))
+                    Text("Only Jupiter Prediction trades. Funds stay in your wallet.")
+                        .font(.system(size: 13))
+                        .foregroundColor(SemanticColors.textSecondary)
+                }
+            } icon: {
+                Image(systemName: "lock.shield.fill")
+                    .foregroundColor(SemanticColors.success)
+            }
+        }
+    }
 
+    private func enable() async {
+        isLoading = true
+        errorMessage = ""
+
+        do {
+            guard let token = try await privyService.getAccessToken() else {
+                throw PredictionCopyError.notAuthenticated
+            }
+
+            try await copyService.approveDelegation(
+                maxCopyAmountUsd: maxAmount,
+                copyPercentage: copyPercent,
+                minBetSizeUsd: minBet,
+                expirationDays: duration,
+                privyAccessToken: token
+            )
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+
+    private func revoke() async {
+        isLoading = true
         do {
             try await copyService.revokeDelegation()
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
-            showingError = true
         }
+        isLoading = false
     }
 }
 
