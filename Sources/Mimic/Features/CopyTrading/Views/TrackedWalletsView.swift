@@ -6,7 +6,6 @@ struct TrackedWalletsView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var copyService = PredictionCopyService.shared
 
-    @State private var showAddWallet = false
     @State private var showDelegationSettings = false
     @State private var showError = false
     @State private var errorMessage = ""
@@ -52,9 +51,6 @@ struct TrackedWalletsView: View {
                 copyService.stopPredictorsListener()
                 copyService.stopPendingListener()
                 copyService.stopDelegationListener()
-            }
-            .sheet(isPresented: $showAddWallet) {
-                AddWalletSheet()
             }
             .sheet(isPresented: $showDelegationSettings) {
                 DelegationSheet()
@@ -179,44 +175,21 @@ struct TrackedWalletsView: View {
 
             VStack(spacing: 1) {
                 // Wallet rows
-                ForEach(copyService.trackedPredictors) { predictor in
-                    TrackedWalletRow(predictor: predictor)
-                }
-
-                // Add button
-                Button(action: { showAddWallet = true }) {
-                    HStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .strokeBorder(Color(.separator), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                                .frame(width: 44, height: 44)
-
-                            Image(systemName: "plus")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(BrandColors.primary)
-                        }
-
-                        Text("Track a wallet")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(BrandColors.primary)
-
-                        Spacer()
+                if copyService.trackedPredictors.isEmpty {
+                    Text("Track wallets from the feed")
+                        .font(.system(size: 15))
+                        .foregroundColor(SemanticColors.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(20)
+                } else {
+                    ForEach(copyService.trackedPredictors) { predictor in
+                        TrackedWalletRow(predictor: predictor)
                     }
-                    .padding(16)
                 }
-                .disabled(copyService.trackedPredictors.count >= 5)
             }
             .background(Color(.systemBackground))
             .cornerRadius(12)
             .padding(.horizontal, 16)
-
-            if copyService.trackedPredictors.isEmpty {
-                Text("Track smart money wallets to copy their bets")
-                    .font(.system(size: 14))
-                    .foregroundColor(SemanticColors.textSecondary)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-            }
         }
     }
 

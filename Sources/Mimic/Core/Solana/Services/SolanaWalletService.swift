@@ -34,7 +34,7 @@ class SolanaWalletService: ObservableObject {
 
     /// Cache timestamp - avoid refetching if data is fresh
     private var lastBalanceFetch: Date?
-    private let balanceCacheSeconds: TimeInterval = 30
+    private let balanceCacheSeconds: TimeInterval = 60 // Increased to reduce Helius 429s
 
     private init() {}
 

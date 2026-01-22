@@ -13,7 +13,7 @@ export const PRIVY_AUTHORIZATION_PRIVATE_KEY = defineSecret("PRIVY_AUTHORIZATION
 export const PRIVY_PREDICTION_AUTH_KEY = defineSecret("PRIVY_PREDICTION_AUTH_KEY");
 
 // Quorum IDs for different authorization keys
-export const PREDICTION_KEY_QUORUM_ID = "r481egn9xkqz64hy4f2igff1";
+export const PREDICTION_KEY_QUORUM_ID = "t5czqmtdq7qmmgg5taxl3nfx";
 
 /**
  * Initialize Privy Client for server-side wallet actions

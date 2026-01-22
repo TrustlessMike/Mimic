@@ -395,6 +395,15 @@ private struct BetStatusBadge: View {
         direction == .yes ? SemanticColors.success : SemanticColors.error
     }
 
+    // Status color based on outcome (not direction)
+    private var statusColor: Color {
+        switch status {
+        case .won, .claimed: return SemanticColors.success
+        case .lost: return SemanticColors.error
+        case .open: return SemanticColors.textSecondary
+        }
+    }
+
     private var statusLabel: String {
         switch status {
         case .open: return "Open"
@@ -414,29 +423,21 @@ private struct BetStatusBadge: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            Text(direction.displayName)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(.white)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(directionColor)
-
-            HStack(spacing: 4) {
-                Image(systemName: statusIcon)
-                    .font(.system(size: 10, weight: .semibold))
-                Text(statusLabel)
-                    .font(.system(size: 12, weight: .semibold))
-            }
-            .foregroundColor(directionColor)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(directionColor.opacity(0.15))
+        // Simple status badge - no YES/NO to avoid confusion
+        HStack(spacing: 4) {
+            Image(systemName: statusIcon)
+                .font(.system(size: 10, weight: .semibold))
+            Text(statusLabel)
+                .font(.system(size: 12, weight: .semibold))
         }
+        .foregroundColor(statusColor)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(statusColor.opacity(0.15))
         .clipShape(Capsule())
         .overlay(
             Capsule()
-                .strokeBorder(directionColor.opacity(0.3), lineWidth: 1)
+                .strokeBorder(statusColor.opacity(0.3), lineWidth: 1)
         )
     }
 }

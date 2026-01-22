@@ -12,49 +12,71 @@ struct PredictionFeedView: View {
     @State private var selectedBetForDetail: PredictionBet?
     @State private var trackingWalletAddress: String?
 
+    // Copy trade state
+    @State private var selectedBetForCopy: PredictionBet?
+    @State private var copyAmount: Double = 10
+    @State private var isCopying = false
+    @State private var copyError: String?
+    @State private var showCopySuccess = false
+    @State private var showDelegationSetup = false
+    @StateObject private var predictionCopyService = PredictionCopyService.shared
+
     // Scroll-to-hide
     @State private var headerVisible = true
     @State private var lastOffset: CGFloat = 0
 
-    // Header height (title + filters + divider + padding)
-    private let headerContentHeight: CGFloat = 116
+    // Header visual height (not including safe area - that's handled separately)
+    private let headerVisualHeight: CGFloat = 92
 
     var body: some View {
         GeometryReader { geometry in
             let safeAreaTop = geometry.safeAreaInsets.top
-            let totalHeaderHeight = safeAreaTop + headerContentHeight
+            let totalHeaderHeight = safeAreaTop + headerVisualHeight
 
             ZStack(alignment: .top) {
                 // Scrollable content
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        // Header spacer
-                        Color.clear.frame(height: headerContentHeight)
-
-                        // Content
-                        if predictionService.betFeed.isEmpty && predictionService.isLoadingFeed {
-                            loadingState
-                        } else if predictionService.betFeed.isEmpty {
-                            emptyState
+                        // Content - show hot markets or bet feed based on filter
+                        if selectedFilter.showsHotMarkets {
+                            // Trending tab - show hot markets
+                            if predictionService.hotMarkets.isEmpty && predictionService.isLoadingHotMarkets {
+                                loadingState
+                            } else if predictionService.hotMarkets.isEmpty {
+                                trendingEmptyState
+                            } else {
+                                hotMarketsContent
+                            }
                         } else {
-                            feedContent
+                            // Regular feed
+                            if predictionService.betFeed.isEmpty && predictionService.isLoadingFeed {
+                                loadingState
+                            } else if predictionService.betFeed.isEmpty {
+                                emptyState
+                            } else {
+                                feedContent
+                            }
                         }
+
+                        // Bottom padding for tab bar
+                        Color.clear.frame(height: 100)
                     }
+                    .padding(.top, totalHeaderHeight)
                     .background(
                         GeometryReader { geo in
                             Color.clear
                                 .onChange(of: geo.frame(in: .global).minY) { oldValue, newValue in
                                     let delta = newValue - lastOffset
 
-                                    // Scrolling down (content moving up)
-                                    if delta < -5 && newValue < 100 {
-                                        withAnimation(.easeOut(duration: 0.2)) {
+                                    // Scrolling down (content moving up) - hide header
+                                    if delta < -8 && newValue < 50 {
+                                        withAnimation(.easeOut(duration: 0.25)) {
                                             headerVisible = false
                                         }
                                     }
-                                    // Scrolling up (content moving down)
-                                    else if delta > 5 {
-                                        withAnimation(.easeOut(duration: 0.2)) {
+                                    // Scrolling up (content moving down) - show header
+                                    else if delta > 8 {
+                                        withAnimation(.easeOut(duration: 0.25)) {
                                             headerVisible = true
                                         }
                                     }
@@ -68,15 +90,16 @@ struct PredictionFeedView: View {
                     await refreshData()
                 }
 
-                // Header with safe area background
+                // Header overlay (X-style with material)
                 VStack(spacing: 0) {
-                    // Safe area fill
-                    Color(.systemBackground)
+                    // Safe area material fill
+                    Rectangle()
+                        .fill(.clear)
                         .frame(height: safeAreaTop)
 
                     headerView
                 }
-                .background(.ultraThinMaterial)
+                .background(.regularMaterial)
                 .offset(y: headerVisible ? 0 : -totalHeaderHeight)
             }
             .ignoresSafeArea(.container, edges: .top)
@@ -91,56 +114,264 @@ struct PredictionFeedView: View {
         .sheet(item: $selectedBetForDetail) { bet in
             BetDetailView(bet: bet)
         }
+        .sheet(item: $selectedBetForCopy) { bet in
+            copyTradeSheet(for: bet)
+        }
+        .alert("Copy Trade Submitted", isPresented: $showCopySuccess) {
+            Button("OK") { }
+        } message: {
+            if predictionCopyService.delegationActive {
+                Text("Your copy trade is being executed automatically.")
+            } else {
+                Text("Open Jupiter to complete your trade.")
+            }
+        }
+        .alert("Copy Failed", isPresented: .init(
+            get: { copyError != nil },
+            set: { if !$0 { copyError = nil } }
+        )) {
+            Button("OK") { copyError = nil }
+        } message: {
+            Text(copyError ?? "Unknown error")
+        }
+        .task {
+            await predictionCopyService.loadDelegationStatus()
+        }
+        .sheet(isPresented: $showDelegationSetup) {
+            TrackedWalletsView()
+        }
     }
 
-    // MARK: - Header
+    // MARK: - Copy Trade Sheet
+
+    private func copyTradeSheet(for bet: PredictionBet) -> some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                // Trade info
+                VStack(spacing: 8) {
+                    Text(bet.marketTitle ?? "Unknown Market")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundColor(SemanticColors.textPrimary)
+                        .multilineTextAlignment(.center)
+
+                    HStack(spacing: 8) {
+                        Text(bet.direction.displayName)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(bet.direction == .yes ? SemanticColors.success : SemanticColors.error)
+
+                        Text("@")
+                            .foregroundColor(SemanticColors.textSecondary)
+
+                        Text("\(Int(bet.avgPrice * 100))¢")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(SemanticColors.textPrimary)
+                    }
+                }
+                .padding(.top, 8)
+
+                Divider()
+
+                // Amount selector
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Copy Amount (USDC)")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(SemanticColors.textSecondary)
+
+                    HStack(spacing: 12) {
+                        ForEach([5.0, 10.0, 25.0, 50.0], id: \.self) { amount in
+                            Button(action: { copyAmount = amount }) {
+                                Text("$\(Int(amount))")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(copyAmount == amount ? .white : SemanticColors.textPrimary)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(copyAmount == amount ? Color(BrandColors.primary) : Color(.secondarySystemBackground))
+                                    .cornerRadius(10)
+                            }
+                        }
+                    }
+
+                    // Original bet comparison
+                    Text("Original bet: \(bet.formattedAmount)")
+                        .font(.system(size: 13))
+                        .foregroundColor(SemanticColors.textSecondary)
+                }
+
+                // Delegation status
+                VStack(spacing: 8) {
+                    if predictionCopyService.delegationActive {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bolt.fill")
+                                .foregroundColor(SemanticColors.success)
+                            Text("Auto-execute enabled")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(SemanticColors.success)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(SemanticColors.success.opacity(0.1))
+                        .cornerRadius(10)
+                    } else {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.up.right.square")
+                                    .foregroundColor(SemanticColors.textSecondary)
+                                Text("Opens Jupiter to complete")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(SemanticColors.textSecondary)
+                            }
+
+                            Button(action: {
+                                selectedBetForCopy = nil
+                                showDelegationSetup = true
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "bolt.fill")
+                                    Text("Enable Auto-Execute")
+                                        .font(.system(size: 14, weight: .medium))
+                                }
+                                .foregroundColor(BrandColors.primary)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(BrandColors.primary.opacity(0.1))
+                                .cornerRadius(10)
+                            }
+                        }
+                    }
+                }
+
+                Spacer()
+
+                // Execute button
+                Button(action: { executeCopy(bet: bet) }) {
+                    HStack {
+                        if isCopying {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Image(systemName: predictionCopyService.delegationActive ? "bolt.fill" : "arrow.up.right.square")
+                            Text(predictionCopyService.delegationActive ? "Execute Copy" : "Open Jupiter")
+                        }
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(isCopying ? Color.gray : Color(BrandColors.primary))
+                    .cornerRadius(12)
+                }
+                .disabled(isCopying)
+            }
+            .padding(20)
+            .navigationTitle("Copy Trade")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") {
+                        selectedBetForCopy = nil
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    private func executeCopy(bet: PredictionBet) {
+        isCopying = true
+
+        Task {
+            do {
+                let result = try await predictionCopyService.initiateCopy(
+                    bet: bet,
+                    copyAmount: copyAmount
+                )
+
+                await MainActor.run {
+                    selectedBetForCopy = nil
+                    isCopying = false
+
+                    if let jupiterUrl = result.jupiterUrl {
+                        // Manual flow - open Jupiter
+                        UIApplication.shared.open(jupiterUrl)
+                    } else {
+                        // Auto-execute flow - show success
+                        showCopySuccess = true
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    copyError = error.localizedDescription
+                    isCopying = false
+                }
+            }
+        }
+    }
+
+    // MARK: - Header (X-style)
 
     private var headerView: some View {
         VStack(spacing: 0) {
+            // Top row: Title + Smart Money button
             HStack {
                 Text("Feed")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(SemanticColors.textPrimary)
 
                 Spacer()
 
                 Button(action: { showSmartMoneyList = true }) {
                     Image(systemName: "person.2")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(.system(size: 17, weight: .medium))
                         .foregroundColor(SemanticColors.textPrimary)
-                        .frame(width: 36, height: 36)
-                        .background(Color(.tertiarySystemBackground))
-                        .clipShape(Circle())
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .frame(height: 44)
 
-            filterRow
-
-            Divider()
+            // X-style tab bar with underline indicator
+            filterTabBar
         }
     }
 
-    // MARK: - Filter Row
+    // MARK: - Filter Tab Bar (X-style underlined tabs)
 
-    private var filterRow: some View {
+    private var filterTabBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 0) {
                 ForEach(BetFeedFilter.allCases, id: \.self) { filter in
-                    FilterPill(
-                        title: filter.displayName,
-                        isSelected: selectedFilter == filter
-                    ) {
-                        withAnimation(.easeOut(duration: 0.2)) {
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
                             selectedFilter = filter
                         }
                         Task {
                             await predictionService.refreshFeed(filter: filter)
                         }
+                    }) {
+                        VStack(spacing: 0) {
+                            Text(filter.displayName)
+                                .font(.system(size: 15, weight: selectedFilter == filter ? .bold : .regular))
+                                .foregroundColor(selectedFilter == filter ? SemanticColors.textPrimary : SemanticColors.textSecondary)
+                                .frame(height: 40)
+                                .padding(.horizontal, 16)
+
+                            // Underline indicator
+                            Rectangle()
+                                .fill(selectedFilter == filter ? Color(BrandColors.primary) : Color.clear)
+                                .frame(height: 3)
+                                .cornerRadius(1.5)
+                                .padding(.horizontal, 8)
+                        }
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
-            .padding(.horizontal, 16)
+        }
+        .frame(height: 44)
+        .overlay(alignment: .bottom) {
+            // Bottom divider
+            Rectangle()
+                .fill(SemanticColors.divider.opacity(0.3))
+                .frame(height: 0.5)
         }
     }
 
@@ -194,15 +425,8 @@ struct PredictionFeedView: View {
     }
 
     private func copyBet(_ bet: PredictionBet) {
-        // Copy bet details to clipboard
-        let details = """
-        \(bet.direction.displayName) on \(bet.marketTitle ?? "Unknown Market")
-        Amount: \(bet.formattedAmount)
-        Price: \(Int(bet.avgPrice * 100))¢
-        Shares: \(Int(bet.shares))
-        Market: \(bet.marketAddress)
-        """
-        UIPasteboard.general.string = details
+        print("📋 Copy tapped for bet: \(bet.id)")
+        selectedBetForCopy = bet
     }
 
     private func trackWallet(address: String, nickname: String?) {
@@ -268,15 +492,54 @@ struct PredictionFeedView: View {
         .padding(.horizontal, 32)
     }
 
+    private var trendingEmptyState: some View {
+        VStack(spacing: 16) {
+            Spacer()
+                .frame(height: 80)
+
+            Image(systemName: "flame")
+                .font(.system(size: 48))
+                .foregroundColor(Color(.tertiaryLabel))
+
+            Text("No trending markets")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(SemanticColors.textPrimary)
+
+            Text("When multiple smart bettors converge\non the same market, it'll appear here")
+                .font(.system(size: 15))
+                .foregroundColor(SemanticColors.textSecondary)
+                .multilineTextAlignment(.center)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 32)
+    }
+
+    // MARK: - Hot Markets Content
+
+    private var hotMarketsContent: some View {
+        LazyVStack(spacing: 0) {
+            ForEach(predictionService.hotMarkets) { market in
+                HotMarketCard(market: market)
+
+                Divider()
+                    .padding(.leading, 16)
+            }
+        }
+    }
+
     // MARK: - Data Loading
 
     private func loadData() async {
         async let wallets: () = copyTradingService.loadTrackedWallets()
         async let smartMoney: () = predictionService.loadSmartMoneyWallets()
         async let feed: () = predictionService.loadBetFeed(filter: selectedFilter, refresh: true)
+        async let hotMarkets: () = predictionService.loadHotMarkets()
 
-        _ = await (wallets, smartMoney, feed)
+        _ = await (wallets, smartMoney, feed, hotMarkets)
         predictionService.startFeedListener()
+        predictionService.startHotMarketsListener()
         copyTradingService.startWalletsListener()
     }
 
@@ -494,6 +757,15 @@ private struct BetStatusBadge: View {
         direction == .yes ? SemanticColors.success : SemanticColors.error
     }
 
+    // Status color based on outcome (not direction)
+    private var statusColor: Color {
+        switch status {
+        case .won, .claimed: return SemanticColors.success
+        case .lost: return SemanticColors.error
+        case .open: return SemanticColors.textSecondary
+        }
+    }
+
     private var statusLabel: String {
         switch status {
         case .open: return "Open"
@@ -513,31 +785,21 @@ private struct BetStatusBadge: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Direction part (YES/NO)
-            Text(direction.displayName)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(.white)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(directionColor)
-
-            // Status part (Open/Won/Lost)
-            HStack(spacing: 4) {
-                Image(systemName: statusIcon)
-                    .font(.system(size: 10, weight: .semibold))
-                Text(statusLabel)
-                    .font(.system(size: 12, weight: .semibold))
-            }
-            .foregroundColor(directionColor)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(directionColor.opacity(0.15))
+        // Simple status badge - no YES/NO to avoid confusion
+        HStack(spacing: 4) {
+            Image(systemName: statusIcon)
+                .font(.system(size: 10, weight: .semibold))
+            Text(statusLabel)
+                .font(.system(size: 12, weight: .semibold))
         }
+        .foregroundColor(statusColor)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(statusColor.opacity(0.15))
         .clipShape(Capsule())
         .overlay(
             Capsule()
-                .strokeBorder(directionColor.opacity(0.3), lineWidth: 1)
+                .strokeBorder(statusColor.opacity(0.3), lineWidth: 1)
         )
     }
 }
@@ -593,6 +855,118 @@ private struct SkeletonBetCard: View {
             }
         }
         .padding(16)
+    }
+}
+
+// MARK: - Hot Market Card
+
+private struct HotMarketCard: View {
+    let market: HotMarket
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header: Heat indicator + Category
+            HStack {
+                // Heat badge
+                HStack(spacing: 4) {
+                    Text(market.heatEmoji)
+                        .font(.system(size: 14))
+                    Text(market.heatLevel.uppercased())
+                        .font(.system(size: 12, weight: .bold))
+                }
+                .foregroundColor(heatColor)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(heatColor.opacity(0.15))
+                .clipShape(Capsule())
+
+                Spacer()
+
+                if let category = market.category {
+                    Text(category)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(SemanticColors.textSecondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(.tertiarySystemBackground))
+                        .cornerRadius(4)
+                }
+            }
+
+            // Market title
+            Text(market.marketTitle ?? "Unknown Market")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(SemanticColors.textPrimary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // Stats row
+            HStack(spacing: 16) {
+                // Bettors
+                Label {
+                    Text(market.formattedBettors)
+                        .font(.system(size: 14, weight: .medium))
+                } icon: {
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 13))
+                }
+                .foregroundColor(SemanticColors.textSecondary)
+
+                // Volume
+                if market.totalVolume > 0 {
+                    Label {
+                        Text(market.formattedVolume)
+                            .font(.system(size: 14, weight: .medium))
+                    } icon: {
+                        Image(systemName: "dollarsign.circle")
+                            .font(.system(size: 13))
+                    }
+                    .foregroundColor(SemanticColors.textSecondary)
+                }
+
+                Spacer()
+
+                // Consensus
+                if market.consensusPercentage > 0 {
+                    Text(market.formattedConsensus)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(consensusColor)
+                }
+            }
+
+            // Time since detected
+            if let detected = market.detectedAt {
+                Text("Detected \(timeAgo(from: detected))")
+                    .font(.system(size: 12))
+                    .foregroundColor(SemanticColors.textTertiary)
+            }
+        }
+        .padding(16)
+        .background(Color(.systemBackground))
+    }
+
+    private var heatColor: Color {
+        switch market.heatLevel {
+        case "fire": return .orange
+        case "hot": return .orange
+        default: return SemanticColors.textSecondary
+        }
+    }
+
+    private var consensusColor: Color {
+        switch market.consensusDirection {
+        case "YES": return SemanticColors.success
+        case "NO": return SemanticColors.error
+        default: return SemanticColors.textSecondary
+        }
+    }
+
+    private func timeAgo(from date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+        if seconds < 60 { return "\(seconds)s ago" }
+        if seconds < 3600 { return "\(seconds / 60)m ago" }
+        if seconds < 86400 { return "\(seconds / 3600)h ago" }
+        return "\(seconds / 86400)d ago"
     }
 }
 

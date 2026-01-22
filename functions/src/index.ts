@@ -4,129 +4,89 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 
 // ============================================
-// ESSENTIAL FUNCTIONS (8 total)
+// AUTH & USER (6 functions)
 // ============================================
 
-// Auth - Privy bridge
 export { createFirebaseCustomToken } from "./privy-firebase-bridge";
-
-// User functions - essential for onboarding
+export { createServerWallet } from "./users/create-server-wallet";
 export { updateWalletAddress } from "./users/update-wallet-address";
 export { checkUsernameAvailability } from "./users/check-username-availability";
 export { updateUsername } from "./users/update-username";
 export { deleteUserAccount } from "./users/delete-user-account";
 
-// Utility
-export { getFeePayerAddress } from "./utils/get-fee-payer-address";
-
 // ============================================
-// PREDICTION MARKETS - Core Feature
+// PREDICTION MARKETS (5 functions)
 // ============================================
 
-// Smart money wallets (admin manages the curated list)
-export { getSmartMoneyWallets, addSmartMoneyWallet, removeSmartMoneyWallet, seedSmartMoneyWallets } from "./prediction/smart-money-wallets";
-
-// Prediction webhook (receives Helius transactions for smart money bets)
+// Webhook - receives Helius transactions for smart money bets
 export { predictionWebhook } from "./prediction/prediction-webhook";
 
-// Scheduled bet resolution (checks market outcomes hourly)
+// Resolution - checks market outcomes hourly
 export { resolvePredictionBets } from "./prediction/resolve-prediction-bets";
 
-// Leaderboard sync (auto-discovers top traders from Jupiter)
-export { syncLeaderboard, syncLeaderboardNow } from "./prediction/sync-leaderboard";
-
-// Historical backfill (fetch past bets when adding wallets)
-export { backfillWalletHistory } from "./prediction/backfill-history";
-
-// Market title backfill (fix bets with missing titles)
-export { backfillMarketTitles } from "./prediction/backfill-market-titles";
-
-// Polling backup (catches missed webhook events)
-export { pollRecentTransactions } from "./prediction/poll-transactions";
-
-// Stats calculation (hourly recalculation of win rates, P&L, ROI)
-export { calculateOnChainStats } from "./prediction/calculate-stats";
+// Smart money wallets - curated list
+export {
+  getSmartMoneyWallets,
+  addSmartMoneyWallet,
+  removeSmartMoneyWallet,
+} from "./prediction/smart-money-wallets";
 
 // ============================================
-// KALSHI CROSS-REFERENCE (Jupiter uses Kalshi data)
+// COPY TRADING (6 functions)
 // ============================================
 
-// Kalshi market sync (every 15 min + manual trigger)
-// Jupiter eventId matches Kalshi event_ticker exactly (e.g., KXSB-26)
-export { syncKalshiMarkets, syncKalshiNow, getKalshiSignals } from "./prediction/kalshi-sync";
+// Delegation - enable/disable server-side execution
+export {
+  approvePredictionDelegation,
+  revokePredictionDelegation,
+} from "./prediction/approve-prediction-delegation";
 
-// ============================================
-// PREDICTION COPY TRADING - Auto-copy with Privy delegation
-// ============================================
-
-// Delegation management (enable/disable server-side copy execution)
-export { approvePredictionDelegation, revokePredictionDelegation } from "./prediction/approve-prediction-delegation";
-
-// Server-side copy execution (uses Privy auth key to sign on behalf of user)
+// Server-side copy execution
 export { executePredictionCopyServer } from "./prediction/execute-prediction-copy-server";
 
+// Auto-execute trigger (Firestore onCreate)
+export { onPendingCopyCreated } from "./prediction/auto-execute-copy";
+
+// User tracking settings
+export {
+  updateTrackingSettings,
+  getTrackedPredictors,
+  enableAutoCopy,
+  disableAutoCopy,
+} from "./prediction/tracking-settings";
+
 // ============================================
-// DISABLED FUNCTIONS (re-enable as needed)
+// MARKET REGISTRY (2 functions)
 // ============================================
 
-// User functions - not needed for MVP
-// export { getRecentRecipients } from "./users/get-recent-recipients";
-// export { addDevContact } from "./users/add-dev-contact";
-export { createServerWallet } from "./users/create-server-wallet";
-// export { getUserActivity } from "./users/get-user-activity";
+// Map Jupiter markets to Kalshi for resolution
+export {
+  addMarketMapping,
+  getUnmappedMarkets,
+} from "./prediction/market-registry";
 
-// Utility - not needed
-// export { setupWickettTeamUser } from "./utils/get-fee-payer-address";
+// Smart money discovery (fully automated)
+export {
+  // On-chain scanner (finds NEW traders from blockchain)
+  scanProgramForTraders,
+  triggerOnChainScan,
+  // Internal data discovery
+  discoverProfitableTraders,
+  triggerDiscoveryNow,
+  // Community suggestions (still available)
+  getDiscoveredWallets,
+  approveDiscoveredWallet,
+  rejectDiscoveredWallet,
+  submitWalletSuggestion,
+} from "./prediction/discover-smart-money";
 
-// V2 Solana transactions - not needed without send
-// export { sponsorSolTransferV2 } from "./transactions/sponsor-sol-transfer-v2";
-// export { sponsorSplTransferV2 } from "./transactions/sponsor-spl-transfer-v2";
-// export { sponsorJupiterSwap } from "./transactions/sponsor-jupiter-swap";
-// export { broadcastSignedTransaction } from "./transactions/broadcast-signed-transaction";
+// ============================================
+// HOT MARKET DETECTION (3 functions)
+// ============================================
 
-// Monitoring - low priority
-// export { monitorFeePayerBalance, checkFeePayerBalance } from "./monitoring/fee-payer-monitor";
-
-// Payment requests - not needed
-// export { createPaymentRequest } from "./requests/create-payment-request";
-// export { createAndSendFiatRequest } from "./requests/create-and-send-fiat-request";
-// export { getPaymentRequest } from "./requests/get-payment-request";
-// export { searchUsers } from "./requests/search-users";
-// export { fulfillPaymentRequest } from "./requests/fulfill-payment-request";
-// export { rejectPaymentRequest } from "./requests/reject-payment-request";
-// export { getMyRequests } from "./requests/get-my-requests";
-// export { getReceivedRequests } from "./requests/get-received-requests";
-// export { processPaymentRequest } from "./requests/process-payment-request";
-
-// Jupiter swap - optional, can re-enable
-// export { getJupiterQuote } from "./solana/get-jupiter-quote";
-// export { getJupiterSwapTransaction } from "./solana/get-jupiter-swap-transaction";
-// export { executeJupiterSwap } from "./solana/execute-jupiter-swap";
-
-// Delegation - re-enabled for copy trading
-export { approveDelegationV2 } from "./delegation/approve-delegation-v2";
-// export { confirmDelegation } from "./delegation/confirm-delegation";
-export { revokeDelegationV2 } from "./delegation/revoke-delegation-v2";
-export { getDelegationStatus } from "./delegation/get-delegation-status";
-
-// Helius payment webhook - replaced by prediction webhook
-// export { heliusPaymentWebhook } from "./webhooks/helius-payment-webhook";
-
-// Coinbase - optional, can re-enable
-// export { createCoinbaseOnrampSession } from "./coinbase/create-onramp-session";
-// export { createCoinbaseApplePayOrder } from "./coinbase/create-apple-pay-order";
-// export { createCoinbaseOfframpSession } from "./coinbase/create-offramp-session";
-// export { getCoinbaseTransferStatus } from "./coinbase/get-transfer-status";
-// export { coinbaseWebhook } from "./coinbase/coinbase-webhook";
-// export { adminGetCoinbaseTransactions, adminSyncCoinbaseSession, adminUpdateSessionStatus } from "./coinbase/admin-get-transactions";
-// export { adminRegisterCoinbaseWebhook, adminListCoinbaseWebhooks } from "./coinbase/register-webhook";
-
-// Admin/insights - dev tools
-// export { generateInsights, getAggregatedData } from "./admin/generate-insights";
-// export { dailyInsightsEmail, sendInsightsEmailNow } from "./admin/scheduled-insights";
-
-// Copy trading - re-enabled for Mimic
-export { addTrackedWallet } from "./tracking/add-tracked-wallet";
-export { removeTrackedWallet } from "./tracking/remove-tracked-wallet";
-export { tradeWebhook } from "./tracking/trade-webhook";
-export { executeCopyTrade } from "./tracking/execute-copy-trade";
+// Detect when multiple smart bettors bet same direction
+export {
+  detectHotMarkets,
+  getHotMarkets,
+  triggerHotMarketDetection,
+} from "./prediction/hot-market-detection";

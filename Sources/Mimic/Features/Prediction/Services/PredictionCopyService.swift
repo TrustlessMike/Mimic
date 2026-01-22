@@ -304,6 +304,87 @@ class PredictionCopyService: ObservableObject {
         pendingListener = nil
     }
 
+    // MARK: - Initiate Copy from Bet
+
+    /// Initiate a copy trade from a bet - creates pending copy and returns Jupiter URL
+    /// If delegation is active, the Firestore trigger will auto-execute
+    func initiateCopy(
+        bet: PredictionBet,
+        copyAmount: Double
+    ) async throws -> (pendingCopy: PendingCopyTrade?, jupiterUrl: URL?) {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            throw PredictionCopyError.notAuthenticated
+        }
+
+        // Get user's wallet address
+        let userDoc = try await db.collection("users").document(userId).getDocument()
+        guard let userData = userDoc.data(),
+              let userWalletAddress = userData["walletAddress"] as? String else {
+            throw PredictionCopyError.noWalletAddress
+        }
+
+        isLoading = true
+        error = nil
+
+        defer { isLoading = false }
+
+        // Create pending copy trade document
+        let docRef = db.collection("pending_copy_trades").document()
+        let now = Date()
+        let expiresAt = now.addingTimeInterval(300) // 5 minutes
+
+        let copyData: [String: Any] = [
+            "userId": userId,
+            "userWalletAddress": userWalletAddress,
+            "betId": bet.id,
+            "trackedWallet": bet.walletAddress,
+            "trackedWalletNickname": bet.walletNickname ?? "",
+            "marketAddress": bet.marketAddress,
+            "marketTitle": bet.marketTitle ?? "",
+            "direction": bet.direction.rawValue,
+            "originalAmount": bet.amount,
+            "originalPrice": bet.avgPrice,
+            "suggestedAmount": copyAmount,
+            "status": "pending",
+            "createdAt": FieldValue.serverTimestamp(),
+            "expiresAt": Timestamp(date: expiresAt),
+            "source": "manual", // User initiated from bet detail
+        ]
+
+        try await docRef.setData(copyData)
+
+        logger.info("Created pending copy trade: \(docRef.documentID)")
+
+        // Build the pending copy object
+        let pendingCopy = PendingCopyTrade(
+            id: docRef.documentID,
+            userId: userId,
+            userWalletAddress: userWalletAddress,
+            betId: bet.id,
+            trackedWallet: bet.walletAddress,
+            trackedWalletNickname: bet.walletNickname,
+            marketAddress: bet.marketAddress,
+            marketTitle: bet.marketTitle,
+            direction: bet.direction.rawValue,
+            originalAmount: bet.amount,
+            originalPrice: bet.avgPrice,
+            suggestedAmount: copyAmount,
+            status: "pending",
+            createdAt: now,
+            expiresAt: expiresAt
+        )
+
+        // If delegation is active, the Firestore trigger handles execution
+        // Otherwise, provide Jupiter URL for manual execution
+        if delegationActive {
+            logger.info("Delegation active - auto-execute will handle this copy")
+            return (pendingCopy, nil)
+        } else {
+            let jupiterUrl = buildJupiterUrl(for: pendingCopy)
+            return (pendingCopy, jupiterUrl)
+        }
+    }
+
     /// Skip a pending copy trade
     func skipPendingCopy(_ copy: PendingCopyTrade) async {
         do {
@@ -630,6 +711,8 @@ enum PredictionCopyError: LocalizedError {
     case delegationFailed
     case revokeFailed
     case noDelegation
+    case noWalletAddress
+    case copyFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -641,6 +724,8 @@ enum PredictionCopyError: LocalizedError {
         case .delegationFailed: return "Failed to enable auto-copy"
         case .revokeFailed: return "Failed to disable auto-copy"
         case .noDelegation: return "Auto-copy not enabled"
+        case .noWalletAddress: return "No wallet address found. Please set up your wallet first."
+        case .copyFailed(let reason): return "Copy failed: \(reason)"
         }
     }
 }

@@ -371,9 +371,8 @@ async function buildCopyTransaction(
   newAccounts[0] = copyUserWallet;        // Replace user wallet
   newAccounts[5] = copyUserUsdcAta;       // Replace user's USDC ATA
 
-  // TODO: Properly encode amount in instruction data
-  // For now, use original instruction data (same bet structure)
-  const instructionData = Buffer.from(
+  // Encode the copy amount in instruction data
+  const originalData = Buffer.from(
     originalTx.transaction.message.instructions[
       originalTx.transaction.message.instructions.findIndex(
         (ix: any) => accountKeys[ix.programIdIndex].equals(PREDICTION_PROGRAM_ID)
@@ -381,6 +380,13 @@ async function buildCopyTransaction(
     ].data,
     "base64"
   );
+
+  // Modify the amount in instruction data
+  // Layout: [8 byte discriminator] ... [8 byte price] [8 byte amount]
+  // Amount is in micro-USDC (multiply by 1e6)
+  const instructionData = encodeInstructionWithAmount(originalData, copyAmountUsd);
+
+  logger.info(`Encoded copy amount: $${copyAmountUsd} -> ${copyAmountUsd * 1e6} micro-USDC`);
 
   // Create new instruction
   const newInstruction = new TransactionInstruction({
@@ -456,4 +462,36 @@ export async function autoExecutePredictionCopy(
       error: error.message || "Unknown error",
     };
   }
+}
+
+/**
+ * Encode instruction data with a new amount
+ * Keeps the original discriminator and price, replaces the amount
+ *
+ * Layout: [8 byte discriminator] [variable data] [8 byte price] [8 byte amount]
+ */
+function encodeInstructionWithAmount(originalData: Buffer, newAmountUsd: number): Buffer {
+  // Clone the original data
+  const data = Buffer.from(originalData);
+
+  // Amount is the last 8 bytes (little-endian u64)
+  // Convert USD to micro-USDC (6 decimals)
+  const microUsdc = BigInt(Math.floor(newAmountUsd * 1e6));
+
+  // Write the new amount at the last 8 bytes
+  const len = data.length;
+  data.writeBigUInt64LE(microUsdc, len - 8);
+
+  return data;
+}
+
+/**
+ * Calculate shares from amount and price
+ * shares = amount / price
+ */
+function calculateShares(amountUsd: number, pricePerShare: number): number {
+  if (pricePerShare <= 0 || pricePerShare > 1) {
+    return amountUsd; // Fallback to 1:1 if price is invalid
+  }
+  return amountUsd / pricePerShare;
 }

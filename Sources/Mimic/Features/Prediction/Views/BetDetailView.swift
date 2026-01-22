@@ -4,6 +4,15 @@ import SwiftUI
 struct BetDetailView: View {
     let bet: PredictionBet
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var copyService = PredictionCopyService.shared
+
+    // Copy flow state
+    @State private var showCopySheet = false
+    @State private var copyAmount: Double = 10
+    @State private var isCopying = false
+    @State private var copyError: String?
+    @State private var showCopySuccess = false
+    @State private var pendingCopy: PendingCopyTrade?
 
     var body: some View {
         NavigationStack {
@@ -35,6 +44,177 @@ struct BetDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                         .fontWeight(.medium)
+                }
+            }
+            .sheet(isPresented: $showCopySheet) {
+                copyTradeSheet
+            }
+            .alert("Copy Trade Submitted", isPresented: $showCopySuccess) {
+                Button("OK") { }
+            } message: {
+                if copyService.delegationActive {
+                    Text("Your copy trade is being executed automatically.")
+                } else {
+                    Text("Open Jupiter to complete your trade.")
+                }
+            }
+            .alert("Copy Failed", isPresented: .init(
+                get: { copyError != nil },
+                set: { if !$0 { copyError = nil } }
+            )) {
+                Button("OK") { copyError = nil }
+            } message: {
+                Text(copyError ?? "Unknown error")
+            }
+            .task {
+                await copyService.loadDelegationStatus()
+            }
+        }
+    }
+
+    // MARK: - Copy Trade Sheet
+
+    private var copyTradeSheet: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                // Trade info
+                VStack(spacing: 8) {
+                    Text(bet.marketTitle ?? "Unknown Market")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundColor(SemanticColors.textPrimary)
+                        .multilineTextAlignment(.center)
+
+                    HStack(spacing: 8) {
+                        Text(bet.direction.displayName)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(bet.direction == .yes ? SemanticColors.success : SemanticColors.error)
+
+                        Text("@")
+                            .foregroundColor(SemanticColors.textSecondary)
+
+                        Text("\(Int(bet.avgPrice * 100))¢")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(SemanticColors.textPrimary)
+                    }
+                }
+                .padding(.top, 8)
+
+                Divider()
+
+                // Amount selector
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Copy Amount (USDC)")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(SemanticColors.textSecondary)
+
+                    HStack(spacing: 12) {
+                        ForEach([5.0, 10.0, 25.0, 50.0], id: \.self) { amount in
+                            Button(action: { copyAmount = amount }) {
+                                Text("$\(Int(amount))")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(copyAmount == amount ? .white : SemanticColors.textPrimary)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(copyAmount == amount ? Color(BrandColors.primary) : Color(.secondarySystemBackground))
+                                    .cornerRadius(10)
+                            }
+                        }
+                    }
+
+                    // Original bet comparison
+                    Text("Original bet: \(bet.formattedAmount)")
+                        .font(.system(size: 13))
+                        .foregroundColor(SemanticColors.textSecondary)
+                }
+
+                // Delegation status
+                VStack(spacing: 8) {
+                    if copyService.delegationActive {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bolt.fill")
+                                .foregroundColor(SemanticColors.success)
+                            Text("Auto-execute enabled")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(SemanticColors.success)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(SemanticColors.success.opacity(0.1))
+                        .cornerRadius(10)
+                    } else {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.up.right.square")
+                                .foregroundColor(SemanticColors.textSecondary)
+                            Text("Opens Jupiter to complete")
+                                .font(.system(size: 14))
+                                .foregroundColor(SemanticColors.textSecondary)
+                        }
+                    }
+                }
+
+                Spacer()
+
+                // Execute button
+                Button(action: executeCopy) {
+                    HStack {
+                        if isCopying {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Image(systemName: copyService.delegationActive ? "bolt.fill" : "arrow.up.right.square")
+                            Text(copyService.delegationActive ? "Execute Copy" : "Open Jupiter")
+                        }
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(isCopying ? Color.gray : Color(BrandColors.primary))
+                    .cornerRadius(12)
+                }
+                .disabled(isCopying)
+            }
+            .padding(20)
+            .navigationTitle("Copy Trade")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") {
+                        showCopySheet = false
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    private func executeCopy() {
+        isCopying = true
+
+        Task {
+            do {
+                let result = try await copyService.initiateCopy(
+                    bet: bet,
+                    copyAmount: copyAmount
+                )
+
+                await MainActor.run {
+                    pendingCopy = result.pendingCopy
+                    showCopySheet = false
+                    isCopying = false
+
+                    if let jupiterUrl = result.jupiterUrl {
+                        // Manual flow - open Jupiter
+                        UIApplication.shared.open(jupiterUrl)
+                    } else {
+                        // Auto-execute flow - show success
+                        showCopySuccess = true
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    copyError = error.localizedDescription
+                    isCopying = false
                 }
             }
         }
@@ -280,9 +460,11 @@ struct BetDetailView: View {
 
     private var actionsCard: some View {
         VStack(spacing: 12) {
+            let _ = print("📊 actionsCard: canCopy=\(bet.canCopy), status=\(bet.status)")
             if bet.canCopy && bet.status == .open {
                 Button(action: {
-                    // TODO: Copy trade action
+                    print("🔵 Copy button tapped! Showing sheet...")
+                    showCopySheet = true
                 }) {
                     HStack {
                         Image(systemName: "doc.on.doc.fill")

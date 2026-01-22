@@ -3,6 +3,7 @@ import PrivySDK
 import FirebaseAuth
 import FirebaseFirestore
 import AuthenticationServices
+import CryptoKit
 import OSLog
 
 private let logger = Logger(subsystem: "com.syndicatemike.Mimic", category: "HybridPrivyService")
@@ -230,16 +231,9 @@ class HybridPrivyService: ObservableObject {
             } catch {
                 logger.error("Failed to create server wallet: \(error.localizedDescription)")
                 error.report(context: "Server wallet creation")
-                // Fallback to client-side creation (won't have auth key for auto-convert)
-                do {
-                    logger.debug("Falling back to client-side wallet creation...")
-                    let solanaWallet = try await privyUser.createSolanaWallet()
-                    wallet = solanaWallet.address
-                    logger.debug("Created client-side wallet")
-                } catch {
-                    logger.error("Client-side wallet creation failed: \(error.localizedDescription)")
-                    error.report(context: "Client-side wallet creation")
-                }
+                // DO NOT fallback to client-side creation - it creates a duplicate wallet
+                // The server wallet was likely created but response failed
+                // User will need to retry or contact support
             }
         }
 
@@ -381,6 +375,51 @@ class HybridPrivyService: ObservableObject {
         return (signature: signature, walletAddress: wallet.address)
     }
 
+    // MARK: - Signer Management
+
+    /// Add a signer to the user's embedded wallet via Cloud Function
+    /// This enables server-side transaction signing for copy trading
+    func addSignerToWallet(signerQuorumId: String, policyIds: [String] = []) async throws -> Bool {
+        guard let privy = privyClient else {
+            throw HybridPrivyError.authenticationFailed("Privy not initialized")
+        }
+
+        guard case .authenticated(let privyUser) = await privy.getAuthState() else {
+            throw HybridPrivyError.authenticationFailed("User not authenticated")
+        }
+
+        // Get the user's access token
+        let accessToken = try await privyUser.getAccessToken()
+        logger.debug("Got access token for signer request")
+
+        // Get wallet address
+        guard let wallet = privyUser.embeddedSolanaWallets.first else {
+            throw HybridPrivyError.authenticationFailed("No Solana wallet found")
+        }
+
+        // Call Cloud Function to add signer (keeps app secret secure on server)
+        let result = try await firebaseCallable.call(
+            "addSignerToWallet",
+            data: [
+                "privyAccessToken": accessToken,
+                "walletAddress": wallet.address,
+                "signerQuorumId": signerQuorumId,
+                "policyIds": policyIds
+            ]
+        )
+
+        if let data = result.data as? [String: Any],
+           let success = data["success"] as? Bool, success {
+            logger.info("✅ Successfully added signer to wallet")
+            return true
+        } else {
+            let data = result.data as? [String: Any]
+            let error = data?["error"] as? String ?? "Unknown error"
+            logger.error("❌ Failed to add signer: \(error)")
+            throw HybridPrivyError.authenticationFailed("Failed to add signer: \(error)")
+        }
+    }
+
     // MARK: - Cached Auth Helpers
 
     /// Cache user data for fast startup
@@ -504,7 +543,27 @@ class HybridPrivyService: ObservableObject {
             }
         } catch {
             logger.error("Background session validation failed: \(error.localizedDescription)")
-            // Don't log out - the cached session is still valid for now
+
+            // Token is stale - try to re-authenticate via Privy
+            logger.info("Attempting to re-authenticate via Privy...")
+            if let privyUser = await privyClient?.getUser() {
+                do {
+                    _ = try await bridgeToFirebase(privyUser: privyUser)
+                    logger.info("Re-authentication successful")
+                    await MainActor.run {
+                        self.cacheUserState()
+                    }
+                } catch {
+                    logger.error("Re-authentication failed: \(error.localizedDescription)")
+                    // Session is invalid - log out to force fresh login
+                    await MainActor.run {
+                        self.isAuthenticated = false
+                        self.currentUser = nil
+                        self.walletAddress = nil
+                        self.clearCachedState()
+                    }
+                }
+            }
         }
     }
 }

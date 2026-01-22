@@ -6,7 +6,8 @@
  *
  * Features:
  * - Parses bet data from transactions
- * - Fetches market title/category from Jupiter API
+ * - Uses Market Registry for market metadata (not Jupiter API - doesn't exist)
+ * - Fetches live prices from Kalshi API
  * - Sends push notifications to users tracking the wallet
  */
 
@@ -20,16 +21,23 @@ import {
   USDC_MINT,
   PredictionBet,
   BetDirection,
+  INSTRUCTION_DISCRIMINATORS,
 } from "./prediction-config";
 import { KALSHI_API } from "./kalshi-config";
+import {
+  getMarketMapping,
+  getMarketByToken,
+  fetchKalshiMarketData,
+  MarketMapping,
+} from "./market-registry";
+import { parseJupiterMarketAccount } from "./jupiter-account-parser";
+import { processPredictionCopy, PredictionCopyRequest } from "./execute-prediction-copy";
 
 const db = getFirestore();
 
 // Webhook secret for verification
 export const PREDICTION_WEBHOOK_SECRET = defineSecret("PREDICTION_WEBHOOK_SECRET");
-
-// Jupiter Prediction Markets API
-const JUPITER_MARKETS_API = "https://markets-api.jup.ag";
+const HELIUS_API_KEY = defineSecret("HELIUS_API_KEY");
 
 interface HeliusTransaction {
   signature: string;
@@ -69,30 +77,15 @@ interface HeliusTransaction {
   };
 }
 
-interface JupiterMarket {
-  id: string;
-  eventId?: string;  // Kalshi market ticker
-  title: string;
-  description?: string;
-  category?: string;
-  status: string;
-  yesToken: string;
-  noToken: string;
-  yesPrice: number;
-  noPrice: number;
-  endTime?: string;
-  resolved?: boolean;
-  outcome?: "YES" | "NO";
-}
-
 interface KalshiMarketData {
   ticker: string;
+  title: string;
+  category?: string;
   yesBid: number;
   yesAsk: number;
   midPrice: number;
   spread: number;
   volume: number;
-  lastPrice: number;
 }
 
 /**
@@ -100,7 +93,7 @@ interface KalshiMarketData {
  */
 export const predictionWebhook = onRequest(
   {
-    secrets: [PREDICTION_WEBHOOK_SECRET],
+    secrets: [PREDICTION_WEBHOOK_SECRET, HELIUS_API_KEY],
     cors: false,
     invoker: "public",
   },
@@ -163,35 +156,66 @@ export const predictionWebhook = onRequest(
           const smartMoneyWallet = smartMoneySnapshot.docs[0].data();
           bet.walletNickname = smartMoneyWallet.nickname;
 
-          // Fetch market info from Jupiter API
-          const marketInfo = await fetchMarketInfo(bet.marketAddress);
+          // VALIDATION: Get market data from registry (backed by Kalshi)
+          const marketMapping = await getMarketMapping(bet.marketAddress);
+
+          // REQUIREMENT 1: Must have Kalshi mapping
+          if (!marketMapping) {
+            logger.warn(`REJECTED: No market mapping for ${bet.marketAddress}`);
+            await flagUnmappedMarket(bet.marketAddress, predictionInstruction.accounts, tx.timestamp);
+            continue; // Skip this bet
+          }
+
+          // REQUIREMENT 2: Market must be open (not resolved)
+          if (marketMapping.status === "resolved") {
+            logger.warn(`REJECTED: Market ${bet.marketAddress} is already resolved`);
+            continue; // Skip this bet
+          }
+
+          // REQUIREMENT 3: Must have valid amount
+          if (!bet.amount || bet.amount <= 0) {
+            logger.warn(`REJECTED: Invalid amount ${bet.amount} for tx ${tx.signature}`);
+            continue; // Skip this bet
+          }
+
+          // REQUIREMENT 4: Must have valid shares
+          if (!bet.shares || bet.shares <= 0) {
+            logger.warn(`REJECTED: Invalid shares ${bet.shares} for tx ${tx.signature}`);
+            continue; // Skip this bet
+          }
+
+          // All validation passed - enrich with market data
+          bet.marketTitle = marketMapping.title;
+          bet.marketCategory = marketMapping.category;
+
           let kalshiData: KalshiMarketData | null = null;
 
-          if (marketInfo) {
-            bet.marketTitle = marketInfo.title;
-            bet.marketCategory = marketInfo.category;
+          // Use CACHED Kalshi prices from the mapping (avoid API call per bet)
+          if (marketMapping.kalshiMidPrice !== undefined) {
+            kalshiData = {
+              ticker: marketMapping.kalshiTicker,
+              title: marketMapping.title,
+              category: marketMapping.category,
+              yesBid: marketMapping.kalshiYesBid || 0,
+              yesAsk: marketMapping.kalshiYesAsk || 0,
+              midPrice: marketMapping.kalshiMidPrice,
+              spread: (marketMapping.kalshiYesAsk || 0) - (marketMapping.kalshiYesBid || 0),
+              volume: 0,
+            };
 
             // Refine shares estimate if we have market price data
             if (bet.sharesEstimated && bet.amount > 0) {
-              const marketPrice = bet.direction === "YES" ? marketInfo.yesPrice : marketInfo.noPrice;
+              const marketPrice = bet.direction === "YES" ? kalshiData.midPrice : (1 - kalshiData.midPrice);
               if (marketPrice && marketPrice > 0 && marketPrice < 1) {
                 bet.avgPrice = marketPrice;
                 bet.shares = bet.amount / marketPrice;
-                logger.info(`Refined shares estimate using market price: ${bet.shares.toFixed(2)} shares at ${(marketPrice * 100).toFixed(1)}¢`);
+                logger.info(`Refined shares estimate using cached Kalshi price: ${bet.shares.toFixed(2)} shares at ${(marketPrice * 100).toFixed(1)}¢`);
               }
-            }
-
-            // Cache market data for future lookups
-            await cacheMarketData(bet.marketAddress, marketInfo);
-
-            // Fetch Kalshi price at time of trade for context
-            if (marketInfo.eventId) {
-              kalshiData = await fetchKalshiPrice(marketInfo.eventId);
             }
           }
 
-          // Store in Firestore with Kalshi data
-          const betRef = await db.collection("prediction_bets").doc(tx.signature).set({
+          // Store validated bet in Firestore
+          await db.collection("prediction_bets").doc(tx.signature).set({
             ...bet,
             createdAt: FieldValue.serverTimestamp(),
             // Kalshi market data at time of trade
@@ -211,6 +235,30 @@ export const predictionWebhook = onRequest(
           // Send push notifications to ALL users (global feed)
           if (bet.status === "open") {
             await sendBetNotifications(tx.feePayer, bet);
+          }
+
+          // Trigger auto-copy for users following this wallet
+          if (bet.canCopy && bet.verified) {
+            try {
+              const copyRequest: PredictionCopyRequest = {
+                userId: "", // Will be filled per-user in processPredictionCopy
+                betId: tx.signature,
+                trackedWallet: tx.feePayer,
+                marketAddress: bet.marketAddress,
+                marketTitle: bet.marketTitle,
+                direction: bet.direction,
+                originalAmount: bet.amount,
+                originalPrice: bet.avgPrice,
+              };
+
+              const copyResult = await processPredictionCopy(copyRequest);
+              if (copyResult.copiesCreated > 0) {
+                logger.info(`Auto-copy triggered: ${copyResult.copiesCreated} copies, ${copyResult.notificationsSent} notified`);
+              }
+            } catch (copyError) {
+              logger.error("Error triggering auto-copy:", copyError);
+              // Don't fail the main webhook for copy errors
+            }
           }
 
           processedCount++;
@@ -233,48 +281,31 @@ export const predictionWebhook = onRequest(
 );
 
 /**
- * Fetch market information from Jupiter Prediction API
+ * Flag an unmapped market for auto-discovery
  */
-async function fetchMarketInfo(marketAddress: string): Promise<JupiterMarket | null> {
+async function flagUnmappedMarket(
+  marketAddress: string,
+  instructionAccounts: string[],
+  timestamp: number
+): Promise<void> {
   try {
-    // First check cache
-    const cached = await db.collection("prediction_markets").doc(marketAddress).get();
-    if (cached.exists) {
-      const data = cached.data();
-      // Return cached if less than 1 hour old
-      const cacheAge = Date.now() - (data?.cachedAt?.toMillis() || 0);
-      if (cacheAge < 3600000) {
-        return data as JupiterMarket;
-      }
-    }
+    const existing = await db.collection("unmapped_markets").doc(marketAddress).get();
+    if (existing.exists) return; // Already flagged
 
-    // Fetch from Jupiter API
-    const response = await fetch(`${JUPITER_MARKETS_API}/markets/${marketAddress}`);
+    // Extract outcome token from instruction accounts
+    const outcomeToken = instructionAccounts[3] || "";
 
-    if (!response.ok) {
-      logger.warn(`Jupiter API returned ${response.status} for market ${marketAddress}`);
-      return null;
-    }
+    await db.collection("unmapped_markets").doc(marketAddress).set({
+      jupiterAddress: marketAddress,
+      outcomeToken,
+      firstSeenAt: new Date(timestamp * 1000),
+      betCount: 1,
+      createdAt: FieldValue.serverTimestamp(),
+    });
 
-    const market = await response.json() as JupiterMarket;
-    return market;
+    logger.info(`Flagged unmapped market: ${marketAddress}`);
   } catch (error) {
-    logger.error(`Error fetching market info for ${marketAddress}:`, error);
-    return null;
-  }
-}
-
-/**
- * Cache market data in Firestore for faster lookups
- */
-async function cacheMarketData(marketAddress: string, market: JupiterMarket): Promise<void> {
-  try {
-    await db.collection("prediction_markets").doc(marketAddress).set({
-      ...market,
-      cachedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
-  } catch (error) {
-    logger.error(`Error caching market data for ${marketAddress}:`, error);
+    logger.error(`Error flagging unmapped market ${marketAddress}:`, error);
   }
 }
 
@@ -623,28 +654,62 @@ async function parsePredictionBet(
         logger.warn(`Unusual avgPrice ${avgPrice} for tx ${tx.signature.slice(0, 8)}, capping at 1`);
         avgPrice = Math.min(avgPrice, 1);
       }
-    } else if (usdcSpent > 0 && sharesReceived === 0) {
-      // Fallback: estimate using default price
-      sharesReceived = usdcSpent / avgPrice;
-      sharesEstimated = true;
-      logger.info(`Estimated ${sharesReceived.toFixed(2)} shares for tx ${tx.signature.slice(0, 8)} (fallback)`);
     }
 
-    // Determine YES/NO direction
-    const direction: BetDirection = await determineDirection(outcomeToken, marketAddress);
+    // ALWAYS ensure shares > 0 for valid bets - estimate if needed
+    // Use 0.5 as default price if avgPrice is 0 or invalid
+    if (sharesReceived === 0 && amount > 0) {
+      const priceToUse = avgPrice > 0 && avgPrice <= 1 ? avgPrice : 0.5;
+      sharesReceived = amount / priceToUse;
+      sharesEstimated = true;
+      logger.info(`Estimated ${sharesReceived.toFixed(2)} shares for tx ${tx.signature.slice(0, 8)} (amount=${amount}, priceUsed=${priceToUse})`);
+    }
+
+    // Ensure avgPrice is valid for storage
+    if (avgPrice <= 0 || avgPrice > 1) {
+      avgPrice = 0.5;
+    }
+
+    // Determine YES/NO direction - MUST BE VERIFIED
+    const directionResult = await determineDirection(outcomeToken, marketAddress);
+
+    if (directionResult === null) {
+      // Direction could not be verified - flag for manual review
+      logger.error(`UNVERIFIED BET: ${tx.signature} - cannot determine direction for token ${outcomeToken}`);
+
+      // Store in unverified_bets collection for later processing
+      await db.collection("unverified_bets").doc(tx.signature).set({
+        signature: tx.signature,
+        walletAddress: tx.feePayer,
+        marketAddress,
+        outcomeToken,
+        amount,
+        shares: sharesReceived,
+        avgPrice,
+        timestamp: new Date(tx.timestamp * 1000),
+        reason: "direction_unverified",
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      return null; // Do NOT store as a valid bet
+    }
+
+    logger.info(`Direction verified: ${directionResult.direction} (${directionResult.confidence}) via ${directionResult.source}`);
 
     return {
       walletAddress: tx.feePayer,
       signature: tx.signature,
       timestamp: new Date(tx.timestamp * 1000),
       marketAddress,
-      direction,
+      direction: directionResult.direction,
       amount,
       shares: sharesReceived,
       avgPrice,
       sharesEstimated, // True if shares were estimated (minted tokens don't show in Helius)
       status: isPlacingBet ? "open" : "claimed",
       canCopy: isPlacingBet, // Only copy new bets
+      verified: true, // This bet has verified direction
+      confidence: directionResult.confidence, // high, medium, or low
     };
   } catch (error) {
     logger.error("Error parsing prediction bet:", error);
@@ -653,79 +718,88 @@ async function parsePredictionBet(
 }
 
 /**
- * Fetch Kalshi price data for a market at time of trade
- * Returns current bid/ask/mid prices for context
+ * Direction result with confidence level
  */
-async function fetchKalshiPrice(eventId: string | undefined): Promise<KalshiMarketData | null> {
-  if (!eventId) {
-    return null;
-  }
-
-  try {
-    // Jupiter eventId maps directly to Kalshi market ticker (e.g., "KXSB-26" -> ticker)
-    const url = `${KALSHI_API}/markets/${eventId}`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      logger.warn(`Kalshi API returned ${response.status} for market ${eventId}`);
-      return null;
-    }
-
-    const data = await response.json();
-    const market = data.market;
-
-    if (!market) {
-      return null;
-    }
-
-    // Kalshi prices are in cents (0-100), convert to decimal (0-1)
-    const yesBid = (market.yes_bid || 0) / 100;
-    const yesAsk = (market.yes_ask || 0) / 100;
-    const midPrice = (yesBid + yesAsk) / 2;
-    const spread = yesAsk - yesBid;
-
-    return {
-      ticker: eventId,
-      yesBid,
-      yesAsk,
-      midPrice,
-      spread,
-      volume: market.volume || 0,
-      lastPrice: (market.last_price || 0) / 100,
-    };
-  } catch (error) {
-    logger.error(`Error fetching Kalshi price for ${eventId}:`, error);
-    return null;
-  }
+interface DirectionResult {
+  direction: BetDirection;
+  confidence: "high" | "medium" | "low";
+  source: string;
 }
 
 /**
  * Determine if the outcome token is YES or NO
- * This requires fetching market data or using cached info
+ * Uses VERIFIED on-chain data only - NO GUESSING
+ * Returns null if direction cannot be verified
  */
 async function determineDirection(
   outcomeToken: string,
   marketAddress: string
-): Promise<BetDirection> {
-  // Try to get from cache first
-  const marketDoc = await db.collection("prediction_markets").doc(marketAddress).get();
+): Promise<DirectionResult | null> {
+  // 1. Try market registry first (already verified)
+  const mapping = await getMarketMapping(marketAddress);
+  if (mapping && mapping.yesTokenMint && mapping.noTokenMint) {
+    if (mapping.yesTokenMint === outcomeToken) {
+      return { direction: "YES", confidence: "medium", source: "cached_registry" };
+    }
+    if (mapping.noTokenMint === outcomeToken) {
+      return { direction: "NO", confidence: "medium", source: "cached_registry" };
+    }
+  }
 
+  // 2. Try to find by token across all mappings
+  const tokenMatch = await getMarketByToken(outcomeToken);
+  if (tokenMatch) {
+    return { direction: tokenMatch.direction, confidence: "medium", source: "token_lookup" };
+  }
+
+  // 3. Parse on-chain market account to get verified YES/NO tokens (HIGHEST CONFIDENCE)
+  try {
+    const apiKey = HELIUS_API_KEY.value();
+    const marketAccount = await parseJupiterMarketAccount(marketAddress, apiKey);
+
+    if (marketAccount && marketAccount.verified) {
+      // Cache the verified tokens in the registry for future lookups
+      await db.collection("market_mappings").doc(marketAddress).set({
+        jupiterAddress: marketAddress,
+        yesTokenMint: marketAccount.yesTokenMint,
+        noTokenMint: marketAccount.noTokenMint,
+        source: "on-chain-verified",
+        verified: true,
+        status: "active",
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+
+      logger.info(`Verified market ${marketAddress} on-chain: YES=${marketAccount.yesTokenMint}, NO=${marketAccount.noTokenMint}`);
+
+      if (marketAccount.yesTokenMint === outcomeToken) {
+        return { direction: "YES", confidence: "high", source: "on_chain_verified" };
+      }
+      if (marketAccount.noTokenMint === outcomeToken) {
+        return { direction: "NO", confidence: "high", source: "on_chain_verified" };
+      }
+    }
+  } catch (error) {
+    logger.error(`Error parsing market account ${marketAddress}:`, error);
+  }
+
+  // 4. Check legacy cache (for backwards compatibility with verified data)
+  const marketDoc = await db.collection("prediction_markets").doc(marketAddress).get();
   if (marketDoc.exists) {
     const data = marketDoc.data();
-    if (data?.yesToken === outcomeToken) return "YES";
-    if (data?.noToken === outcomeToken) return "NO";
+    if (data?.verified === true) {
+      if (data?.yesToken === outcomeToken) {
+        return { direction: "YES", confidence: "low", source: "legacy_cache" };
+      }
+      if (data?.noToken === outcomeToken) {
+        return { direction: "NO", confidence: "low", source: "legacy_cache" };
+      }
+    }
   }
 
-  // Try to fetch from API
-  const marketInfo = await fetchMarketInfo(marketAddress);
-  if (marketInfo) {
-    if (marketInfo.yesToken === outcomeToken) return "YES";
-    if (marketInfo.noToken === outcomeToken) return "NO";
-  }
-
-  // Default to YES if we can't determine
-  logger.warn(`Could not determine direction for token ${outcomeToken} in market ${marketAddress}`);
-  return "YES";
+  // NO GUESSING - return null if we can't verify
+  logger.error(`UNVERIFIED: Could not determine direction for token ${outcomeToken} in market ${marketAddress}`);
+  return null;
 }
 
 /**

@@ -26,18 +26,22 @@ class PredictionService: ObservableObject {
 
     @Published var smartMoneyWallets: [SmartMoneyWallet] = []
     @Published var betFeed: [PredictionBet] = []
+    @Published var hotMarkets: [HotMarket] = []
     @Published var isLoadingWallets = false
     @Published var isLoadingFeed = false
+    @Published var isLoadingHotMarkets = false
     @Published var errorMessage: String?
 
     private var lastBetDocument: DocumentSnapshot?
     private var hasMoreFeed = true
     private var feedListener: ListenerRegistration?
+    private var hotMarketsListener: ListenerRegistration?
 
     private init() {}
 
     deinit {
         feedListener?.remove()
+        hotMarketsListener?.remove()
     }
 
     // MARK: - Smart Money Wallets (Curated List)
@@ -86,22 +90,18 @@ class PredictionService: ObservableObject {
         errorMessage = nil
 
         do {
-            // Query ALL prediction bets (they're all from smart money wallets)
+            // Query prediction bets (validation happens at webhook level)
             var query: Query = db.collection("prediction_bets")
                 .order(by: "timestamp", descending: true)
                 .limit(to: 20)
 
-            // Apply filter
+            // Apply status filters at query level (more efficient)
             switch filter {
-            case .yes:
-                query = query.whereField("direction", isEqualTo: "YES")
-            case .no:
-                query = query.whereField("direction", isEqualTo: "NO")
             case .open:
                 query = query.whereField("status", isEqualTo: "open")
             case .resolved:
                 query = query.whereField("status", in: ["won", "lost", "claimed"])
-            case .all:
+            default:
                 break
             }
 
@@ -112,8 +112,28 @@ class PredictionService: ObservableObject {
 
             let snapshot = try await query.getDocuments()
 
-            let newBets = snapshot.documents.compactMap { doc in
+            var newBets = snapshot.documents.compactMap { doc in
                 parsePredictionBet(doc)
+            }.filter { bet in
+                // Filter out invalid bets (must have amount > 0)
+                bet.amount > 0
+            }
+
+            // Apply category filter client-side
+            if let categoryMatches = filter.categoryMatches {
+                newBets = newBets.filter { bet in
+                    // Check category field first
+                    if let category = bet.marketCategory?.lowercased() {
+                        if categoryMatches.contains(where: { category.contains($0.lowercased()) }) {
+                            return true
+                        }
+                    }
+                    // Fallback: check market title for keywords
+                    if let title = bet.marketTitle?.lowercased() {
+                        return categoryMatches.contains { title.contains($0.lowercased()) }
+                    }
+                    return false
+                }
             }
 
             if refresh {
@@ -164,6 +184,9 @@ class PredictionService: ObservableObject {
                 Task { @MainActor in
                     self.betFeed = documents.compactMap { doc in
                         self.parsePredictionBet(doc)
+                    }.filter { bet in
+                        // Filter out invalid bets (must have amount > 0)
+                        bet.amount > 0
                     }
                 }
             }
@@ -172,6 +195,64 @@ class PredictionService: ObservableObject {
     func stopFeedListener() {
         feedListener?.remove()
         feedListener = nil
+    }
+
+    // MARK: - Hot Markets (Trending)
+
+    /// Load hot markets where multiple smart bettors are converging
+    func loadHotMarkets() async {
+        guard !isLoadingHotMarkets else { return }
+
+        isLoadingHotMarkets = true
+
+        do {
+            let snapshot = try await db.collection("hot_markets")
+                .whereField("isActive", isEqualTo: true)
+                .order(by: "totalBettors", descending: true)
+                .limit(to: 20)
+                .getDocuments()
+
+            hotMarkets = snapshot.documents.compactMap { doc in
+                parseHotMarket(doc)
+            }
+
+            logger.info("Loaded \(self.hotMarkets.count) hot markets")
+        } catch {
+            logger.error("Failed to load hot markets: \(error.localizedDescription)")
+        }
+
+        isLoadingHotMarkets = false
+    }
+
+    /// Start real-time listener for hot markets
+    func startHotMarketsListener() {
+        hotMarketsListener?.remove()
+
+        hotMarketsListener = db.collection("hot_markets")
+            .whereField("isActive", isEqualTo: true)
+            .order(by: "totalBettors", descending: true)
+            .limit(to: 20)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self else { return }
+
+                if let error = error {
+                    self.logger.error("Hot markets listener error: \(error.localizedDescription)")
+                    return
+                }
+
+                guard let documents = snapshot?.documents else { return }
+
+                Task { @MainActor in
+                    self.hotMarkets = documents.compactMap { doc in
+                        self.parseHotMarket(doc)
+                    }
+                }
+            }
+    }
+
+    func stopHotMarketsListener() {
+        hotMarketsListener?.remove()
+        hotMarketsListener = nil
     }
 
     // MARK: - Wallet Stats
@@ -283,17 +364,56 @@ class PredictionService: ObservableObject {
         }
 
         let direction: PredictionBet.BetDirection
+        // Check both 'direction' and 'position' for backwards compatibility
         if let dirStr = data["direction"] as? String {
             direction = PredictionBet.BetDirection(rawValue: dirStr) ?? .yes
+        } else if let posStr = data["position"] as? String {
+            direction = PredictionBet.BetDirection(rawValue: posStr) ?? .yes
         } else {
             direction = .yes
         }
 
         let status: PredictionBet.BetStatus
         if let statusStr = data["status"] as? String {
-            status = PredictionBet.BetStatus(rawValue: statusStr) ?? .open
+            // Map "pending" to "open" for backwards compatibility
+            let normalizedStatus = statusStr == "pending" ? "open" : statusStr
+            status = PredictionBet.BetStatus(rawValue: normalizedStatus) ?? .open
         } else {
             status = .open
+        }
+
+        // Parse numeric fields (handle both Int and Double from Firestore)
+        let amount: Double
+        if let d = data["amount"] as? Double {
+            amount = d
+        } else if let i = data["amount"] as? Int {
+            amount = Double(i)
+        } else if let n = data["amount"] as? NSNumber {
+            amount = n.doubleValue
+        } else {
+            amount = 0
+        }
+
+        let shares: Double
+        if let d = data["shares"] as? Double {
+            shares = d
+        } else if let i = data["shares"] as? Int {
+            shares = Double(i)
+        } else if let n = data["shares"] as? NSNumber {
+            shares = n.doubleValue
+        } else {
+            shares = 0
+        }
+
+        let avgPrice: Double
+        if let d = data["avgPrice"] as? Double {
+            avgPrice = d
+        } else if let i = data["avgPrice"] as? Int {
+            avgPrice = Double(i)
+        } else if let n = data["avgPrice"] as? NSNumber {
+            avgPrice = n.doubleValue
+        } else {
+            avgPrice = 0
         }
 
         return PredictionBet(
@@ -306,12 +426,62 @@ class PredictionService: ObservableObject {
             marketTitle: data["marketTitle"] as? String,
             marketCategory: data["marketCategory"] as? String,
             direction: direction,
-            amount: data["amount"] as? Double ?? 0,
-            shares: data["shares"] as? Double ?? 0,
-            avgPrice: data["avgPrice"] as? Double ?? 0,
+            amount: amount,
+            shares: shares,
+            avgPrice: avgPrice,
             status: status,
             pnl: data["pnl"] as? Double,
             canCopy: data["canCopy"] as? Bool ?? true
+        )
+    }
+
+    private func parseHotMarket(_ doc: DocumentSnapshot) -> HotMarket? {
+        let data = doc.data() ?? [:]
+
+        guard let marketAddress = data["marketAddress"] as? String else {
+            return nil
+        }
+
+        let firstBetAt: Date?
+        if let ts = data["firstBetAt"] as? Timestamp {
+            firstBetAt = ts.dateValue()
+        } else {
+            firstBetAt = nil
+        }
+
+        let lastBetAt: Date?
+        if let ts = data["lastBetAt"] as? Timestamp {
+            lastBetAt = ts.dateValue()
+        } else {
+            lastBetAt = nil
+        }
+
+        let detectedAt: Date?
+        if let ts = data["detectedAt"] as? Timestamp {
+            detectedAt = ts.dateValue()
+        } else {
+            detectedAt = nil
+        }
+
+        return HotMarket(
+            id: doc.documentID,
+            marketAddress: marketAddress,
+            marketTitle: data["marketTitle"] as? String,
+            category: data["category"] as? String,
+            kalshiTicker: data["kalshiTicker"] as? String,
+            totalBettors: data["totalBettors"] as? Int ?? 0,
+            yesBettors: data["yesBettors"] as? Int ?? 0,
+            noBettors: data["noBettors"] as? Int ?? 0,
+            consensusDirection: data["consensusDirection"] as? String ?? "SPLIT",
+            consensusPercentage: data["consensusPercentage"] as? Double ?? 0,
+            totalVolume: data["totalVolume"] as? Double ?? 0,
+            yesVolume: data["yesVolume"] as? Double ?? 0,
+            noVolume: data["noVolume"] as? Double ?? 0,
+            firstBetAt: firstBetAt,
+            lastBetAt: lastBetAt,
+            detectedAt: detectedAt,
+            isActive: data["isActive"] as? Bool ?? true,
+            heatLevel: data["heatLevel"] as? String ?? "warm"
         )
     }
 }
@@ -320,16 +490,22 @@ class PredictionService: ObservableObject {
 
 enum BetFeedFilter: String, CaseIterable {
     case all
-    case yes
-    case no
+    case trending
+    case sports
+    case crypto
+    case politics
+    case economics
     case open
     case resolved
 
     var displayName: String {
         switch self {
         case .all: return "All"
-        case .yes: return "YES"
-        case .no: return "NO"
+        case .trending: return "Trending"
+        case .sports: return "Sports"
+        case .crypto: return "Crypto"
+        case .politics: return "Politics"
+        case .economics: return "Economics"
         case .open: return "Open"
         case .resolved: return "Resolved"
         }
@@ -338,10 +514,29 @@ enum BetFeedFilter: String, CaseIterable {
     var icon: String {
         switch self {
         case .all: return "list.bullet"
-        case .yes: return "checkmark.circle"
-        case .no: return "xmark.circle"
+        case .trending: return "flame.fill"
+        case .sports: return "sportscourt"
+        case .crypto: return "bitcoinsign.circle"
+        case .politics: return "building.columns"
+        case .economics: return "chart.line.uptrend.xyaxis"
         case .open: return "clock"
         case .resolved: return "flag.checkered"
+        }
+    }
+
+    /// Whether this filter shows hot markets instead of bets
+    var showsHotMarkets: Bool {
+        self == .trending
+    }
+
+    /// Keywords to match category or title
+    var categoryMatches: [String]? {
+        switch self {
+        case .sports: return ["sports", "nfl", "nba", "mlb", "nhl", "soccer", "football", "basketball", "baseball", "hockey", "championship", "playoff", "super bowl"]
+        case .crypto: return ["crypto", "bitcoin", "btc", "ethereum", "eth", "solana", "sol", "$150k", "$100k", "$200k"]
+        case .politics: return ["politics", "election", "trump", "biden", "president", "congress", "senate", "governor"]
+        case .economics: return ["economics", "finance", "fed", "rate", "inflation", "gdp", "recession", "unemployment", "interest rate"]
+        default: return nil
         }
     }
 }

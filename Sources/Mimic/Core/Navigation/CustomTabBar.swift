@@ -6,9 +6,9 @@ struct CustomTabBar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Subtle top border
+            // Subtle top border (like X)
             Rectangle()
-                .fill(SemanticColors.divider.opacity(0.3))
+                .fill(Color.primary.opacity(0.1))
                 .frame(height: 0.5)
 
             HStack(spacing: 0) {
@@ -71,22 +71,11 @@ struct CustomTabBar: View {
             }
             .padding(.top, Spacing.md)
             .padding(.bottom, Spacing.xs)
-            .background(
-                SemanticColors.backgroundPrimary
-                    .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: -4)
-                    .ignoresSafeArea()
-            )
         }
-        .background(Color.clear)
+        .background(.regularMaterial)
+        .ignoresSafeArea(.container, edges: .bottom)
     }
 
-    private func getSafeAreaBottom() -> CGFloat {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first else {
-            return 0
-        }
-        return window.safeAreaInsets.bottom
-    }
 }
 
 struct TabBarButton: View {

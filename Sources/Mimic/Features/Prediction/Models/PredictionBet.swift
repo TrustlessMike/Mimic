@@ -206,3 +206,60 @@ struct PredictorStats: Codable {
         return "\(prefix)$\(String(format: "%.0f", totalPnl))"
     }
 }
+
+/// Hot market - multiple smart bettors converging on same market
+struct HotMarket: Identifiable, Codable {
+    let id: String
+    let marketAddress: String
+    var marketTitle: String?
+    var category: String?
+    var kalshiTicker: String?
+
+    // Consensus data
+    let totalBettors: Int
+    let yesBettors: Int
+    let noBettors: Int
+    let consensusDirection: String // "YES", "NO", or "SPLIT"
+    let consensusPercentage: Double
+
+    // Volume data
+    let totalVolume: Double
+    let yesVolume: Double
+    let noVolume: Double
+
+    // Timing
+    let firstBetAt: Date?
+    let lastBetAt: Date?
+    let detectedAt: Date?
+
+    // Status
+    let isActive: Bool
+    let heatLevel: String // "warm", "hot", "fire"
+
+    /// Heat emoji based on level
+    var heatEmoji: String {
+        switch heatLevel {
+        case "fire": return "🔥"
+        case "hot": return "🔥"
+        default: return "📈"
+        }
+    }
+
+    /// Formatted consensus
+    var formattedConsensus: String {
+        if consensusDirection == "SPLIT" {
+            return "Split"
+        }
+        return "\(Int(consensusPercentage * 100))% \(consensusDirection)"
+    }
+
+    /// Formatted volume
+    var formattedVolume: String {
+        "$\(String(format: "%.0f", totalVolume))"
+    }
+
+    /// Formatted bettors count
+    var formattedBettors: String {
+        "\(totalBettors) bettor\(totalBettors == 1 ? "" : "s")"
+    }
+}
