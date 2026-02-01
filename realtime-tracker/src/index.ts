@@ -128,7 +128,7 @@ async function start() {
   // Now initialize Firebase and start tracking
   try {
     await refreshSmartMoneyWallets();
-    await syncMarketMetadata(); // Initial sync of market metadata
+    await loadCachedMarkets(); // Load cached markets from Firestore (no API calls)
 
     // Try WebSocket but don't fail if it doesn't work - webhook is the backup
     try {
@@ -138,7 +138,7 @@ async function start() {
     }
 
     setInterval(refreshSmartMoneyWallets, 5 * 60 * 1000);
-    setInterval(syncMarketMetadata, 10 * 60 * 1000); // Sync markets every 10 min
+    // Removed expensive syncMarketMetadata interval - using cache only
 
     console.log("✅ Ready to receive webhook events at /webhook");
   } catch (error) {
@@ -149,164 +149,24 @@ async function start() {
 
 /**
  * Connect to Helius WebSocket
+ * DISABLED - WebSocket requires expensive Helius API calls per transaction
+ * Using webhook only which receives pre-enriched data
  */
 function connectWebSocket() {
-  console.log("📡 Connecting to Helius WebSocket...");
-
-  const ws = new WebSocket(HELIUS_WS_URL);
-
-  ws.on("open", () => {
-    stats.connected = true;
-    console.log("✅ Connected to Helius WebSocket");
-
-    // Subscribe to Jupiter Prediction Program
-    ws.send(JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "logsSubscribe",
-      params: [
-        { mentions: [JUPITER_PREDICTION_PROGRAM] },
-        { commitment: "confirmed" }
-      ]
-    }));
-  });
-
-  ws.on("message", async (data) => {
-    stats.lastMessage = Date.now();
-
-    try {
-      const msg = JSON.parse(data.toString());
-
-      if (msg.result !== undefined) {
-        console.log(`✅ Subscribed (ID: ${msg.result})`);
-        return;
-      }
-
-      if (msg.method === "logsNotification") {
-        const signature = msg.params.result.value.signature;
-        stats.txProcessed++;
-        await processTransaction(signature);
-      }
-    } catch (error) {
-      console.error("Message error:", error);
-    }
-  });
-
-  ws.on("error", (error) => {
-    console.error("WebSocket error:", error);
-    stats.connected = false;
-  });
-
-  ws.on("close", () => {
-    stats.connected = false;
-    console.log("⚠️ WebSocket closed, reconnecting in 3s...");
-    setTimeout(connectWebSocket, 3000);
-  });
-
-  // Ping every 30s to keep alive
-  setInterval(() => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.ping();
-    }
-  }, 30000);
+  console.log("📡 WebSocket disabled to save costs - using webhook only");
+  // WebSocket connection disabled to avoid expensive Helius API calls
+  // The webhook at /webhook receives pre-enriched transaction data
 }
 
 /**
- * Process transaction
+ * Process transaction (DISABLED - was used for WebSocket which is now disabled)
+ * This function made expensive Helius API calls per transaction
+ * Now using webhook only which receives pre-enriched data
  */
-async function processTransaction(signature: string) {
-  const startTime = Date.now();
-
-  try {
-    // Fetch enhanced transaction
-    const response = await fetch(
-      `https://api.helius.xyz/v0/transactions/?api-key=${HELIUS_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transactions: [signature] }),
-      }
-    );
-
-    const txData = await response.json() as any[];
-    const tx = txData[0];
-    if (!tx) return;
-
-    // Check if smart money
-    const walletInfo = smartMoneyWallets.get(tx.feePayer);
-    if (!walletInfo) return;
-
-    // Parse bet
-    const bet = parseBet(tx);
-    if (!bet || bet.amount === 0) return;
-
-    bet.walletNickname = walletInfo.nickname;
-
-    // Get market info (pass wallet to look up positions if needed)
-    const market = await getMarketInfo(bet.marketAddress, bet.walletAddress);
-    if (market) {
-      bet.marketTitle = market.title;
-      bet.marketCategory = market.category;
-    }
-
-    // Get accurate direction and price from wallet's positions via Jupiter API
-    // This is more reliable than parsing transaction data
-    console.log(`   Fetching position data from Jupiter API...`);
-    const positionData = await fetchWalletPosition(bet.walletAddress, bet.marketAddress);
-
-    if (positionData) {
-      console.log(`   API data: side=${positionData.side}, avgPrice=${positionData.avgPrice}, shares=${positionData.shares}`);
-
-      // Always prefer API data for direction (it's authoritative)
-      bet.direction = positionData.side;
-
-      // Use API price if we don't have a valid one from parsing
-      if (positionData.avgPrice > 0 && (bet.avgPrice === 0 || bet.avgPrice < 0.01 || bet.avgPrice > 0.99)) {
-        bet.avgPrice = positionData.avgPrice;
-      }
-
-      // Use API shares if we don't have valid ones
-      if (positionData.shares > 0 && bet.shares === 0) {
-        bet.shares = positionData.shares;
-      }
-    } else {
-      console.log(`   ⚠️ No position data from API, using parsed values`);
-    }
-
-    // Final sanity check - if avgPrice is still bad, estimate from market
-    if (bet.avgPrice === 0 && bet.amount > 0 && bet.shares > 0) {
-      bet.avgPrice = bet.amount / bet.shares;
-    }
-
-    // Log final values before saving
-    console.log(`   Final bet: ${bet.direction} $${bet.amount.toFixed(2)} @ ${(bet.avgPrice * 100).toFixed(0)}¢`);
-
-    // Save to Firestore
-    await db.collection("prediction_bets").doc(signature).set({
-      ...bet,
-      source: "realtime_websocket",
-      latencyMs: Date.now() - startTime,
-      createdAt: FieldValue.serverTimestamp(),
-    });
-
-    stats.betsFound++;
-
-    // Send push notification to all users
-    await sendNotification(bet);
-
-    // Trigger auto-copy for users following this wallet
-    triggerAutoCopy(bet, signature).catch((err) => {
-      console.error("Auto-copy trigger error:", err);
-    });
-
-    console.log(
-      `⚡ [${Date.now() - startTime}ms] ${walletInfo.nickname || tx.feePayer.slice(0, 8)}... ` +
-      `${bet.direction} $${bet.amount.toFixed(2)} "${bet.marketTitle || ""}"`
-    );
-
-  } catch (error) {
-    // Silently ignore - not all program txs are bets
-  }
+async function processTransaction(_signature: string) {
+  // DISABLED - WebSocket processing disabled to save costs
+  // Use processWebhookTransaction via the /webhook endpoint instead
+  return;
 }
 
 /**
@@ -329,30 +189,14 @@ async function processWebhookTransaction(tx: any) {
 
     bet.walletNickname = walletInfo.nickname;
 
-    // Get market info
-    const market = await getMarketInfo(bet.marketAddress, bet.walletAddress);
+    // Get market info from cache only (no expensive API calls)
+    const market = await getMarketInfo(bet.marketAddress);
     if (market) {
       bet.marketTitle = market.title;
       bet.marketCategory = market.category;
     }
 
-    // Get accurate direction and price from wallet's positions via Jupiter API
-    console.log(`   Fetching position data from Jupiter API...`);
-    const positionData = await fetchWalletPosition(bet.walletAddress, bet.marketAddress);
-
-    if (positionData) {
-      console.log(`   API data: side=${positionData.side}, avgPrice=${positionData.avgPrice}, shares=${positionData.shares}`);
-      bet.direction = positionData.side;
-      if (positionData.avgPrice > 0 && (bet.avgPrice === 0 || bet.avgPrice < 0.01 || bet.avgPrice > 0.99)) {
-        bet.avgPrice = positionData.avgPrice;
-      }
-      if (positionData.shares > 0 && bet.shares === 0) {
-        bet.shares = positionData.shares;
-      }
-    } else {
-      console.log(`   ⚠️ No position data from API, using parsed values`);
-    }
-
+    // Use parsed transaction data directly (no expensive Jupiter API calls)
     // Final sanity check
     if (bet.avgPrice === 0 && bet.amount > 0 && bet.shares > 0) {
       bet.avgPrice = bet.amount / bet.shares;
@@ -475,14 +319,13 @@ function parseBet(tx: any): any | null {
 }
 
 /**
- * Get market info from cache or fetch from API
- * Optimized: Uses parallel fetching for API fallbacks
+ * Get market info from cache only (no expensive API calls)
  */
-async function getMarketInfo(address: string, walletAddress?: string): Promise<any | null> {
+async function getMarketInfo(address: string): Promise<any | null> {
   try {
     // Check in-memory cache first (fastest)
     const memCached = marketCache.get(address);
-    if (memCached && Date.now() - memCached.cachedAt < 3600000) {
+    if (memCached) {
       return memCached;
     }
 
@@ -500,25 +343,7 @@ async function getMarketInfo(address: string, walletAddress?: string): Promise<a
       }
     }
 
-    // Not cached - fetch from APIs in parallel for better latency
-    const fetchPromises: Promise<any | null>[] = [
-      fetchMarketFromEvents(address),
-    ];
-
-    // Add positions fetch if wallet address provided
-    if (walletAddress) {
-      fetchPromises.unshift(fetchMarketFromPositions(walletAddress, address));
-    }
-
-    const results = await Promise.allSettled(fetchPromises);
-
-    // Return first successful result
-    for (const result of results) {
-      if (result.status === "fulfilled" && result.value) {
-        return result.value;
-      }
-    }
-
+    // No expensive API fallbacks - return null if not cached
     return null;
   } catch (error) {
     console.error(`Failed to get market info for ${address}:`, error);
@@ -527,246 +352,16 @@ async function getMarketInfo(address: string, walletAddress?: string): Promise<a
 }
 
 /**
- * Fetch wallet's position for a specific market to get direction and price
- * Returns the most recently created position (sorted by timestamp)
+ * Load cached markets from Firestore into memory (no API calls)
  */
-async function fetchWalletPosition(walletAddress: string, marketAddress: string): Promise<{ side: "YES" | "NO"; avgPrice: number; shares: number; marketId?: string } | null> {
-  try {
-    const res = await fetch(
-      `${JUPITER_PREDICTION_API}/positions?ownerPubkey=${walletAddress}&limit=50`
-    );
-    if (!res.ok) {
-      console.log(`   Position API returned ${res.status}`);
-      return null;
-    }
-
-    const data = await res.json() as any;
-    const positions = data.data || [];
-
-    console.log(`   Found ${positions.length} positions for wallet`);
-
-    if (positions.length === 0) return null;
-
-    // First try exact market match
-    for (const pos of positions) {
-      const posMarket = pos.marketId || pos.market;
-      if (posMarket === marketAddress) {
-        console.log(`   ✅ Exact market match: ${pos.side} @ ${pos.avgPrice || pos.averagePrice}`);
-        return {
-          side: pos.side?.toUpperCase() === "NO" ? "NO" : "YES",
-          avgPrice: pos.avgPrice || pos.averagePrice || 0,
-          shares: pos.shares || pos.quantity || 0,
-          marketId: posMarket,
-        };
-      }
-    }
-
-    // No exact match - use the most recent position (likely the one we just detected)
-    // Sort by creation time if available, otherwise use first item
-    const sortedPositions = positions.sort((a: any, b: any) => {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return timeB - timeA; // Most recent first
-    });
-
-    const pos = sortedPositions[0];
-    const posMarket = pos.marketId || pos.market;
-
-    console.log(`   Using most recent position: ${pos.side} @ ${pos.avgPrice || pos.averagePrice} (market: ${posMarket?.slice(0,8)}...)`);
-
-    return {
-      side: pos.side?.toUpperCase() === "NO" ? "NO" : "YES",
-      avgPrice: pos.avgPrice || pos.averagePrice || 0,
-      shares: pos.shares || pos.quantity || 0,
-      marketId: posMarket,
-    };
-  } catch (err) {
-    console.log(`   Position fetch error: ${err}`);
-    return null;
-  }
-}
-
-/**
- * Fetch market info by looking up wallet's positions
- */
-async function fetchMarketFromPositions(walletAddress: string, marketAddress: string): Promise<any | null> {
-  try {
-    const res = await fetch(
-      `${JUPITER_PREDICTION_API}/positions?ownerPubkey=${walletAddress}&limit=50`
-    );
-    if (!res.ok) return null;
-
-    const data = await res.json() as any;
-    const positions = data.data || [];
-
-    // Find position that matches this market (by checking accounts)
-    for (const pos of positions) {
-      const eventMeta = pos.eventMetadata;
-      const marketMeta = pos.marketMetadata;
-
-      if (!eventMeta?.title) continue;
-
-      // Cache all markets we find
-      const marketId = pos.marketId || pos.market;
-      if (marketId) {
-        const info = {
-          title: `${eventMeta.title}${marketMeta?.title ? ' - ' + marketMeta.title : ''}`,
-          category: eventMeta.category || "Unknown",
-          cachedAt: Date.now(),
-        };
-
-        marketCache.set(marketId, info);
-
-        // Also save to Firestore
-        await db.collection("prediction_markets").doc(marketId).set({
-          title: info.title,
-          category: info.category,
-          eventTitle: eventMeta.title,
-          marketTitle: marketMeta?.title,
-          isActive: eventMeta.isActive,
-          cachedAt: FieldValue.serverTimestamp(),
-        }, { merge: true });
-      }
-    }
-
-    // Return the most recent position's market info as best guess
-    if (positions.length > 0 && positions[0].eventMetadata) {
-      const pos = positions[0];
-      return {
-        title: `${pos.eventMetadata.title}${pos.marketMetadata?.title ? ' - ' + pos.marketMetadata.title : ''}`,
-        category: pos.eventMetadata.category || "Unknown",
-      };
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Fetch market info from active events
- */
-async function fetchMarketFromEvents(marketAddress: string): Promise<any | null> {
-  try {
-    const res = await fetch(`${JUPITER_PREDICTION_API}/events?status=active&limit=20`);
-    if (!res.ok) return null;
-
-    const data = await res.json() as any;
-    const events = data.data || [];
-
-    for (const event of events) {
-      const eventTitle = event.metadata?.title || event.eventId;
-      const category = event.category || "Unknown";
-
-      for (const market of event.markets || []) {
-        const marketId = market.marketId;
-        const fullTitle = `${eventTitle}${market.metadata?.title ? ' - ' + market.metadata.title : ''}`;
-
-        // Cache it
-        const info = { title: fullTitle, category, cachedAt: Date.now() };
-        marketCache.set(marketId, info);
-
-        // Save to Firestore
-        await db.collection("prediction_markets").doc(marketId).set({
-          title: fullTitle,
-          eventTitle,
-          marketTitle: market.metadata?.title,
-          category,
-          status: market.status,
-          cachedAt: FieldValue.serverTimestamp(),
-        }, { merge: true });
-      }
-    }
-
-    stats.marketsKnown = marketCache.size;
-    return null; // Address matching not implemented yet
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Sync market metadata by fetching positions from active wallets
- * This discovers markets by looking at what smart money is betting on
- */
-async function syncMarketMetadata() {
-  console.log("🔄 Syncing market metadata from Jupiter API...");
+async function loadCachedMarkets() {
+  console.log("📋 Loading cached markets from Firestore...");
 
   try {
-    // Fetch top traders from leaderboard
-    const leaderboardRes = await fetch(
-      `${JUPITER_PREDICTION_API}/leaderboards?period=weekly&metric=volume&limit=20`
-    );
-
-    if (!leaderboardRes.ok) {
-      console.error("Failed to fetch leaderboard");
-      return;
-    }
-
-    const leaderboardData = await leaderboardRes.json() as any;
-    const traders = leaderboardData.data || [];
-
-    let marketsFound = 0;
-
-    // Fetch positions for each trader to discover markets
-    for (const trader of traders.slice(0, 10)) {
-      try {
-        const positionsRes = await fetch(
-          `${JUPITER_PREDICTION_API}/positions?ownerPubkey=${trader.ownerPubkey}&limit=20`
-        );
-
-        if (!positionsRes.ok) continue;
-
-        const positionsData = await positionsRes.json() as any;
-        const positions = positionsData.data || [];
-
-        for (const position of positions) {
-          const marketId = position.marketId || position.market;
-          const eventMeta = position.eventMetadata;
-          const marketMeta = position.marketMetadata;
-
-          if (!marketId || !eventMeta?.title) continue;
-
-          // Check if we already have this market
-          if (marketCache.has(marketId)) continue;
-
-          // Cache in memory
-          marketCache.set(marketId, {
-            title: eventMeta.title,
-            category: eventMeta.category || "Unknown",
-            cachedAt: Date.now(),
-          });
-
-          // Save to Firestore
-          await db.collection("prediction_markets").doc(marketId).set({
-            title: eventMeta.title,
-            subtitle: eventMeta.subtitle,
-            category: eventMeta.category,
-            isActive: eventMeta.isActive,
-            marketTitle: marketMeta?.title,
-            marketStatus: marketMeta?.status,
-            cachedAt: FieldValue.serverTimestamp(),
-          }, { merge: true });
-
-          marketsFound++;
-        }
-
-        // Rate limit
-        await new Promise((r) => setTimeout(r, 200));
-      } catch (err) {
-        // Ignore individual wallet errors
-      }
-    }
-
-    stats.marketsKnown = marketCache.size;
-    console.log(`✅ Market sync complete: ${marketsFound} new markets, ${marketCache.size} total known`);
-
-    // Also load existing markets from Firestore into memory cache
     const existingMarkets = await db.collection("prediction_markets").limit(200).get();
     existingMarkets.docs.forEach((doc) => {
       const data = doc.data();
-      if (data.title && !marketCache.has(doc.id)) {
+      if (data.title) {
         marketCache.set(doc.id, {
           title: data.title,
           category: data.category || "Unknown",
@@ -776,8 +371,9 @@ async function syncMarketMetadata() {
     });
 
     stats.marketsKnown = marketCache.size;
+    console.log(`✅ Loaded ${marketCache.size} markets from cache`);
   } catch (error) {
-    console.error("Market sync error:", error);
+    console.error("Failed to load cached markets:", error);
   }
 }
 
