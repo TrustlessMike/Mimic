@@ -8,17 +8,20 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "cf:build": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion",
+    "cf:deploy": "npm run cf:build && opennextjs-cloudflare deploy",
     "start": "next start"
   },
   "dependencies": {
     "next": "^14.0.0",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "firebase-admin": "^12.0.0"
+    "react-dom": "^18.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.0.0",
+    "@opennextjs/cloudflare": "^1.19.6",
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
+    "@types/react": "^18.0.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^4.88.0"
   }
 }
